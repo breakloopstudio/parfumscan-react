@@ -6,6 +6,10 @@ import type { Parfum } from '../models';
 let _functions: any = null;
 try { _functions = require('@react-native-firebase/functions').default; } catch {}
 
+function fn() {
+  return _functions ? _functions('europe-west1') : null;
+}
+
 // ─── Types ─────────────────────────────────────────────────
 
 export interface FragranceResult {
@@ -75,8 +79,9 @@ export function fragellaToParfum(frag: FragranceResult): ParfumSearchResult {
 // ─── API ──────────────────────────────────────────────────
 
 export async function searchFragrance(marque: string, nom: string, typeParfum?: string | null): Promise<FragranceResult[]> {
-  if (!_functions) return [];
-  const callable = _functions().httpsCallable<{ marque: string; nom: string; typeParfum?: string | null }, { results: FragranceResult[] } | null>('searchFragrance');
+  const funcs = fn();
+  if (!funcs) return [];
+  const callable = funcs.httpsCallable<{ marque: string; nom: string; typeParfum?: string | null }, { results: FragranceResult[] } | null>('searchFragrance');
   try {
     const result = await callable({ marque, nom, typeParfum });
     const data = result.data as any;
@@ -88,8 +93,9 @@ export async function searchFragrance(marque: string, nom: string, typeParfum?: 
 }
 
 export async function searchFragranceByQuery(query: string): Promise<FragranceResult[]> {
-  if (!_functions) return [];
-  const callable = _functions().httpsCallable<{ query: string }, { results: FragranceResult[] } | null>('searchFragrance');
+  const funcs = fn();
+  if (!funcs) return [];
+  const callable = funcs.httpsCallable<{ query: string }, { results: FragranceResult[] } | null>('searchFragrance');
   try {
     const result = await callable({ query });
     const data = result.data as any;

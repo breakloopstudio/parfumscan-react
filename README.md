@@ -35,7 +35,7 @@
 | **Langage** | TypeScript 5.7 (strict) |
 | **Navigation** | Expo Router (file-based) + Reanimated pager |
 | **Animations** | React Native Reanimated 4, Gesture Handler 2 |
-| **Backend** | Firebase Auth, Firestore, Storage, Cloud Functions |
+| **Backend** | Firebase Auth, Firestore, Storage, Cloud Functions (europe-west1) |
 | **IA** | GPT-4o Vision (analyse photo), Fragella API (catalogue) |
 | **Formulaires** | React Hook Form 7 + Zod 4 |
 
@@ -83,6 +83,19 @@ npm run android   # ou npm run ios
 
 # Émulateurs Firebase locaux
 npm run emulators
+```
+
+### Build APK (installation sur téléphone)
+
+```bash
+# 1. Builder l'APK release
+build_release.bat
+
+# 2. L'APK est dans :
+#    android/app/build/outputs/apk/release/app-release.apk
+
+# 3. Transférer sur le téléphone (USB, cloud, Telegram...)
+# 4. Ouvrir le fichier .apk sur le téléphone → Installer
 ```
 
 ---
@@ -141,7 +154,13 @@ Idle → [Tap Scanner] → CameraView → [Capture]
 2. Télécharge `google-services.json` et place-le à la racine (⚠️ `.gitignore`-d)
 3. Active **Authentication** (Email/Password + Google)
 4. Active **Firestore Database** + **Storage**
-5. Déploie les Cloud Functions : `npm run functions:deploy`
+5. Déploie les Cloud Functions :
+   ```bash
+   firebase use parfumscan-60549
+   firebase deploy --only functions
+   # ⚠️ Les fonctions sont déployées en europe-west1
+   #    Le client doit utiliser _functions('europe-west1'), pas _functions()
+   ```
 6. Configure le `webClientId` Google Sign-In dans `app/_layout.tsx`
 
 ---
@@ -157,6 +176,7 @@ Idle → [Tap Scanner] → CameraView → [Capture]
 | `npm run functions:build` | Compile les Cloud Functions |
 | `npm run functions:deploy` | Déploie les Cloud Functions |
 | `npm run emulators` | Lance les émulateurs Firebase |
+| `build_release.bat` | Build APK release Android → `android/app/build/outputs/apk/release/` |
 
 ---
 
