@@ -1,15 +1,12 @@
-# Learn more https://docs.github.com/en/get-started/getting-started-with-git/ignoring-files
-
-# dependencies
+# ─── Dépendances ────────────────────────────────────────────────
 node_modules/
 
-# Expo
+# ─── Expo ────────────────────────────────────────────────────────
 .expo/
 dist/
 web-build/
-expo-env.d.ts
 
-# Native
+# ─── Native ──────────────────────────────────────────────────────
 .kotlin/
 *.orig.*
 *.jks
@@ -18,24 +15,52 @@ expo-env.d.ts
 *.key
 *.mobileprovision
 
-# Metro
+# ─── Metro ───────────────────────────────────────────────────────
 .metro-health-check*
 
-# debug
+# ─── Debug / Logs ────────────────────────────────────────────────
 npm-debug.*
 yarn-debug.*
 yarn-error.*
 
-# macOS
+# ─── macOS ───────────────────────────────────────────────────────
 .DS_Store
 *.pem
 
-# local env files
+# ─── Variables d'environnement (NE JAMAIS COMMITTER) ─────────────
+.env
 .env*.local
+functions/.env
 
-# typescript
+# ─── Secrets Firebase/Google (NE JAMAIS COMMITTER) ───────────────
+google-services.json
+GoogleService-Info.plist
+
+# ─── IDE / Outils locaux ─────────────────────────────────────────
+.idea/
+.clinerules/
+.claude/
+CLAUDE.md
+AGENTS.md
+*.log
+firestore-debug.log
+ui-debug.log
+
+# ─── Fichiers temporaires ────────────────────────────────────────
+temp/
+*.tgz
+
+# ─── Scripts de debug ponctuels ──────────────────────────────────
+check_fb.js
+check_gh.js
+check_plugins.js
+find_api.js
+run_build.bat
+NEXT_SESSION.md
+
+# ─── TypeScript ──────────────────────────────────────────────────
 *.tsbuildinfo
 
-# generated native folders
+# ─── Dossiers natifs générés ─────────────────────────────────────
 /ios
 /android

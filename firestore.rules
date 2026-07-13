@@ -1,0 +1,31 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    match /rateLimits/{date} {
+      allow read, write: if false; // Admin SDK uniquement
+    }
+    match /admins/{uid} {
+      allow read: if request.auth != null;
+      allow write: if false;
+    }
+    match /parfums/{docId} {
+      allow read: if true;
+      allow create, update, delete: if request.auth != null;
+    }
+    match /users/{userId} {
+      allow read, write: if request.auth != null && request.auth.uid == userId;
+      match /favoris/{docId} {
+        allow read, write: if request.auth != null && request.auth.uid == userId;
+      }
+      match /scans/{docId} {
+        allow read, write: if request.auth != null && request.auth.uid == userId;
+      }
+      match /fcmTokens/{docId} {
+        allow read, write: if request.auth != null && request.auth.uid == userId;
+      }
+      match /usage/{date} {
+        allow read, write: if false;
+      }
+    }
+  }
+}
