@@ -105,6 +105,13 @@ function mapFragrance(raw: Record<string, unknown>): FragranceResult {
   // DEBUG: log les cl�s du premier r�sultat pour v�rifier les m�tadonn�es enrichies
   if (!((globalThis as any).__fragellaLogged)) { console.log('[Fragella] raw keys:', Object.keys(raw).sort().join(', ')); (globalThis as any).__fragellaLogged = true; }
 
+  // DEBUG: log Popularity et rating bruts pour voir ce que l'API renvoie
+  const pop = raw['Popularity'];
+  const rat = raw['rating'];
+  if (pop !== undefined || rat !== undefined) {
+    console.log('[Fragella]', brand, name, '| popularity:', JSON.stringify(pop), typeof pop, '| rating:', JSON.stringify(rat), typeof rat);
+  }
+
   const seasonRanking = (raw['Season Ranking'] as Array<{ name: string; score: number }>) ?? undefined;
   const occasionRanking = (raw['Occasion Ranking'] as Array<{ name: string; score: number }>) ?? undefined;
   // Capturer l'ID original Fragella (pour les appels à l'endpoint détail /:id)
