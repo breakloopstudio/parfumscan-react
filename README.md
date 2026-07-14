@@ -18,12 +18,14 @@
 
 | Module | Description |
 |---|---|
+| | **UI/UX** | Edge-to-edge Android (barres transparentes, fond derrière les barres système) |
 | 📸 **Scan intelligent** | Photo → GPT-4o Vision → API Fragella (74K parfums) |
 | 📚 **Catalogue** | Recherche cache-first (Firestore → Fragella), ghost cards, fiche détail enrichie |
 | ❤️ **Favoris** | Sauvegarde Firestore temps réel, données dénormalisées |
 | 👤 **Profil** | Google Sign-In, stats gamifiées, historique de scans |
 | 🌙 **Dark mode** | Thème automatique avec 45 design tokens |
 | 🔐 **Auth** | Email + Google, role admin, AuthGuard automatique |
+| 🧠 **Fiche détail robuste** | Bridge preview + Firestore always + Fragella by ID fallback, id normalisé |
 | 💾 **Cache intelligent** | Cache Firestore partagé entre utilisateurs, 0 appel API redondant |
 
 ---

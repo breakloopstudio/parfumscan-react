@@ -10,6 +10,8 @@ import { useFavoris } from '../../hooks/useFavoris';
 import { useScans } from '../../hooks/useScans';
 import type { FirestoreDate } from '../../models/user-scan.interface';
 import { theme } from '../../theme/theme';
+import { getParfumById } from '../../services/firestore';
+import { setPendingParfum } from '../../services/catalog-bridge';
 
 type Tab = 'favoris' | 'scans';
 
@@ -23,7 +25,12 @@ export default function ProfilePage({ onGoToCatalog }: Props) {
   const { scans, loading: scanLoading, removeScan } = useScans(user?.uid ?? null);
   const [imgFailed, setImgFailed] = useState(false);
 
-  const goToDetail = (parfumId: string) => {
+  const goToDetail = async (parfumId: string) => {
+    // Pre-fetch Firestore pour un affichage instantane sur la fiche detail
+    try {
+      const p = await getParfumById(parfumId);
+      if (p) setPendingParfum(p);
+    } catch {}
     router.push(`/catalog/${parfumId}`);
   };
 
@@ -56,7 +63,7 @@ export default function ProfilePage({ onGoToCatalog }: Props) {
             <Pressable style={[s.tab,tab==='scans'&&s.tabActive]} onPress={()=>setTab('scans')}><Ionicons name="scan-outline" size={18} color={tab==='scans'?theme.colors.primary:theme.colors.textMuted}/><Text style={[s.tabText,tab==='scans'&&s.tabTextActive]}>Historique</Text></Pressable>
           </View>
           {tab==='favoris'&&(favLoading?<ActivityIndicator style={{marginTop:32}} color={theme.colors.primary}/>:favoris.length===0?<View style={s.emp}><Ionicons name="heart-outline" size={48} color={theme.colors.textMuted}/><Text style={s.emptyTitle}>Ton nez n'a pas encore de coup de cœur</Text><Text style={s.emptyDesc}>Explore le catalogue et garde tes parfums préférés à portée de main.</Text><Pressable style={s.emptyBtn} onPress={onGoToCatalog}><Text style={s.emptyBtnText}>Explorer le catalogue</Text></Pressable></View>:favoris.map(f=>(<Pressable key={f.id} style={s.listItem} onPress={()=>goToDetail(f.parfumId)}><View style={s.itemLeft}><Ionicons name="heart" size={20} color={theme.colors.danger}/><View><Text style={s.itemName}>{f.nom??f.parfumId.replace(/_/g,' ')}</Text>{f.marque ? <Text style={s.itemBrand}>{f.marque}</Text> : null}</View></View><Pressable onPress={()=>favDel(f.id)} hitSlop={12}><Ionicons name="trash-outline" size={20} color={theme.colors.textMuted}/></Pressable></Pressable>)))}
-          {tab==='scans'&&(scanLoading?<ActivityIndicator style={{marginTop:32}} color={theme.colors.primary}/>:scans.length===0?<View style={s.emp}><Ionicons name="scan-outline" size={48} color={theme.colors.textMuted}/><Text style={s.emptyTitle}>Aucun scan</Text><Text style={s.emptyDesc}>Scanne ton premier flacon !</Text></View>:scans.map(scan=>(<Pressable key={scan.id} style={s.listItem} onPress={()=>scan.parfumId&&router.push(`/catalog/${scan.parfumId}`)}><View style={s.itemLeft}><Ionicons name="scan-outline" size={20} color={theme.colors.primary}/><View><Text style={s.itemName}>{scan.nom??scan.marque??'Scan'}{scan.typeParfum?' · '+scan.typeParfum:''}</Text><Text style={s.itemBrand}>{(()=>{const d=scan.scannedAt;if(!d)return'';return 'toDate' in (d as object)?(d as FirestoreDate).toDate().toLocaleDateString():new Date(d as any).toLocaleDateString()})()}</Text></View></View><Pressable onPress={()=>scanDel(scan.id)} hitSlop={12}><Ionicons name="trash-outline" size={20} color={theme.colors.textMuted}/></Pressable></Pressable>)))}
+          {tab==='scans'&&(scanLoading?<ActivityIndicator style={{marginTop:32}} color={theme.colors.primary}/>:scans.length===0?<View style={s.emp}><Ionicons name="scan-outline" size={48} color={theme.colors.textMuted}/><Text style={s.emptyTitle}>Aucun scan</Text><Text style={s.emptyDesc}>Scanne ton premier flacon !</Text></View>:scans.map(scan=>(<Pressable key={scan.id} style={s.listItem} onPress={()=>scan.parfumId&&goToDetail(scan.parfumId)}><View style={s.itemLeft}><Ionicons name="scan-outline" size={20} color={theme.colors.primary}/><View><Text style={s.itemName}>{scan.nom??scan.marque??'Scan'}{scan.typeParfum?' · '+scan.typeParfum:''}</Text><Text style={s.itemBrand}>{(()=>{const d=scan.scannedAt;if(!d)return'';return 'toDate' in (d as object)?(d as FirestoreDate).toDate().toLocaleDateString():new Date(d as any).toLocaleDateString()})()}</Text></View></View><Pressable onPress={()=>scanDel(scan.id)} hitSlop={12}><Ionicons name="trash-outline" size={20} color={theme.colors.textMuted}/></Pressable></Pressable>)))}
         </ScrollView>
     </SafeAreaView>
   );

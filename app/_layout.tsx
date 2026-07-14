@@ -1,9 +1,9 @@
-// app/_layout.tsx — Root layout (GestureHandler + Auth + Fonts + Stack)
+// app/_layout.tsx — Root layout (GestureHandler + Auth + Fonts + Stack + Edge-to-edge)
 
 import { useEffect, useState } from 'react';
+import { Platform, View, ActivityIndicator } from 'react-native';
 import { Stack, useRouter, useSegments } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
-import { View, ActivityIndicator } from 'react-native';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { AuthProvider, useAuthContext } from '../src/contexts/AuthContext';
 import { ErrorBoundary } from '../src/components/ErrorBoundary';
@@ -20,6 +20,7 @@ function AuthGuard({ children }: { children: React.ReactNode }) {
   const { authReady, isAuthenticated } = useAuthContext();
   const segments = useSegments();
   const router = useRouter();
+  const { colors } = useAppTheme();
   useEffect(() => {
     if (!authReady) return;
     // Expo Go : pas de Firebase → on skip l'auth
@@ -30,19 +31,23 @@ function AuthGuard({ children }: { children: React.ReactNode }) {
     if (!isAuthenticated && !inAuth) router.replace('/auth/login');
     else if (isAuthenticated && inAuth) router.replace('/(tabs)');
   }, [authReady, isAuthenticated, segments]);
-  if (!authReady) return <View style={S.loading}><ActivityIndicator size="large" color="#7C3AED" /></View>;
+  if (!authReady) return <View style={{ flex: 1, justifyContent: 'center' as const, alignItems: 'center' as const, backgroundColor: colors.background }}><ActivityIndicator size="large" color="#7C3AED" /></View>;
   return <>{children}</>;
 }
 
 export default function RootLayout() {
   const [ready, setReady] = useState(false);
-  const { isDark } = useAppTheme();
+  const { isDark, colors } = useAppTheme();
   useEffect(() => { const t = setTimeout(() => setReady(true), 400); return () => clearTimeout(t); }, []);
-  if (!ready) return <View style={S.loading}><ActivityIndicator size="large" color="#7C3AED" /></View>;
+  if (!ready) return <View style={{ flex: 1, justifyContent: 'center' as const, alignItems: 'center' as const, backgroundColor: colors.background }}><ActivityIndicator size="large" color="#7C3AED" /></View>;
   return (
-    <GestureHandlerRootView style={{ flex: 1 }}>
+    <GestureHandlerRootView style={{ flex: 1, backgroundColor: colors.background }}>
       <AuthProvider>
-        <StatusBar style={isDark ? 'light' : 'dark'} />
+        <StatusBar
+          style={isDark ? 'light' : 'dark'}
+          translucent={Platform.OS === 'android'}
+          backgroundColor={Platform.OS === 'android' ? 'transparent' : undefined}
+        />
         <AuthGuard>
           <ErrorBoundary>
           <Stack screenOptions={{ headerShown: false }}>
@@ -58,5 +63,3 @@ export default function RootLayout() {
     </GestureHandlerRootView>
   );
 }
-
-const S = { loading: { flex: 1 as const, justifyContent: 'center' as const, alignItems: 'center' as const, backgroundColor: '#FAF8F5' } };

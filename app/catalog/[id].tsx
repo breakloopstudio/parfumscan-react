@@ -1,4 +1,4 @@
-// app/catalog/[id].tsx — Fiche détail parfum
+﻿// app/catalog/[id].tsx — Fiche détail parfum
 
 import { useState, useEffect, useRef } from 'react';
 import { View, Text, ScrollView, Image, Pressable, ActivityIndicator, Linking, StyleSheet } from 'react-native';
@@ -128,7 +128,9 @@ function SectionTitle({ icon, title }: { icon: string; title: string }) {
 }
 
 export default function CatalogDetailPage() {
-  const { id } = useLocalSearchParams<{ id: string }>();
+  const rawId = useLocalSearchParams<{ id: string }>().id;
+  // Normalisation : useLocalSearchParams peut retourner string | string[]
+  const id: string | undefined = Array.isArray(rawId) ? rawId[0] : rawId;
   const router = useRouter();
   const { user, isAuthenticated } = useAuthContext();
   const [parfum, setParfum] = useState<Parfum | ParfumSearchResult | null>(null);
@@ -137,31 +139,80 @@ export default function CatalogDetailPage() {
   const [favoriId, setFavoriId] = useState<string | null>(null);
   const loadingRef = useRef(false);  
 
+  // Chargement auto-suffisant : bridge (preview) -> Firestore -> Fragella by ID -> Fragella search
   useEffect(() => {
     if (!id) return;
     if (loadingRef.current) return;
     loadingRef.current = true;
-    const pending = consumePendingParfum();
-    if (pending && pending.id === id) {
-      setParfum(pending);
-      setLoading(false);
-      loadingRef.current = false;
-      return;
-    }
-    getParfumById(id as string).then(p => {
-      if (p) { setParfum(p); setLoading(false); loadingRef.current = false; return; }
-      const searchQuery = (id as string).replace(/_/g, ' ').trim();
-      searchFragranceByQuery(searchQuery).then(results => {
+    setLoading(true);
+
+    const load = async () => {
+      // Step 1: Bridge data — affichage instantane si disponible
+      const pending = consumePendingParfum();
+      if (pending && pending.id === id) {
+        setParfum(pending);
+      }
+
+      // Step 2: Toujours tenter Firestore (donnees plus completes : enriched metadata)
+      try {
+        const cached = await getParfumById(id);
+        if (cached) {
+          setParfum(cached); // override le preview bridge
+          setLoading(false);
+          return;
+        }
+      } catch (e) {
+        console.warn('[detail] Firestore fetch failed:', (e as Error)?.message);
+      }
+
+      // Step 3: Si on a deja le bridge, on s'arrete la (pas besoin d'appeler l'API)
+      if (pending && pending.id === id) {
+        setLoading(false);
+        return;
+      }
+
+      // Step 4: Fallback — Fragella par ID (endpoint /fragrances/:id, donnees completes)
+      try {
+        const detail = await getFragranceById(id);
+        if (detail) {
+          const p = fragellaToParfum(detail);
+          setParfum(p);
+          cacheParfumFromSearch(p).catch(() => {});
+          setLoading(false);
+          return;
+        }
+      } catch (e) {
+        console.warn('[detail] Fragella getById failed:', (e as Error)?.message);
+      }
+
+      // Step 5: Dernier recours — recherche textuelle Fragella
+      try {
+        const searchQuery = id.replace(/_/g, ' ').trim();
+        const results = await searchFragranceByQuery(searchQuery);
         if (results.length > 0) {
-          const p2 = fragellaToParfum(results[0]);
-          setParfum(p2);
-          cacheParfumFromSearch(p2).catch(() => {});
-        } else { setParfum(null); }
-        setLoading(false); loadingRef.current = false;
-      }).catch(() => { setParfum(null); setLoading(false); loadingRef.current = false; });
-    }).catch(() => { setParfum(null); setLoading(false); loadingRef.current = false; });
+          const p = fragellaToParfum(results[0]);
+          setParfum(p);
+          cacheParfumFromSearch(p).catch(() => {});
+        } else {
+          setParfum(null);
+        }
+      } catch (e) {
+        console.warn('[detail] Fragella search failed:', (e as Error)?.message);
+        setParfum(null);
+      }
+      setLoading(false);
+    };
+
+    load();
+
+    return () => { loadingRef.current = false; };
   }, [id]);
-  useEffect(() => { if (user?.uid && id) isParfumFavori(user.uid, id as string).then(r => { setIsFav(r.isFavori); setFavoriId(r.favoriId); }); }, [user?.uid, id]);
+  // Statut favori
+  useEffect(() => {
+    if (user?.uid && id) {
+      isParfumFavori(user.uid, id).then(r => { setIsFav(r.isFavori); setFavoriId(r.favoriId); });
+    }
+  }, [user?.uid, id]);
 
 
   // Enrichissement : si le parfum est chargé mais sans saisonnalité/occasions,
@@ -172,8 +223,8 @@ export default function CatalogDetailPage() {
     const hasOccasion = parfum.occasionRanking && parfum.occasionRanking.length > 0;
     if (hasSeason && hasOccasion) return; // déjà complet
 
-    // Utiliser l'ID Fragella original si disponible, sinon notre ID normalisé
-    const fragellaId = (parfum as any).fragellaId || (typeof id === 'string' ? id : String(id));
+    // Utiliser l'ID Fragella original si disponible, sinon notre ID normalise
+    const fragellaId = (parfum as any).fragellaId || id;
     getFragranceById(fragellaId).then(detail => {
       if (!detail) return;
       const enriched = fragellaToParfum(detail);
@@ -207,7 +258,10 @@ export default function CatalogDetailPage() {
 
   const toggleFav = async () => {
     if (!isAuthenticated) { router.push('/auth/login'); return; }
-    if (!user?.uid || !id || !parfum) return;
+    if (!user?.uid || !id || !parfum) {
+      console.warn('[fav] Missing data:', { uid: !!user?.uid, id: !!id, parfum: !!parfum });
+      return;
+    }
     if (isFav && favoriId) {
       const fid = favoriId;
       setIsFav(false); setFavoriId(null);
@@ -218,10 +272,10 @@ export default function CatalogDetailPage() {
         if (!('createdAt' in parfum)) {
           await cacheParfumFromSearch(parfum as ParfumSearchResult);
         }
-        const fid = await addFavori(user.uid, id as string, parfum.nom, parfum.marque);
+        const fid = await addFavori(user.uid, id, parfum.nom, parfum.marque);
         setFavoriId(fid);
       } catch (e) {
-        console.warn('[fav]', (e as Error)?.message);
+        console.warn('[fav] Failed:', (e as Error)?.message);
         setIsFav(false);
       }
     }
