@@ -158,11 +158,12 @@ Idle → [Tap Scanner] → CameraView → [Capture]
 ### Fiche détail enrichie
 
 La page `app/catalog/[id].tsx` affiche les métadonnées de l'API Fragella :
-- Pyramide olfactive (notes de tête/cœur/fond)
-- Accords principaux avec barres de pourcentage (labels string → %)
-- Saisonnalité & Occasions (scores bayésiens normalisés)
-- Longévité & Sillage (jauges visuelles)
+- Longévité & Sillage (jauges visuelles avec labels)
 - Prix, réduction, lien affilié
+- Pyramide olfactive (notes de tête/cœur/fond)
+- Accords principaux (barres : labels Dominant/Prominent → %)
+- Saisonnalité (jauges style longévité : Très adapté…Déconseillé)
+- Occasions (jauges : Idéal…Déconseillé)
 
 ## 📚 Flux de recherche (cache-first v4.2)
 
