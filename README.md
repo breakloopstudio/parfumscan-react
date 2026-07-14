@@ -165,6 +165,10 @@ La page `app/catalog/[id].tsx` affiche les métadonnées de l'API Fragella :
 - Saisonnalité (jauges style longévité : Très adapté…Déconseillé)
 - Occasions (jauges : Idéal…Déconseillé)
 
+> 🔵 **Indicateur dev** : un point coloré en haut à droite de la fiche
+> indique si les données sont enrichies (🟢 vert = API Fragella) ou
+> basiques (🔴 rouge = cache Firestore périmé). Visible uniquement en `__DEV__`.
+
 ## 📚 Flux de recherche (cache-first v4.2)
 
 ```
