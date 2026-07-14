@@ -180,9 +180,9 @@ Saisie ≥ 3 caractères → useCatalog() → debounce 800ms
 Avantage : chaque recherche n'est payée qu'une fois,
 tous utilisateurs confondus.
 
-⚠️ L'endpoint /fragrances?search= de Fragella renvoie TOUTES les métadonnées
-  (accords, saisons, occasions, longévité, sillage…) — pas besoin d'appeler
-  /fragrances/:id séparément.
+⚠️ L'endpoint /fragrances?search= de Fragella ne renvoie PAS TOUJOURS toutes les métadonnées (saisonnalité, occasions peuvent manquer pour certains parfums comme Creed Aventus).
+  → La fiche détail utilise getFragranceById() (/fragrances/:id) comme enrichissement automatique si seasonRanking/occasionRanking absents.
+  → Les données enrichies sont mergées et cachées dans Firestore (upsert intelligent des métadonnées manquantes).
 ```
 
 ---

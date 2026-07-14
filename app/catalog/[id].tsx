@@ -9,7 +9,7 @@ import { useAuthContext } from '../../src/contexts/AuthContext';
 import { getParfumById, cacheParfumFromSearch } from '../../src/services/firestore';
 import { isParfumFavori, addFavori, removeFavori } from '../../src/services/user-data';
 import { consumePendingParfum } from '../../src/services/catalog-bridge';
-import { searchFragranceByQuery, fragellaToParfum } from '../../src/services/fragella';
+import { searchFragranceByQuery, getFragranceById, fragellaToParfum } from '../../src/services/fragella';
 import type { ParfumSearchResult } from '../../src/services/fragella';
 import { theme } from '../../src/theme/theme';
 import type { Parfum } from '../../src/models';
@@ -162,6 +162,48 @@ export default function CatalogDetailPage() {
     }).catch(() => { setParfum(null); setLoading(false); loadingRef.current = false; });
   }, [id]);
   useEffect(() => { if (user?.uid && id) isParfumFavori(user.uid, id as string).then(r => { setIsFav(r.isFavori); setFavoriId(r.favoriId); }); }, [user?.uid, id]);
+
+
+  // Enrichissement : si le parfum est chargé mais sans saisonnalité/occasions,
+  // on appelle l'endpoint détail Fragella pour récupérer les métadonnées complètes
+  useEffect(() => {
+    if (!parfum || !id) return;
+    const hasSeason = parfum.seasonRanking && parfum.seasonRanking.length > 0;
+    const hasOccasion = parfum.occasionRanking && parfum.occasionRanking.length > 0;
+    if (hasSeason && hasOccasion) return; // déjà complet
+
+    // Utiliser l'ID Fragella original si disponible, sinon notre ID normalisé
+    const fragellaId = (parfum as any).fragellaId || (typeof id === 'string' ? id : String(id));
+    getFragranceById(fragellaId).then(detail => {
+      if (!detail) return;
+      const enriched = fragellaToParfum(detail);
+      setParfum(prev => {
+        if (!prev) return enriched;
+        // Merge : on garde les données existantes, on ajoute les métadonnées manquantes
+        return {
+          ...prev,
+          seasonRanking: prev.seasonRanking ?? enriched.seasonRanking,
+          occasionRanking: prev.occasionRanking ?? enriched.occasionRanking,
+          mainAccords: prev.mainAccords ?? enriched.mainAccords,
+          mainAccordsPercentage: prev.mainAccordsPercentage ?? enriched.mainAccordsPercentage,
+          longevity: prev.longevity ?? enriched.longevity,
+          sillage: prev.sillage ?? enriched.sillage,
+          gender: prev.gender ?? enriched.gender,
+          rating: prev.rating ?? enriched.rating,
+          popularity: prev.popularity ?? enriched.popularity,
+          priceValue: prev.priceValue ?? enriched.priceValue,
+          country: prev.country ?? enriched.country,
+          generalNotes: prev.generalNotes ?? enriched.generalNotes,
+          bestPrice: prev.bestPrice ?? enriched.bestPrice,
+          referencePrice: prev.referencePrice ?? enriched.referencePrice,
+          imageUrl: prev.imageUrl ?? enriched.imageUrl,
+          purchaseUrl: prev.purchaseUrl ?? enriched.purchaseUrl,
+        } as ParfumSearchResult;
+      });
+      // Cache aussi dans Firestore pour la prochaine fois
+      cacheParfumFromSearch(enriched).catch(() => {});
+    }).catch(() => {});
+  }, [parfum, id]);
 
   const toggleFav = async () => {
     if (!isAuthenticated) { router.push('/auth/login'); return; }

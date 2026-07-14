@@ -7,6 +7,7 @@ import { env } from '../config/env';
 
 export interface FragranceResult {
   id?: string;
+  fragellaId?: string;     // ID original Fragella (pour l'endpoint /:id)
   nom: string;
   marque: string;
   annee?: number;
@@ -39,6 +40,7 @@ export interface FragranceResult {
 /** Résultat de recherche converti — différent d'un Parfum Firestore */
 export interface ParfumSearchResult {
   id: string;
+  fragellaId?: string;     // ID original Fragella (pour l'endpoint /:id)
   nom: string;
   marque: string;
   annee?: number;
@@ -100,9 +102,18 @@ function mapFragrance(raw: Record<string, unknown>): FragranceResult {
   const brandNorm = normalize(brand);
   const nameNorm = normalize(name);
   
-  // DEBUG: log les cl�s du premier r�sultat pour v�rifier les m�tadonn�es enrichies
+  // DEBUG: log les cl�s du premier r�sultat pour v�rifier les m�tadonn�es enrichies
   if (!((globalThis as any).__fragellaLogged)) { console.log('[Fragella] raw keys:', Object.keys(raw).sort().join(', ')); (globalThis as any).__fragellaLogged = true; }
+
+  const seasonRanking = (raw['Season Ranking'] as Array<{ name: string; score: number }>) ?? undefined;
+  const occasionRanking = (raw['Occasion Ranking'] as Array<{ name: string; score: number }>) ?? undefined;
+  // Capturer l'ID original Fragella (pour les appels à l'endpoint détail /:id)
+  const fragellaId = (raw['Id'] ?? raw['id'] ?? raw['ID']) as string | undefined;
+  if (!seasonRanking || !occasionRanking) {
+    console.log('[Fragella] ⚠️ Metadata missing for', brand, name, '— season:', !!seasonRanking, 'occasion:', !!occasionRanking);
+  }
   return {
+    fragellaId,
     id: brandNorm + '_' + nameNorm,
     nom: name,
     marque: brand,
@@ -153,6 +164,7 @@ export function buildSearchKeywords(marque: string, nom: string): string[] {
 export function fragellaToParfum(frag: FragranceResult): ParfumSearchResult {
   return {
     id: frag.id || `${normalize(frag.marque)}_${normalize(frag.nom)}`,
+    fragellaId: frag.fragellaId,
     nom: frag.nom,
     marque: frag.marque,
     annee: frag.annee,
@@ -194,6 +206,30 @@ async function fragellaGet(path: string): Promise<Response> {
 }
 
 // ─── API ──────────────────────────────────────────────────
+
+/** Récupère un parfum par son ID Fragella (détail complet).
+ *  L'endpoint /:id renvoie TOUTES les métadonnées (saisonnalité, occasions, etc.)
+ *  que l'endpoint /search peut parfois omettre selon les parfums. */
+export async function getFragranceById(id: string): Promise<FragranceResult | null> {
+  if (!apiKey()) {
+    console.warn('[Fragella] Clé API non configurée.');
+    return null;
+  }
+  if (!id) return null;
+
+  try {
+    const response = await fragellaGet(`/fragrances/${encodeURIComponent(id)}`);
+    if (!response.ok) {
+      console.error('[Fragella] getById error:', response.status);
+      return null;
+    }
+    const data = await response.json() as Record<string, unknown>;
+    return mapFragrance(data);
+  } catch (err: any) {
+    console.error('[Fragella] getById error:', err?.message ?? err);
+    return null;
+  }
+}
 
 export async function searchFragrance(marque: string, nom: string, typeParfum?: string | null): Promise<FragranceResult[]> {
   if (!apiKey()) {

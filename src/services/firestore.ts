@@ -99,19 +99,35 @@ export async function cacheParfumFromSearch(p: ParfumSearchResult): Promise<stri
       seasonRanking: p.seasonRanking ?? null,
       occasionRanking: p.occasionRanking ?? null,
       imageFallbacks: p.imageFallbacks ?? null,
+      fragellaId: p.fragellaId ?? null,
     });
   } else {
-    // Refresh : uniquement les champs volatils (skip undefined)
+    // Refresh : tous les champs volatils + métadonnées (skip undefined/null)
     const updateData: Record<string, unknown> = {
       cachedAt: new Date(),
       updatedAt: new Date(),
     };
+    const existingData = existing.data() ?? {};
     if (p.bestPrice !== undefined) updateData.bestPrice = p.bestPrice;
     if (p.referencePrice !== undefined) updateData.referencePrice = p.referencePrice;
     if (p.imageUrl !== undefined) updateData.imageUrl = p.imageUrl;
-    // Rafraîchir aussi les keywords au cas où le nom/marque aurait changé
     const keywords = buildSearchKeywords(p.marque, p.nom);
     updateData.searchKeywords = keywords;
+    // Métadonnées enrichies : mettre à jour si présentes dans les nouvelles données
+    // et absentes ou null dans le cache existant
+    const enrichFields: Array<keyof ParfumSearchResult> = [
+      'fragellaId', 'seasonRanking', 'occasionRanking', 'mainAccords', 'mainAccordsPercentage',
+      'longevity', 'sillage', 'gender', 'rating', 'popularity', 'priceValue',
+      'country', 'imageUrlTransparent', 'generalNotes', 'confidence', 'imageFallbacks',
+      'purchaseUrl',
+    ];
+    for (const field of enrichFields) {
+      const newVal = (p as any)[field];
+      const existingVal = existingData[field];
+      if (newVal !== undefined && newVal !== null && (existingVal === undefined || existingVal === null)) {
+        updateData[field] = newVal;
+      }
+    }
     await docRef.update(updateData);
   }
   return p.id;
@@ -146,6 +162,7 @@ export async function batchCacheParfums(parfums: ParfumSearchResult[]): Promise<
         createdAt: now,
         updatedAt: now,
         searchKeywords: keywords,
+        fragellaId: p.fragellaId ?? null,
         purchaseUrl: p.purchaseUrl ?? null,
         mainAccords: p.mainAccords ?? null,
         longevity: p.longevity ?? null,
