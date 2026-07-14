@@ -3,7 +3,7 @@
 import firestore from '@react-native-firebase/firestore';
 import type { Parfum } from '../models';
 import type { ParfumSearchResult } from './fragella';
-import { buildSearchKeywords, normalize as fragNormalize } from './fragella';
+import { buildSearchKeywords } from './fragella';
 
 const col = () => firestore().collection('parfums');
 
@@ -52,40 +52,7 @@ export async function deleteParfum(id: string): Promise<void> {
   await col().doc(id).delete();
 }
 
-/** Vide la collection parfums (reset du cache). À utiliser avec précaution. */
-export async function resetCache(): Promise<number> {
-  const snap = await col().get();
-  if (snap.empty) return 0;
-  const batchSize = 500; // limite Firestore par batch
-  const docs = snap.docs;
-  for (let i = 0; i < docs.length; i += batchSize) {
-    const batch = firestore().batch();
-    docs.slice(i, i + batchSize).forEach((d: any) => batch.delete(d.ref));
-    await batch.commit();
-  }
-  return docs.length;
-}
-
-export async function seedCatalog(parfums: Array<Omit<Parfum, 'id' | 'createdAt' | 'updatedAt'>>): Promise<number> {
-  const batch = firestore().batch();
-  const now = new Date();
-  let count = 0;
-  for (const p of parfums) {
-    if (count >= 500) break;
-    const id = fragNormalize(p.marque) + '_' + fragNormalize(p.nom);
-    const keywords = buildSearchKeywords(p.marque, p.nom);
-    batch.set(col().doc(id), {
-      ...p,
-      searchKeywords: keywords,
-      source: (p.source ?? 'seed') as 'fragella' | 'seed' | 'manual',
-      createdAt: now,
-      updatedAt: now,
-    });
-    count++;
-  }
-  await batch.commit();
-  return count;
-}
+ 
 
 /** Cache un résultat Fragella dans Firestore (upsert intelligent).
  *  - 1er accès → set() complet avec toutes les métadonnées

@@ -298,6 +298,22 @@ function mapFragrance(f) {
  * Reçoit une image base64, appelle OpenAI GPT-4o Vision,
  * et retourne les informations du parfum détecté.
  */
+/**
+ * Extrait un objet JSON d'une chaîne de texte (supporte markdown fences et texte autour).
+ */
+function extractJson(text) {
+    // Essayer d'extraire depuis des fences markdown ```json ... ```
+    const fenceMatch = text.match(/```(?:json)?\s*\n?([\s\S]*?)\n?```/);
+    if (fenceMatch)
+        return fenceMatch[1].trim();
+    // Sinon, chercher la première { et dernière }
+    const firstBrace = text.indexOf('{');
+    const lastBrace = text.lastIndexOf('}');
+    if (firstBrace !== -1 && lastBrace > firstBrace) {
+        return text.slice(firstBrace, lastBrace + 1);
+    }
+    return text.trim();
+}
 exports.analyzePerfumeImage = functions.https.onCall({ region: 'europe-west1' }, async (request) => {
     const { imageBase64 } = request.data;
     if (!imageBase64 || typeof imageBase64 !== 'string') {
@@ -311,16 +327,7 @@ exports.analyzePerfumeImage = functions.https.onCall({ region: 'europe-west1' },
         throw new functions.https.HttpsError('internal', 'Clé API OpenAI non configurée.');
     }
     const openai = new openai_1.default({ apiKey });
-    try {
-        const response = await openai.chat.completions.create({
-            model: 'gpt-4o',
-            messages: [
-                {
-                    role: 'user',
-                    content: [
-                        {
-                            type: 'text',
-                            text: `Tu es un expert en parfumerie. Analyse cette photo de flacon et retourne UNIQUEMENT un objet JSON avec ces champs :
+    const SYSTEM_PROMPT = `Tu es un expert en parfumerie. Analyse cette photo de flacon et retourne UNIQUEMENT un objet JSON avec ces champs :
 
 - marque: la marque (ex: "Dior", "Chanel", "Xerjoff").
 - nom: le nom du parfum (ex: "Sauvage", "N°5").
@@ -332,31 +339,63 @@ RÈGLES :
 - Si partiellement visible, donne ta meilleure estimation, mets confidence:"low".
 - N'invente JAMAIS volumeMl ou typeParfum si rien n'est visible (mets null).
 - Réponds TOUJOURS avec un JSON valide contenant les 5 champs.
-- Réponds uniquement avec le JSON, pas de texte autour.`,
-                        },
-                        { type: 'image_url', image_url: { url: imageBase64, detail: 'low' } },
+- Réponds uniquement avec le JSON, pas de texte autour.`;
+    const callOpenAI = async (detail) => {
+        return openai.chat.completions.create({
+            model: 'gpt-4o',
+            messages: [
+                {
+                    role: 'user',
+                    content: [
+                        { type: 'text', text: SYSTEM_PROMPT },
+                        { type: 'image_url', image_url: { url: imageBase64, detail } },
                     ],
                 },
             ],
             max_tokens: 500,
             temperature: 0.1,
-            response_format: { type: 'json_object' },
         });
-        const finishReason = response.choices[0]?.finish_reason;
-        console.log('[analyzePerfumeImage] finish_reason:', finishReason);
-        const content = response.choices[0]?.message?.content;
-        if (!content) {
+    };
+    const parseResponse = (content, finishReason) => {
+        if (!content || content.trim().length === 0) {
             console.error('[analyzePerfumeImage] Empty content, finish_reason:', finishReason);
             throw new functions.https.HttpsError('internal', "Réponse vide de l'IA.");
         }
-        const parsed = JSON.parse(content);
+        const jsonStr = extractJson(content);
+        console.log('[analyzePerfumeImage] Parsed JSON length:', jsonStr.length);
+        let parsed;
+        try {
+            parsed = JSON.parse(jsonStr);
+        }
+        catch (parseErr) {
+            const msg = parseErr instanceof Error ? parseErr.message : String(parseErr);
+            console.error('[analyzePerfumeImage] JSON parse error:', msg);
+            console.error('[analyzePerfumeImage] Raw content (first 300 chars):', content.slice(0, 300));
+            throw new functions.https.HttpsError('internal', "Réponse de l'IA invalide. Réessayez.");
+        }
         return {
-            marque: parsed.marque ?? null,
-            nom: parsed.nom ?? null,
+            marque: typeof parsed.marque === 'string' ? parsed.marque : null,
+            nom: typeof parsed.nom === 'string' ? parsed.nom : null,
             volumeMl: typeof parsed.volumeMl === 'number' ? parsed.volumeMl : null,
-            typeParfum: parsed.typeParfum ?? null,
+            typeParfum: typeof parsed.typeParfum === 'string' ? parsed.typeParfum : null,
             confidence: parsed.confidence === 'high' || parsed.confidence === 'low' ? parsed.confidence : 'low',
         };
+    };
+    try {
+        // Premier essai avec detail:'auto' (bon compromis qualité/coût)
+        const response = await callOpenAI('auto');
+        const finishReason = response.choices[0]?.finish_reason;
+        console.log('[analyzePerfumeImage] Attempt 1 — finish_reason:', finishReason);
+        const content = response.choices[0]?.message?.content;
+        if (content && content.trim().length > 0) {
+            return parseResponse(content, finishReason ?? null);
+        }
+        // Fallback : contenu vide → réessayer avec detail:'high'
+        console.log('[analyzePerfumeImage] Empty content on attempt 1, retrying with detail:high...');
+        const retryResponse = await callOpenAI('high');
+        const retryFinish = retryResponse.choices[0]?.finish_reason;
+        console.log('[analyzePerfumeImage] Attempt 2 — finish_reason:', retryFinish);
+        return parseResponse(retryResponse.choices[0]?.message?.content ?? null, retryFinish ?? null);
     }
     catch (error) {
         if (error instanceof functions.https.HttpsError)

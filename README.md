@@ -126,7 +126,7 @@ src/
 │   ├── scan/     (7)         # ScanScreen + 6 sous-états
 │   ├── catalog/  (1)         # CatalogPage (composant, pas une route !)
 │   └── profile/  (1)         # ProfilePage (favoris dénormalisés, bridge détail)
-├── models/       (5)         # Interfaces (dont FirestoreDate) + seed
+├── models/       (4)         # Interfaces : Parfum, ParfumSearchResult, UserFavori, UserScan, ScanResult
 ├── theme/        (1)         # 45 design tokens (light + dark)
 ├── config/       (3)         # Firebase config, env, index
 └── utils/        (2)         # Error translator, normalize
@@ -138,11 +138,11 @@ functions/                    # Cloud Functions Firebase
 
 ---
 
-## 📱 Flux de scan
+## 📱 Flux de scan (v5.0)
 
 ```
 Idle → [Tap Scanner] → CameraView → [Capture]
-  → Scanning (step 0→1→2) → GPT-4o Vision
+  → Scanning (step 0→1→2) → GPT-4o Vision (detail:auto → retry high si vide)
   → Confidence haute ? → Fragella → await batchCacheParfums() → Résultats
   → Confidence basse ? → Clarification manuelle → Fragella
   → Résultat → Tap parfum → setPendingParfum() → dismissTo tabs
@@ -169,7 +169,7 @@ La page `app/catalog/[id].tsx` affiche les métadonnées de l'API Fragella :
 > indique si les données sont enrichies (🟢 vert = API Fragella) ou
 > basiques (🔴 rouge = cache Firestore périmé). Visible uniquement en `__DEV__`.
 
-## 📚 Flux de recherche (cache-first v4.2)
+## 📚 Flux de recherche (cache-first v5.0)
 
 ```
 Saisie ≥ 3 caractères → useCatalog() → debounce 800ms

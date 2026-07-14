@@ -1,6 +1,6 @@
 // app/catalog/[id].tsx — Fiche détail parfum
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { View, Text, ScrollView, Image, Pressable, ActivityIndicator, Linking, StyleSheet } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useLocalSearchParams, useRouter } from 'expo-router';
@@ -9,6 +9,7 @@ import { useAuthContext } from '../../src/contexts/AuthContext';
 import { getParfumById, cacheParfumFromSearch } from '../../src/services/firestore';
 import { isParfumFavori, addFavori, removeFavori } from '../../src/services/user-data';
 import { consumePendingParfum } from '../../src/services/catalog-bridge';
+import { searchFragranceByQuery, fragellaToParfum } from '../../src/services/fragella';
 import type { ParfumSearchResult } from '../../src/services/fragella';
 import { theme } from '../../src/theme/theme';
 import type { Parfum } from '../../src/models';
@@ -134,35 +135,53 @@ export default function CatalogDetailPage() {
   const [loading, setLoading] = useState(true);
   const [isFav, setIsFav] = useState(false);
   const [favoriId, setFavoriId] = useState<string | null>(null);
-  
+  const loadingRef = useRef(false);  
 
   useEffect(() => {
     if (!id) return;
-    // 1. Priorité au pont inter-écrans (données du catalogue/search)
+    if (loadingRef.current) return;
+    loadingRef.current = true;
     const pending = consumePendingParfum();
     if (pending && pending.id === id) {
       setParfum(pending);
-      console.log('[Detail] keys:', Object.keys(pending).filter(function(k){return (pending as any)[k]!=null;}).sort().join(', '));
       setLoading(false);
+      loadingRef.current = false;
       return;
     }
-    // 2. Fallback : cherche dans Firestore (deep link, favoris, etc.)
-    getParfumById(id as string).then(p => { setParfum(p ?? null); setLoading(false); });
+    getParfumById(id as string).then(p => {
+      if (p) { setParfum(p); setLoading(false); loadingRef.current = false; return; }
+      const searchQuery = (id as string).replace(/_/g, ' ').trim();
+      searchFragranceByQuery(searchQuery).then(results => {
+        if (results.length > 0) {
+          const p2 = fragellaToParfum(results[0]);
+          setParfum(p2);
+          cacheParfumFromSearch(p2).catch(() => {});
+        } else { setParfum(null); }
+        setLoading(false); loadingRef.current = false;
+      }).catch(() => { setParfum(null); setLoading(false); loadingRef.current = false; });
+    }).catch(() => { setParfum(null); setLoading(false); loadingRef.current = false; });
   }, [id]);
   useEffect(() => { if (user?.uid && id) isParfumFavori(user.uid, id as string).then(r => { setIsFav(r.isFavori); setFavoriId(r.favoriId); }); }, [user?.uid, id]);
 
   const toggleFav = async () => {
     if (!isAuthenticated) { router.push('/auth/login'); return; }
     if (!user?.uid || !id || !parfum) return;
-    if (isFav && favoriId) { await removeFavori(user.uid, favoriId); setIsFav(false); setFavoriId(null); }
-    else {
-      // S'assurer que le parfum est caché AVANT d'ajouter le favori
-      if (!('createdAt' in parfum)) {
-        try { await cacheParfumFromSearch(parfum as ParfumSearchResult); }
-        catch (e) { console.warn('[cache] Échec cache parfum, ajout favori quand même:', (e as Error)?.message); }
+    if (isFav && favoriId) {
+      const fid = favoriId;
+      setIsFav(false); setFavoriId(null);
+      try { await removeFavori(user.uid, fid); } catch { setIsFav(true); setFavoriId(fid); }
+    } else {
+      setIsFav(true);
+      try {
+        if (!('createdAt' in parfum)) {
+          await cacheParfumFromSearch(parfum as ParfumSearchResult);
+        }
+        const fid = await addFavori(user.uid, id as string, parfum.nom, parfum.marque);
+        setFavoriId(fid);
+      } catch (e) {
+        console.warn('[fav]', (e as Error)?.message);
+        setIsFav(false);
       }
-      const fid = await addFavori(user.uid, id as string, parfum.nom, parfum.marque);
-      setIsFav(true); setFavoriId(fid);
     }
   };
 
