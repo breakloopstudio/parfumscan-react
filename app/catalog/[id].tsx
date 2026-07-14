@@ -181,7 +181,7 @@ export default function CatalogDetailPage() {
           <View style={s.titleRow}>
             <View style={{flex:1}}><Text style={s.brand}>{parfum.marque}</Text><Text style={s.name}>{parfum.nom}</Text></View>
             <Pressable onPress={toggleFav} hitSlop={12}><Ionicons name={isFav?'heart':'heart-outline'} size={28} color={isFav?theme.colors.danger:theme.colors.textMuted}/></Pressable>
-            {__DEV__ && <View style={{width:8,height:8,borderRadius:4,backgroundColor:(parfum && parfum.seasonRanking && parfum.seasonRanking.some(function(s){return s.score>0}))?'#10B981':'#EF4444',marginLeft:4}} />}
+            {__DEV__ && <View style={{width:8,height:8,borderRadius:4,backgroundColor:(parfum && (parfum as any).source === 'fragella')?'#10B981':'#EF4444',marginLeft:4}} />}
           </View>
           <View style={s.badges}>
             <View style={s.tagFamily}><Text style={s.tagFamilyText}>{parfum.familleOlactive}</Text></View>
