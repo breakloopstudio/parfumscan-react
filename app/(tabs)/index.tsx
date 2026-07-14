@@ -119,20 +119,20 @@ export default function TabPager() {
   const catStyle = useAnimatedStyle(() => {
     const x = translateX.value;
     const w = pageWidth.value;
-    const progress = Math.max(-1, Math.min(1, 1 + x / (w * 0.6)));
+    const progress = Math.max(-1, Math.min(1, 1 + x / w));
     return {
-      transform: [{ translateX: x }, { scale: 0.88 + progress * 0.12 }],
-      opacity: 0.25 + progress * 0.75,
+      transform: [{ translateX: x }, { scale: 0.94 + progress * 0.06 }],
+      opacity: Math.max(0, progress),
     };
   });
 
   const proStyle = useAnimatedStyle(() => {
     const x = translateX.value + pageWidth.value;
     const w = pageWidth.value;
-    const progress = Math.max(-1, Math.min(1, 1 - x / (w * 0.6)));
+    const progress = Math.max(-1, Math.min(1, 1 - x / w));
     return {
-      transform: [{ translateX: x }, { scale: 0.88 + progress * 0.12 }],
-      opacity: 0.25 + progress * 0.75,
+      transform: [{ translateX: x }, { scale: 0.94 + progress * 0.06 }],
+      opacity: Math.max(0, progress),
     };
   });
 

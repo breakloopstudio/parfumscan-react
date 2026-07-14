@@ -40,6 +40,9 @@ export default function ProfilePage({ onGoToCatalog }: Props) {
     <SafeAreaView edges={['top', 'bottom']} style={s.container}>
       <ScrollView contentContainerStyle={s.scroll}>
           <View style={s.hero}>
+            <Pressable style={s.logoutIcon} onPress={async()=>{await logout();router.replace('/auth/login');}} hitSlop={8}>
+              <Ionicons name="log-out-outline" size={18} color={theme.colors.textMuted}/>
+            </Pressable>
             {user?.photoURL && !imgFailed ? <Image source={{uri:user.photoURL}} style={s.avatar} onError={()=>setImgFailed(true)}/> : <View style={s.avatarFb}><Text style={s.avatarTxt}>{initial}</Text></View>}
             <Text style={s.email}>{user?.email??'Utilisateur'}</Text>
             <View style={s.levelBadge}><Ionicons name="ribbon-outline" size={16} color={theme.colors.reward}/><Text style={s.levelText}> {level}</Text></View>
@@ -54,7 +57,6 @@ export default function ProfilePage({ onGoToCatalog }: Props) {
           </View>
           {tab==='favoris'&&(favLoading?<ActivityIndicator style={{marginTop:32}} color={theme.colors.primary}/>:favoris.length===0?<View style={s.emp}><Ionicons name="heart-outline" size={48} color={theme.colors.textMuted}/><Text style={s.emptyTitle}>Ton nez n'a pas encore de coup de cœur</Text><Text style={s.emptyDesc}>Explore le catalogue et garde tes parfums préférés à portée de main.</Text><Pressable style={s.emptyBtn} onPress={onGoToCatalog}><Text style={s.emptyBtnText}>Explorer le catalogue</Text></Pressable></View>:favoris.map(f=>(<Pressable key={f.id} style={s.listItem} onPress={()=>goToDetail(f.parfumId)}><View style={s.itemLeft}><Ionicons name="heart" size={20} color={theme.colors.danger}/><View><Text style={s.itemName}>{f.nom??f.parfumId.replace(/_/g,' ')}</Text>{f.marque ? <Text style={s.itemBrand}>{f.marque}</Text> : null}</View></View><Pressable onPress={()=>favDel(f.id)} hitSlop={12}><Ionicons name="trash-outline" size={20} color={theme.colors.textMuted}/></Pressable></Pressable>)))}
           {tab==='scans'&&(scanLoading?<ActivityIndicator style={{marginTop:32}} color={theme.colors.primary}/>:scans.length===0?<View style={s.emp}><Ionicons name="scan-outline" size={48} color={theme.colors.textMuted}/><Text style={s.emptyTitle}>Aucun scan</Text><Text style={s.emptyDesc}>Scanne ton premier flacon !</Text></View>:scans.map(scan=>(<Pressable key={scan.id} style={s.listItem} onPress={()=>scan.parfumId&&router.push(`/catalog/${scan.parfumId}`)}><View style={s.itemLeft}><Ionicons name="scan-outline" size={20} color={theme.colors.primary}/><View><Text style={s.itemName}>{scan.nom??scan.marque??'Scan'}{scan.typeParfum?' · '+scan.typeParfum:''}</Text><Text style={s.itemBrand}>{(()=>{const d=scan.scannedAt;if(!d)return'';return 'toDate' in (d as object)?(d as FirestoreDate).toDate().toLocaleDateString():new Date(d as any).toLocaleDateString()})()}</Text></View></View><Pressable onPress={()=>scanDel(scan.id)} hitSlop={12}><Ionicons name="trash-outline" size={20} color={theme.colors.textMuted}/></Pressable></Pressable>)))}
-          <Pressable style={s.logoutBtn} onPress={async()=>{await logout();router.replace('/auth/login');}}><Ionicons name="log-out-outline" size={20} color={theme.colors.danger}/><Text style={s.logoutText}>Déconnexion</Text></Pressable>
         </ScrollView>
     </SafeAreaView>
   );
@@ -67,8 +69,8 @@ const s = StyleSheet.create({
   avatarTxt:{fontSize:28,fontWeight:'700',color:theme.colors.violetInk}, email:{fontFamily:'Inter_600SemiBold',fontSize:16,color:theme.colors.text,marginTop:8},
   levelBadge:{flexDirection:'row',alignItems:'center',marginTop:4}, levelText:{fontSize:13,color:theme.colors.reward,fontWeight:'500'},
   stats:{flexDirection:'row',paddingHorizontal:16,gap:12,marginBottom:20},
-  statCard:{flex:1,backgroundColor:theme.colors.surface,borderRadius:theme.radius.card,padding:16,alignItems:'center',...theme.shadow.card},
-  statCardReward:{backgroundColor:theme.colors.rewardSoft}, statVal:{fontSize:22,fontWeight:'800',color:theme.colors.primary,marginTop:6},
+  statCard:{flex:1,borderRadius:theme.radius.card,padding:16,alignItems:'center',borderWidth:1,borderColor:theme.colors.primaryTint},
+  statCardReward:{borderColor:theme.colors.reward,borderWidth:1}, statVal:{fontSize:22,fontWeight:'800',color:theme.colors.primary,marginTop:6},
   statLabel:{fontSize:11,color:theme.colors.textMuted,textAlign:'center',marginTop:2},
   tabs:{flexDirection:'row',paddingHorizontal:16,gap:8,marginBottom:16},
   tab:{flex:1,flexDirection:'row',justifyContent:'center',alignItems:'center',gap:6,paddingVertical:10,borderRadius:theme.radius.base,backgroundColor:theme.colors.surface2},
@@ -83,6 +85,5 @@ const s = StyleSheet.create({
   itemLeft:{flexDirection:'row',alignItems:'center',gap:12,flex:1},
   itemName:{fontSize:15,fontWeight:'500',color:theme.colors.text},
   itemBrand:{fontSize:12,color:theme.colors.textMuted,marginTop:1},
-  logoutBtn:{flexDirection:'row',justifyContent:'center',alignItems:'center',gap:8,paddingVertical:20,marginTop:8},
-  logoutText:{fontSize:15,fontWeight:'500',color:theme.colors.danger},
+  logoutIcon:{position:'absolute',top:8,right:16},
 });

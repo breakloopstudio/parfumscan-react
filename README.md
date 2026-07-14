@@ -19,7 +19,7 @@
 | Module | Description |
 |---|---|
 | 📸 **Scan intelligent** | Photo → GPT-4o Vision → API Fragella (74K parfums) |
-| 📚 **Catalogue** | Recherche cache-first (Firestore → Fragella), ghost cards |
+| 📚 **Catalogue** | Recherche cache-first (Firestore → Fragella), ghost cards, fiche détail enrichie |
 | ❤️ **Favoris** | Sauvegarde Firestore temps réel, données dénormalisées |
 | 👤 **Profil** | Google Sign-In, stats gamifiées, historique de scans |
 | 🌙 **Dark mode** | Thème automatique avec 45 design tokens |
@@ -114,7 +114,7 @@ app/
 ├── auth/
 │   ├── login.tsx             # Connexion email + Google
 │   └── register.tsx          # Inscription
-├── catalog/[id].tsx          # Détail parfum + pyramide + favori
+├── catalog/[id].tsx          # Détail enrichi : type, longévité/sillage, accords, saisonnalité, occasions, pyramide, favori
 └── admin.tsx                 # Administration (seed + reset cache + upload)
 
 src/
