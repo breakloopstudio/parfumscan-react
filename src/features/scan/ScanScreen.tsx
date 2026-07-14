@@ -9,8 +9,10 @@ import { useScanReducer } from '../../hooks/useScanReducer';
 import { analyzeImage } from '../../services/openai-vision';
 import { searchFragrance, fragellaToParfum, type FragranceResult } from '../../services/fragella';
 import { saveScan } from '../../services/user-data';
+import { batchCacheParfums } from '../../services/firestore';
 import { hapticsLight, hapticsSuccess, hapticsError } from '../../services/haptics';
 import { setPendingCatalogQuery } from '../../services/catalog-bridge';
+import { translateFirebaseError } from '../../utils/error-translator';
 import type { ScanResult } from '../../models';
 import { ScanIdle } from './ScanIdle';
 import { ScanCamera } from './ScanCamera';
@@ -48,7 +50,7 @@ export function ScanScreen() {
           await searchAndShow(p.scanResult);
         }
       } catch (e: unknown) {
-        dispatch({ type: 'SCAN_ERROR', message: e instanceof Error ? e.message : 'Échec analyse IA.' });
+        dispatch({ type: 'SCAN_ERROR', message: translateFirebaseError(e) });
         hapticsError();
       }
     }, 2500);
@@ -81,6 +83,8 @@ export function ScanScreen() {
         hapticsSuccess();
         const parfums = frag.map(f => fragellaToParfum(f));
         if (user?.uid) saveScan(user.uid, { rawText: JSON.stringify({ marque: scanResult.marque, nom: scanResult.nom, typeParfum: scanResult.typeParfum }), marque: scanResult.marque ?? undefined, nom: scanResult.nom ?? undefined, typeParfum: scanResult.typeParfum ?? undefined, parfumId: frag[0]?.id }).catch(() => {});
+        // Cache automatique pour les futures recherches
+        batchCacheParfums(parfums).catch(() => {});
         dispatch({ type: 'SCAN_SUCCESS', parfums });
       } else {
         dispatch({ type: 'SCAN_NO_RESULT', scanResult: scanResult.marque ? scanResult : { marque: scanResult.marque, nom: scanResult.nom ?? null, volumeMl: null, typeParfum: scanResult.typeParfum ?? null } });

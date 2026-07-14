@@ -9,22 +9,22 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useAuthContext } from '../src/contexts/AuthContext';
-import { onParfums, seedCatalog, updateParfum } from '../src/services/firestore';
+import { onParfums, seedCatalog, updateParfum, resetCache } from '../src/services/firestore';
 import { PERFUMES_SEED } from '../src/models';
 import { theme } from '../src/theme/theme';
 import type { Parfum } from '../src/models';
+import { uploadParfumImage } from '../src/services/storage';
 
-// Lazy: expo-image-picker non installé → l'upload est désactivé
+// Lazy: expo-image-picker optionnel → l'upload est désactivé si non installé
 let ImagePicker: any = null;
 try { ImagePicker = require('expo-image-picker'); } catch {}
-let uploadParfumImage: any = null;
-try { uploadParfumImage = require('../src/services/storage').uploadParfumImage; } catch {}
 
 export default function AdminPage() {
   const { isAuthenticated, isAdmin } = useAuthContext();
   const [parfums, setParfums] = useState<Parfum[]>([]);
   const [seeding, setSeeding] = useState(false);
   const [msg, setMsg] = useState<string | null>(null);
+  const [resetting, setResetting] = useState(false);
 
   // ─── Upload state ────────────────────────────────────────
   const [selectedId, setSelectedId] = useState<string | null>(null);
@@ -48,6 +48,33 @@ export default function AdminPage() {
     finally { setSeeding(false); }
   };
 
+  // ─── Reset Cache ─────────────────────────────────────────
+  const doReset = async () => {
+    Alert.alert(
+      'Reset du cache',
+      `Supprimer tous les parfums (${parfums.length}) et re-seed ?\nLes favoris/scans utilisateurs ne sont pas affectés.`,
+      [
+        { text: 'Annuler', style: 'cancel' },
+        {
+          text: 'Reset',
+          style: 'destructive',
+          onPress: async () => {
+            setResetting(true); setMsg(null);
+            try {
+              const deleted = await resetCache();
+              const seeded = await seedCatalog(PERFUMES_SEED);
+              setMsg(`${deleted} parfums supprimés, ${seeded} re-seedés.`);
+            } catch (e: unknown) {
+              setMsg(e instanceof Error ? e.message : 'Erreur reset.');
+            } finally {
+              setResetting(false);
+            }
+          },
+        },
+      ]
+    );
+  };
+
   // ─── Pick image ──────────────────────────────────────────
   const pickImage = async () => {
     if (!ImagePicker) { Alert.alert('Non disponible', 'Installe expo-image-picker pour uploader des images.'); return; }
@@ -65,7 +92,6 @@ export default function AdminPage() {
   // ─── Upload ──────────────────────────────────────────────
   const doUpload = async () => {
     if (!selectedId || !selectedUri) return;
-    if (!uploadParfumImage) { Alert.alert('Non disponible', 'Firebase Storage non disponible.'); return; }
     setUploading(true); setUploadMsg(null); setUploadErr(false);
     try {
       const url = await uploadParfumImage(selectedId, selectedUri);
@@ -89,6 +115,9 @@ export default function AdminPage() {
         <Text style={s.desc}>Insère {PERFUMES_SEED.length} parfums iconiques dans Firestore.</Text>
         <Pressable style={[s.btn, seeding && s.btnOff]} onPress={doSeed} disabled={seeding}>
           {seeding ? <ActivityIndicator size="small" color="#FFF"/> : <Text style={s.btnText}>Lancer le seed ({PERFUMES_SEED.length} parfums)</Text>}
+        </Pressable>
+        <Pressable style={[s.btnDanger, resetting && s.btnOff]} onPress={doReset} disabled={resetting}>
+          {resetting ? <ActivityIndicator size="small" color="#FFF"/> : <Text style={s.btnText}>Reset cache + re-seed</Text>}
         </Pressable>
         {msg && <Text style={[s.msg, msg.includes('Erreur') && s.msgErr]}>{msg}</Text>}
         <View style={s.hr}/>
@@ -165,6 +194,7 @@ const s = StyleSheet.create({
 
   // Seed
   btn: { backgroundColor: theme.colors.primary, borderRadius: theme.radius.base, height: 48, justifyContent: 'center', alignItems: 'center', marginTop: 12, ...theme.shadow.button },
+  btnDanger: { backgroundColor: theme.colors.danger, borderRadius: theme.radius.base, height: 48, justifyContent: 'center', alignItems: 'center', marginTop: 12, ...theme.shadow.button },
   btnOff: { opacity: 0.5 },
   btnText: { color: '#FFF', fontWeight: '600', fontSize: 15 },
   btnOutline: { borderWidth: 1, borderColor: theme.colors.primary, borderRadius: theme.radius.base, height: 48, justifyContent: 'center', alignItems: 'center', marginTop: 12 },

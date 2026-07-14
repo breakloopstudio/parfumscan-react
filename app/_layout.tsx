@@ -3,9 +3,11 @@
 import { useEffect, useState } from 'react';
 import { Stack, useRouter, useSegments } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
-import { View, ActivityIndicator, useColorScheme } from 'react-native';
+import { View, ActivityIndicator } from 'react-native';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { AuthProvider, useAuthContext } from '../src/contexts/AuthContext';
+import { ErrorBoundary } from '../src/components/ErrorBoundary';
+import { useAppTheme } from '../src/hooks/useAppTheme';
 import { isFirebaseReady } from '../src/services/firebase';
 import '../src/services/firebase';
 
@@ -34,14 +36,15 @@ function AuthGuard({ children }: { children: React.ReactNode }) {
 
 export default function RootLayout() {
   const [ready, setReady] = useState(false);
-  const cs = useColorScheme();
+  const { isDark } = useAppTheme();
   useEffect(() => { const t = setTimeout(() => setReady(true), 400); return () => clearTimeout(t); }, []);
   if (!ready) return <View style={S.loading}><ActivityIndicator size="large" color="#7C3AED" /></View>;
   return (
     <GestureHandlerRootView style={{ flex: 1 }}>
       <AuthProvider>
-        <StatusBar style={cs === 'dark' ? 'light' : 'dark'} />
+        <StatusBar style={isDark ? 'light' : 'dark'} />
         <AuthGuard>
+          <ErrorBoundary>
           <Stack screenOptions={{ headerShown: false }}>
             <Stack.Screen name="(tabs)" />
             <Stack.Screen name="auth/login" options={{ animation: 'fade' }} />
@@ -49,6 +52,7 @@ export default function RootLayout() {
             <Stack.Screen name="catalog/[id]" options={{ animation: 'slide_from_right' }} />
             <Stack.Screen name="admin" options={{ animation: 'slide_from_bottom' }} />
           </Stack>
+          </ErrorBoundary>
         </AuthGuard>
       </AuthProvider>
     </GestureHandlerRootView>

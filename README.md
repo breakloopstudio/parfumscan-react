@@ -1,4 +1,4 @@
-# 🧴 ParfumScan React Native
+﻿# 🧴 ParfumScan React Native
 
 <div align="center">
 
@@ -19,11 +19,12 @@
 | Module | Description |
 |---|---|
 | 📸 **Scan intelligent** | Photo → GPT-4o Vision → API Fragella (74K parfums) |
-| 📚 **Catalogue** | Recherche temps réel, ghost cards, pyramide olfactive |
-| ❤️ **Favoris** | Sauvegarde Firestore temps réel par utilisateur |
+| 📚 **Catalogue** | Recherche cache-first (Firestore → Fragella), ghost cards |
+| ❤️ **Favoris** | Sauvegarde Firestore temps réel, données dénormalisées |
 | 👤 **Profil** | Google Sign-In, stats gamifiées, historique de scans |
 | 🌙 **Dark mode** | Thème automatique avec 45 design tokens |
 | 🔐 **Auth** | Email + Google, role admin, AuthGuard automatique |
+| 💾 **Cache intelligent** | Cache Firestore partagé entre utilisateurs, 0 appel API redondant |
 
 ---
 
@@ -103,28 +104,29 @@ build_release.bat
 ## 📁 Architecture
 
 ```
-app/                          # Expo Router (file-based)
-├── _layout.tsx               # Root : GestureHandler + AuthProvider
+app/
+├── _layout.tsx               # Root : GestureHandler + AuthProvider + AuthGuard
 ├── index.tsx                 # Splash → redirection
 ├── (tabs)/
-│   ├── _layout.tsx           # Stack layout
-│   ├── index.tsx             # TabPager Reanimated (Catalog ↔ Profil)
-│   ├── catalog.tsx           # Catalogue
-│   ├── profile.tsx           # Profil
-│   └── scan.tsx              # Scanner overlay
+│   ├── _layout.tsx           # Stack (index + scan)
+│   ├── index.tsx             # TabPager Reanimated (Catalog ↔ Profil) + pont pending
+│   └── scan.tsx              # Scanner overlay (push FAB)
 ├── auth/
 │   ├── login.tsx             # Connexion email + Google
 │   └── register.tsx          # Inscription
-├── catalog/[id].tsx          # Détail parfum
-└── admin.tsx                 # Administration
+├── catalog/[id].tsx          # Détail parfum + pyramide + favori
+└── admin.tsx                 # Administration (seed + reset cache + upload)
 
 src/
-├── services/     (9)         # Firebase, Firestore, Fragella, GPT-4o, FCM…
-├── hooks/        (7)         # useAuth, useScanReducer, useCatalog, useFavoris…
+├── services/     (9)         # Firebase, Firestore (cache-first), Fragella, GPT-4o…
+├── hooks/        (7)         # useAuth, useScanReducer, useCatalog (cache-first)…
 ├── contexts/     (1)         # AuthContext (Provider + Hook)
-├── components/   (2)         # ParfumCard, AppLoader
-├── features/scan/(7)         # ScanScreen + 6 sous-états
-├── models/       (5)         # Interfaces + seed
+├── components/   (2)         # ParfumCard (bridge + onPressOverride), AppLoader
+├── features/
+│   ├── scan/     (7)         # ScanScreen + 6 sous-états
+│   ├── catalog/  (1)         # CatalogPage (composant, pas une route !)
+│   └── profile/  (1)         # ProfilePage (favoris dénormalisés, bridge détail)
+├── models/       (5)         # Interfaces (dont FirestoreDate) + seed
 ├── theme/        (1)         # 45 design tokens (light + dark)
 ├── config/       (3)         # Firebase config, env, index
 └── utils/        (2)         # Error translator, normalize
@@ -141,9 +143,22 @@ functions/                    # Cloud Functions Firebase
 ```
 Idle → [Tap Scanner] → CameraView → [Capture]
   → Scanning (step 0→1→2) → GPT-4o Vision
-  → Confidence haute ? → Fragella → Résultats
+  → Confidence haute ? → Fragella → batchCacheParfums() → Résultats
   → Confidence basse ? → Clarification manuelle → Fragella
-  → Résultat → Catalogue | Réessayer
+  → Résultat → Tap parfum → dismissTo tabs → fiche détail
+  → Résultat → Voir catalogue → setPendingCatalogQuery() + router.back()
+```
+
+## 📚 Flux de recherche (cache-first v4.1)
+
+```
+Saisie ≥ 3 caractères → useCatalog() → debounce 800ms
+  1. searchParfumsCached(query) → Firestore (gratuit, partagé)
+  2. Si < 5 résultats → searchFragranceByQuery() → API payante
+  3. batchCacheParfums(results) → Firestore (pour la prochaine fois)
+
+Avantage : chaque recherche n'est payée qu'une fois,
+tous utilisateurs confondus.
 ```
 
 ---
@@ -159,7 +174,7 @@ Idle → [Tap Scanner] → CameraView → [Capture]
    firebase use parfumscan-60549
    firebase deploy --only functions
    # ⚠️ Les fonctions sont déployées en europe-west1
-   #    Le client doit utiliser _functions('europe-west1'), pas _functions()
+   #    Le client doit utiliser _functions(undefined, 'europe-west1'), pas _functions()
    ```
 6. Configure le `webClientId` Google Sign-In dans `app/_layout.tsx`
 

@@ -1,13 +1,14 @@
 // src/components/ParfumCard.tsx — Carte parfum réutilisable
 
-import { View, Text, Image, Pressable, StyleSheet } from 'react-native';
-import { Link } from 'expo-router';
+import { View, Text, Image, Pressable, Linking, StyleSheet } from 'react-native';
+import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { theme } from '../theme/theme';
 import type { Parfum } from '../models';
 import type { ParfumSearchResult } from '../services/fragella';
+import { setPendingParfum } from '../services/catalog-bridge';
 
-interface Props { parfum: Parfum | ParfumSearchResult; showDeal?: boolean; }
+interface Props { parfum: Parfum | ParfumSearchResult; showDeal?: boolean; onPressOverride?: () => void; }
 
 function getDiscount(p: Parfum | ParfumSearchResult): number | null {
   if (typeof p.discountPct === 'number') return Math.round(p.discountPct);
@@ -17,13 +18,22 @@ function getDiscount(p: Parfum | ParfumSearchResult): number | null {
   return null;
 }
 
-export default function ParfumCard({ parfum, showDeal = false }: Props) {
+export default function ParfumCard({ parfum, showDeal = false, onPressOverride }: Props) {
+  const router = useRouter();
   const discount = getDiscount(parfum);
   const bestPrice = parfum.bestPrice ?? null;
 
+  const goToDetail = () => {
+    if (onPressOverride) {
+      onPressOverride();
+      return;
+    }
+    setPendingParfum(parfum);
+    router.push(`/catalog/${parfum.id}`);
+  };
+
   return (
-    <Link href={`/catalog/${parfum.id}`} asChild>
-      <Pressable style={s.card}>
+    <Pressable style={s.card} onPress={goToDetail}>
         {parfum.imageUrl && (
           <View style={s.imgWrap}>
             <Image source={{ uri: parfum.imageUrl }} style={s.img} />
@@ -63,18 +73,21 @@ export default function ParfumCard({ parfum, showDeal = false }: Props) {
                 </>
               )}
             </View>
-            <View style={s.dealCta}>
-              {bestPrice !== null ? (
-                <><Text style={s.dealCtaText}>Voir l'offre</Text><Ionicons name="chevron-forward" size={15} color={theme.colors.primary} /></>
-              ) : (
-                <><Text style={s.dealCtaGhost}>Bientôt</Text><Ionicons name="chevron-forward" size={15} color={theme.colors.textMuted} /></>
-              )}
-            </View>
+            {bestPrice !== null && parfum.purchaseUrl ? (
+              <Pressable style={s.dealCta} onPress={() => Linking.openURL(parfum.purchaseUrl!)} hitSlop={8}>
+                <Text style={s.dealCtaText}>Voir l'offre</Text>
+                <Ionicons name="chevron-forward" size={15} color={theme.colors.primary} />
+              </Pressable>
+            ) : (
+              <View style={s.dealCta}>
+                <Text style={s.dealCtaGhost}>Bientôt</Text>
+                <Ionicons name="chevron-forward" size={15} color={theme.colors.textMuted} />
+              </View>
+            )}
           </View>
         )}
       </Pressable>
-    </Link>
-  );
+    );
 }
 
 const s = StyleSheet.create({

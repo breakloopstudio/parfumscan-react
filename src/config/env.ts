@@ -25,4 +25,7 @@ export const env = {
 
   FIREBASE_FUNCTIONS_EMULATOR_HOST:
     process.env.EXPO_PUBLIC_FIREBASE_FUNCTIONS_EMULATOR_HOST || 'localhost:5001',
+
+  FRAGELLA_API_KEY:
+    process.env.EXPO_PUBLIC_FRAGELLA_API_KEY || '',
 } as const;

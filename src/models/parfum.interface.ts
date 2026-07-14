@@ -32,4 +32,22 @@ export interface Parfum {
   cachedAt?: Date;
   imageVerified?: boolean;
   typeParfum?: string | null;
+  searchKeywords?: string[];  // tokens normalisés pour cache-first (ex: ["creed","aventus","creed_aventus"])
+  // Métadonnées étendues collectées via l'API Fragella
+  purchaseUrl?: string | null;
+  mainAccords?: string[];
+  longevity?: string | null;
+  sillage?: string | null;
+  gender?: string | null;
+  rating?: string | null;
+  popularity?: string | null;
+  priceValue?: string | null;
+  country?: string;
+  imageUrlTransparent?: string;
+  mainAccordsPercentage?: Record<string, string>;
+  generalNotes?: string[];
+  confidence?: string;
+  seasonRanking?: { name: string; score: number }[];
+  occasionRanking?: { name: string; score: number }[];
+  imageFallbacks?: string[];
 }

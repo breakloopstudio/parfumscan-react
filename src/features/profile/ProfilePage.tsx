@@ -5,26 +5,27 @@ import { View, Text, ScrollView, Pressable, Image, ActivityIndicator, Alert, Sty
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Link, useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
-import { useAuthContext } from '../../src/contexts/AuthContext';
-import { useFavoris } from '../../src/hooks/useFavoris';
-import { useScans } from '../../src/hooks/useScans';
-import { getParfumById } from '../../src/services/firestore';
-import { theme } from '../../src/theme/theme';
+import { useAuthContext } from '../../contexts/AuthContext';
+import { useFavoris } from '../../hooks/useFavoris';
+import { useScans } from '../../hooks/useScans';
+import type { FirestoreDate } from '../../models/user-scan.interface';
+import { theme } from '../../theme/theme';
 
 type Tab = 'favoris' | 'scans';
 
-export default function ProfilePage() {
+interface Props { onGoToCatalog: () => void }
+
+export default function ProfilePage({ onGoToCatalog }: Props) {
   const { user, authReady, isAuthenticated, logout } = useAuthContext();
   const router = useRouter();
   const [tab, setTab] = useState<Tab>('favoris');
   const { favoris, loading: favLoading, removeFavori } = useFavoris(user?.uid ?? null);
   const { scans, loading: scanLoading, removeScan } = useScans(user?.uid ?? null);
-  const [parfumNames, setParfumNames] = useState<Record<string, { nom: string; marque: string }>>({});
   const [imgFailed, setImgFailed] = useState(false);
 
-  useEffect(() => {
-    favoris.forEach(f => { if (!parfumNames[f.parfumId]) getParfumById(f.parfumId).then(p => { if (p) setParfumNames(prev => ({ ...prev, [f.parfumId]: { nom: p.nom, marque: p.marque } })); }); });
-  }, [favoris]);
+  const goToDetail = (parfumId: string) => {
+    router.push(`/catalog/${parfumId}`);
+  };
 
   const scanCount = scans.length, level = scanCount >= 20 ? 'Expert du bon plan' : scanCount >= 5 ? 'Chasseur de bonnes affaires' : 'Nez novice';
   const initial = user?.email?.charAt(0).toUpperCase() ?? '?', savings = scanCount * 18;
@@ -33,10 +34,10 @@ export default function ProfilePage() {
   const scanDel = (id:string) => Alert.alert('Supprimer',"Supprimer de l'historique ?",[{text:'Annuler',style:'cancel'},{text:'Supprimer',style:'destructive',onPress:()=>removeScan(id)}]);
 
   if (!authReady) return <View style={s.center}><ActivityIndicator size="large" color={theme.colors.primary}/></View>;
-  if (!isAuthenticated) return <SafeAreaView edges={['bottom']} style={s.container}><View style={s.center}><Ionicons name="person-outline" size={64} color={theme.colors.textMuted}/><Text style={s.emptyTitle}>Connectez-vous</Text><Text style={s.emptyDesc}>Accédez à vos favoris et votre historique</Text><Link href="/auth/login" style={s.loginBtn}><Text style={s.loginBtnText}>Se connecter</Text></Link></View></SafeAreaView>;
+  if (!isAuthenticated) return <SafeAreaView edges={['top', 'bottom']} style={s.container}><View style={s.center}><Ionicons name="person-outline" size={64} color={theme.colors.textMuted}/><Text style={s.emptyTitle}>Connectez-vous</Text><Text style={s.emptyDesc}>Accédez à vos favoris et votre historique</Text><Link href="/auth/login" style={s.loginBtn}><Text style={s.loginBtnText}>Se connecter</Text></Link></View></SafeAreaView>;
 
   return (
-    <SafeAreaView edges={['bottom']} style={s.container}>
+    <SafeAreaView edges={['top', 'bottom']} style={s.container}>
       <ScrollView contentContainerStyle={s.scroll}>
           <View style={s.hero}>
             {user?.photoURL && !imgFailed ? <Image source={{uri:user.photoURL}} style={s.avatar} onError={()=>setImgFailed(true)}/> : <View style={s.avatarFb}><Text style={s.avatarTxt}>{initial}</Text></View>}
@@ -51,8 +52,8 @@ export default function ProfilePage() {
             <Pressable style={[s.tab,tab==='favoris'&&s.tabActive]} onPress={()=>setTab('favoris')}><Ionicons name="heart-outline" size={18} color={tab==='favoris'?theme.colors.primary:theme.colors.textMuted}/><Text style={[s.tabText,tab==='favoris'&&s.tabTextActive]}>Favoris</Text></Pressable>
             <Pressable style={[s.tab,tab==='scans'&&s.tabActive]} onPress={()=>setTab('scans')}><Ionicons name="scan-outline" size={18} color={tab==='scans'?theme.colors.primary:theme.colors.textMuted}/><Text style={[s.tabText,tab==='scans'&&s.tabTextActive]}>Historique</Text></Pressable>
           </View>
-          {tab==='favoris'&&(favLoading?<ActivityIndicator style={{marginTop:32}} color={theme.colors.primary}/>:favoris.length===0?<View style={s.emp}><Ionicons name="heart-outline" size={48} color={theme.colors.textMuted}/><Text style={s.emptyTitle}>Ton nez n'a pas encore de coup de cœur</Text><Text style={s.emptyDesc}>Explore le catalogue et garde tes parfums préférés à portée de main.</Text><Link href="/(tabs)/catalog" style={s.emptyBtn}><Text style={s.emptyBtnText}>Explorer le catalogue</Text></Link></View>:favoris.map(f=>{const i=parfumNames[f.parfumId];return(<Pressable key={f.id} style={s.listItem} onPress={()=>router.push(`/catalog/${f.parfumId}`)}><View style={s.itemLeft}><Ionicons name="heart" size={20} color={theme.colors.danger}/><View><Text style={s.itemName}>{i?.nom??'Chargement...'}</Text>{i?.marque&&<Text style={s.itemBrand}>{i.marque}</Text>}</View></View><Pressable onPress={()=>favDel(f.id)} hitSlop={12}><Ionicons name="trash-outline" size={20} color={theme.colors.textMuted}/></Pressable></Pressable>)}) )}
-          {tab==='scans'&&(scanLoading?<ActivityIndicator style={{marginTop:32}} color={theme.colors.primary}/>:scans.length===0?<View style={s.emp}><Ionicons name="scan-outline" size={48} color={theme.colors.textMuted}/><Text style={s.emptyTitle}>Aucun scan</Text><Text style={s.emptyDesc}>Scanne ton premier flacon !</Text></View>:scans.map(scan=>(<Pressable key={scan.id} style={s.listItem} onPress={()=>scan.parfumId&&router.push(`/catalog/${scan.parfumId}`)}><View style={s.itemLeft}><Ionicons name="scan-outline" size={20} color={theme.colors.primary}/><View><Text style={s.itemName}>{scan.nom??scan.marque??'Scan'}{scan.typeParfum?' · '+scan.typeParfum:''}</Text><Text style={s.itemBrand}>{scan.scannedAt?.toDate?.()?.toLocaleDateString?.()??''}</Text></View></View><Pressable onPress={()=>scanDel(scan.id)} hitSlop={12}><Ionicons name="trash-outline" size={20} color={theme.colors.textMuted}/></Pressable></Pressable>)))}
+          {tab==='favoris'&&(favLoading?<ActivityIndicator style={{marginTop:32}} color={theme.colors.primary}/>:favoris.length===0?<View style={s.emp}><Ionicons name="heart-outline" size={48} color={theme.colors.textMuted}/><Text style={s.emptyTitle}>Ton nez n'a pas encore de coup de cœur</Text><Text style={s.emptyDesc}>Explore le catalogue et garde tes parfums préférés à portée de main.</Text><Pressable style={s.emptyBtn} onPress={onGoToCatalog}><Text style={s.emptyBtnText}>Explorer le catalogue</Text></Pressable></View>:favoris.map(f=>(<Pressable key={f.id} style={s.listItem} onPress={()=>goToDetail(f.parfumId)}><View style={s.itemLeft}><Ionicons name="heart" size={20} color={theme.colors.danger}/><View><Text style={s.itemName}>{f.nom??f.parfumId.replace(/_/g,' ')}</Text>{f.marque ? <Text style={s.itemBrand}>{f.marque}</Text> : null}</View></View><Pressable onPress={()=>favDel(f.id)} hitSlop={12}><Ionicons name="trash-outline" size={20} color={theme.colors.textMuted}/></Pressable></Pressable>)))}
+          {tab==='scans'&&(scanLoading?<ActivityIndicator style={{marginTop:32}} color={theme.colors.primary}/>:scans.length===0?<View style={s.emp}><Ionicons name="scan-outline" size={48} color={theme.colors.textMuted}/><Text style={s.emptyTitle}>Aucun scan</Text><Text style={s.emptyDesc}>Scanne ton premier flacon !</Text></View>:scans.map(scan=>(<Pressable key={scan.id} style={s.listItem} onPress={()=>scan.parfumId&&router.push(`/catalog/${scan.parfumId}`)}><View style={s.itemLeft}><Ionicons name="scan-outline" size={20} color={theme.colors.primary}/><View><Text style={s.itemName}>{scan.nom??scan.marque??'Scan'}{scan.typeParfum?' · '+scan.typeParfum:''}</Text><Text style={s.itemBrand}>{(()=>{const d=scan.scannedAt;if(!d)return'';return 'toDate' in (d as object)?(d as FirestoreDate).toDate().toLocaleDateString():new Date(d as any).toLocaleDateString()})()}</Text></View></View><Pressable onPress={()=>scanDel(scan.id)} hitSlop={12}><Ionicons name="trash-outline" size={20} color={theme.colors.textMuted}/></Pressable></Pressable>)))}
           <Pressable style={s.logoutBtn} onPress={async()=>{await logout();router.replace('/auth/login');}}><Ionicons name="log-out-outline" size={20} color={theme.colors.danger}/><Text style={s.logoutText}>Déconnexion</Text></Pressable>
         </ScrollView>
     </SafeAreaView>

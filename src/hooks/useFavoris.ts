@@ -15,9 +15,9 @@ export function useFavoris(uid: string | null) {
     return unsub;
   }, [uid]);
 
-  const addFavori = useCallback(async (parfumId: string) => {
+  const addFavori = useCallback(async (parfumId: string, nom?: string, marque?: string) => {
     if (!uid) return;
-    await add(uid, parfumId);
+    await add(uid, parfumId, nom, marque);
   }, [uid]);
 
   const removeFavori = useCallback(async (favoriId: string) => {

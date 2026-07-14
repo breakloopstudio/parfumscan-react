@@ -1,4 +1,8 @@
 // Sous-collection 'users/{uid}/scans'
+
+// Timestamp Firestore (compatible Expo Go via duck typing)
+export type FirestoreDate = { toDate(): Date; toMillis(): number };
+
 export interface UserScan {
   id: string;
   rawText: string;
@@ -6,6 +10,6 @@ export interface UserScan {
   nom?: string;
   volumeMl?: number;
   typeParfum?: string;
-  scannedAt: Date;
+  scannedAt: Date | FirestoreDate;
   parfumId?: string;
 }

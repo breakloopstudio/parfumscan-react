@@ -22,12 +22,21 @@ const FIRESTORE_ERROR_MAP: Record<string, string> = {
   'unavailable': 'Service temporairement indisponible.',
 };
 
+const FUNCTIONS_ERROR_MAP: Record<string, string> = {
+  'not-found': 'Service indisponible. Réessayez plus tard.',
+  'internal': 'Une erreur interne est survenue. Réessayez.',
+  'unauthenticated': 'Connexion requise. Veuillez vous reconnecter.',
+  'invalid-argument': 'Données invalides. Veuillez réessayer.',
+  'deadline-exceeded': 'Délai dépassé. Vérifiez votre connexion.',
+};
+
 export function translateFirebaseError(error: unknown): string {
   if (error instanceof Error) {
     const firebaseError = error as { code?: string };
     if (firebaseError.code) {
       const message =
         AUTH_ERROR_MAP[firebaseError.code] ??
+        FUNCTIONS_ERROR_MAP[firebaseError.code] ??
         FIRESTORE_ERROR_MAP[firebaseError.code];
       if (message) return message;
     }

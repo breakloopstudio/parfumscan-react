@@ -1,27 +1,38 @@
 // src/features/scan/ScanResults.tsx — Résultats : liste de parfums trouvés
 
 import { View, Text, FlatList, Pressable, StyleSheet } from 'react-native';
+import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import ParfumCard from '../../components/ParfumCard';
+import { setPendingParfum } from '../../services/catalog-bridge';
 import { theme } from '../../theme/theme';
 import type { Parfum } from '../../models';
+import type { ParfumSearchResult } from '../../services/fragella';
 
 interface Props {
-  parfums: Parfum[];
+  parfums: Parfum[] | ParfumSearchResult[];
   onOpenCatalog: () => void;
 }
 
 export function ScanResults({ parfums, onOpenCatalog }: Props) {
+  const router = useRouter();
+
+  const handleParfumPress = (parfum: Parfum | ParfumSearchResult) => {
+    setPendingParfum(parfum);
+    // Dismiss le scan → retour aux tabs, le TabPager va ouvrir la fiche détail
+    router.dismissTo('/(tabs)');
+  };
+
   return (
     <View style={s.container}>
       <View style={s.header}>
         <Ionicons name="checkmark-circle" size={36} color={theme.colors.success} />
         <Text style={s.title}>{parfums.length} parfum{parfums.length > 1 ? 's' : ''} trouvé{parfums.length > 1 ? 's' : ''}</Text>
       </View>
-      <FlatList
+      <FlatList<Parfum | ParfumSearchResult>
         data={parfums}
-        keyExtractor={p => p.id + p.nom}
-        renderItem={({ item }) => <ParfumCard parfum={item} showDeal />}
+        keyExtractor={(p,i) => p.id + '_' + p.nom || String(i)}
+        renderItem={({ item }) => <ParfumCard parfum={item} showDeal onPressOverride={() => handleParfumPress(item)} />}
         contentContainerStyle={s.list}
         showsVerticalScrollIndicator={false}
       />
