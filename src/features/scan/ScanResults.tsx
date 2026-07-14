@@ -31,7 +31,7 @@ export function ScanResults({ parfums, onOpenCatalog }: Props) {
       </View>
       <FlatList<Parfum | ParfumSearchResult>
         data={parfums}
-        keyExtractor={(p,i) => p.id + '_' + p.nom || String(i)}
+        keyExtractor={(p, i) => `${p.id}_${i}`}
         renderItem={({ item }) => <ParfumCard parfum={item} showDeal onPressOverride={() => handleParfumPress(item)} />}
         contentContainerStyle={s.list}
         showsVerticalScrollIndicator={false}

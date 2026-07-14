@@ -99,6 +99,9 @@ function mapFragrance(raw: Record<string, unknown>): FragranceResult {
 
   const brandNorm = normalize(brand);
   const nameNorm = normalize(name);
+  
+  // DEBUG: log les clés du premier résultat pour vérifier les métadonnées enrichies
+  if (!((globalThis as any).__fragellaLogged)) { console.log('[Fragella] raw keys:', Object.keys(raw).sort().join(', ')); (globalThis as any).__fragellaLogged = true; }
   return {
     id: brandNorm + '_' + nameNorm,
     nom: name,

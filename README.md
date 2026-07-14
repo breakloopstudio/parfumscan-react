@@ -143,13 +143,28 @@ functions/                    # Cloud Functions Firebase
 ```
 Idle → [Tap Scanner] → CameraView → [Capture]
   → Scanning (step 0→1→2) → GPT-4o Vision
-  → Confidence haute ? → Fragella → batchCacheParfums() → Résultats
+  → Confidence haute ? → Fragella → await batchCacheParfums() → Résultats
   → Confidence basse ? → Clarification manuelle → Fragella
-  → Résultat → Tap parfum → dismissTo tabs → fiche détail
+  → Résultat → Tap parfum → setPendingParfum() → dismissTo tabs
+      → TabPager consume + re-set → push /catalog/:id
+      → Fiche détail consumePendingParfum() → données enrichies affichées
   → Résultat → Voir catalogue → setPendingCatalogQuery() + router.back()
 ```
 
-## 📚 Flux de recherche (cache-first v4.1)
+> **Pont inter-écrans** : `setPendingParfum()` stocke les données en mémoire,
+> `consumePendingParfum()` les lit une seule fois. Le TabPager re-stocke
+> immédiatement après consommation pour que la fiche détail les reçoive.
+
+### Fiche détail enrichie
+
+La page `app/catalog/[id].tsx` affiche les métadonnées de l'API Fragella :
+- Pyramide olfactive (notes de tête/cœur/fond)
+- Accords principaux avec barres de pourcentage (labels string → %)
+- Saisonnalité & Occasions (scores bayésiens normalisés)
+- Longévité & Sillage (jauges visuelles)
+- Prix, réduction, lien affilié
+
+## 📚 Flux de recherche (cache-first v4.2)
 
 ```
 Saisie ≥ 3 caractères → useCatalog() → debounce 800ms
@@ -159,52 +174,13 @@ Saisie ≥ 3 caractères → useCatalog() → debounce 800ms
 
 Avantage : chaque recherche n'est payée qu'une fois,
 tous utilisateurs confondus.
+
+⚠️ L'endpoint /fragrances?search= de Fragella renvoie TOUTES les métadonnées
+  (accords, saisons, occasions, longévité, sillage…) — pas besoin d'appeler
+  /fragrances/:id séparément.
 ```
 
 ---
-
-## 🔑 Configuration Firebase
-
-1. Crée un projet sur [Firebase Console](https://console.firebase.google.com)
-2. Télécharge `google-services.json` et place-le à la racine (⚠️ `.gitignore`-d)
-3. Active **Authentication** (Email/Password + Google)
-4. Active **Firestore Database** + **Storage**
-5. Déploie les Cloud Functions :
-   ```bash
-   firebase use parfumscan-60549
-   firebase deploy --only functions
-   # ⚠️ Les fonctions sont déployées en europe-west1
-   #    Le client doit utiliser _functions(undefined, 'europe-west1'), pas _functions()
-   ```
-6. Configure le `webClientId` Google Sign-In dans `app/_layout.tsx`
-
----
-
-## 🛠️ Scripts
-
-| Commande | Description |
-|---|---|
-| `npm start` | Lance Expo Go |
-| `npm run android` | Development build Android |
-| `npm run ios` | Development build iOS |
-| `npm run env:setup` | Copie `.env.example` → `.env` |
-| `npm run functions:build` | Compile les Cloud Functions |
-| `npm run functions:deploy` | Déploie les Cloud Functions |
-| `npm run emulators` | Lance les émulateurs Firebase |
-| `build_release.bat` | Build APK release Android → `android/app/build/outputs/apk/release/` |
-
----
-
-## 🎨 Design System
-
-- **Couleur primaire** : `#7C3AED` (violet)
-- **Accent** : `#D4A574` (or champagne)
-- **Succès** : `#10B981` (vert)
-- **Typographie** : Playfair Display (titres) + Inter (corps)
-- **45 tokens** dans `src/theme/theme.ts`
-
----
-
 ## 📄 Licence
 
 MIT — voir [LICENSE](./LICENSE)

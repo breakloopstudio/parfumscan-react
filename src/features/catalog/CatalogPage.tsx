@@ -44,7 +44,7 @@ export default function CatalogPage() {
         </View>
       ) : (
         <><Text style={s.resultsCount}>{parfums.length} parfum(s)</Text>{searching && <ActivityIndicator style={{marginTop:12}} color={theme.colors.primary}/>}
-        <FlatList data={parfums} keyExtractor={(p,i)=>p.id+'_'+p.nom||String(i)} renderItem={({item})=><ParfumCard parfum={item} showDeal/>} contentContainerStyle={{paddingBottom:16}} showsVerticalScrollIndicator={false}
+        <FlatList data={parfums} keyExtractor={(p, i) => `${p.id}_${i}`} renderItem={({item})=><ParfumCard parfum={item} showDeal/>} contentContainerStyle={{paddingBottom:16}} showsVerticalScrollIndicator={false}
           ListEmptyComponent={!searching?<View style={s.empty}><Ionicons name="search-outline" size={64} color={theme.colors.primary} style={{opacity:.5}}/><Text style={s.emptyTitle}>Aucun résultat</Text><Text style={s.emptyDesc}>Essaie une autre orthographe{'\n'}ou scanne un flacon !</Text><Link href="/(tabs)/scan" style={s.emptyScanBtn}><Text style={s.emptyScanText}>Scanner un flacon</Text></Link></View>:null}/>
         </>
       )}

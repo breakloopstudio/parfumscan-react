@@ -36,6 +36,12 @@ const OCCASION_META: Record<string, { label: string; emoji: string }> = {
   romantic:  { label: 'Rendez-vous', emoji: '💑' },
   formal:    { label: 'Formel', emoji: '👔' },
   sport:     { label: 'Sport', emoji: '🏃' },
+  professional: { label: 'Bureau', emoji: '💼' },
+  'night out':  { label: 'Soirée', emoji: '🌙' },
+  night_out:  { label: 'Soirée', emoji: '🌙' },
+  business:  { label: 'Bureau', emoji: '💼' },
+  leisure:   { label: 'Loisir', emoji: '🎯' },
+  daily:     { label: 'Jour', emoji: '☀️' },
 };
 
 function longevityMeta(v: string): { label: string; pct: number } {
@@ -125,6 +131,7 @@ export default function CatalogDetailPage() {
     const pending = consumePendingParfum();
     if (pending && pending.id === id) {
       setParfum(pending);
+      console.log('[Detail] keys:', Object.keys(pending).filter(function(k){return (pending as any)[k]!=null;}).sort().join(', '));
       setLoading(false);
       return;
     }
@@ -151,6 +158,10 @@ export default function CatalogDetailPage() {
   if (loading) return <View style={s.center}><ActivityIndicator size="large" color={theme.colors.primary} /></View>;
   if (!parfum) return <View style={s.center}><Text style={{color:theme.colors.textMuted}}>Parfum introuvable.</Text></View>;
 
+  var seasonData = parfum && parfum.seasonRanking ? [...parfum.seasonRanking].sort(function(a,b){return b.score-a.score}) : null;
+  var seasonMax = seasonData && seasonData.length > 0 ? Math.max.apply(null, seasonData.map(function(s){return s.score}).concat([1])) : 0;
+  var occasionData = parfum && parfum.occasionRanking ? [...parfum.occasionRanking].sort(function(a,b){return b.score-a.score}) : null;
+  var occasionMax = occasionData && occasionData.length > 0 ? Math.max.apply(null, occasionData.map(function(o){return o.score}).concat([1])) : 0;
   return (
     <SafeAreaView style={s.container}>
       <ScrollView>
@@ -208,7 +219,7 @@ export default function CatalogDetailPage() {
               <SectionTitle icon="🎯" title="Accords principaux" />
               {parfum.mainAccordsPercentage
                 ? Object.entries(parfum.mainAccordsPercentage).map(([name, pctStr], i, arr) => {
-                    const pct = parseInt(pctStr.replace('%', ''), 10) || 0;
+                    var n = parseInt(pctStr.replace("%", ""), 10); var pct = !isNaN(n) ? n : ({ dominant: 95, prominent: 75, moderate: 50, soft: 30, subtle: 15, faint: 5 })[pctStr.toLowerCase().trim()] ?? 40;
                     return <AccordBar key={name} name={name} pct={pct} index={i} total={arr.length} />;
                   })
                 : parfum.mainAccords.map((name, i, arr) => (
@@ -218,25 +229,25 @@ export default function CatalogDetailPage() {
             </View>
           ) : null}
           {/* ─── Saisonnalité ─── */}
-          {'seasonRanking' in parfum && parfum.seasonRanking && parfum.seasonRanking.length > 0 ? (
-            <View style={s.infoZone}>
-              <SectionTitle icon="🌸" title="Saisonnalité" />
-              {[...parfum.seasonRanking].sort((a, b) => b.score - a.score).map(s => {
-                const meta = SEASON_META[s.name.toLowerCase()] ?? { label: s.name, color: theme.colors.primary, bg: theme.colors.violetSoft, emoji: '📅' };
-                return <StatBar key={s.name} label={meta.label} score={s.score} icon={meta.emoji} barColor={meta.color} barBg={meta.bg} />;
-              })}
-            </View>
-          ) : null}
+            {seasonData && seasonMax > 0 ? (
+              <View style={s.infoZone}>
+                <SectionTitle icon="🌸" title="Saisonnalité" />
+                {seasonData.map(function(s) {
+                  var meta = SEASON_META[s.name.toLowerCase()] ?? { label: s.name, color: theme.colors.primary, bg: theme.colors.violetSoft, emoji: '📅' };
+                  return <StatBar key={s.name} label={meta.label} score={s.score} maxScore={seasonMax} icon={meta.emoji} barColor={meta.color} barBg={meta.bg} />;
+                })}
+              </View>
+            ) : null}
           {/* ─── Occasions ─── */}
-          {'occasionRanking' in parfum && parfum.occasionRanking && parfum.occasionRanking.length > 0 ? (
-            <View style={s.infoZone}>
-              <SectionTitle icon="🎭" title="Occasions" />
-              {[...parfum.occasionRanking].sort((a, b) => b.score - a.score).map(o => {
-                const meta = OCCASION_META[o.name.toLowerCase()] ?? { label: o.name, emoji: '📍' };
-                return <StatBar key={o.name} label={meta.label} score={o.score} icon={meta.emoji} barColor={theme.colors.primary} barBg={theme.colors.violetSoft} />;
-              })}
-            </View>
-          ) : null}
+            {occasionData && occasionMax > 0 ? (
+              <View style={s.infoZone}>
+                <SectionTitle icon="🎭" title="Occasions" />
+                {occasionData.map(function(o) {
+                  var meta = OCCASION_META[o.name.toLowerCase()] ?? { label: o.name, emoji: '📍' };
+                  return <StatBar key={o.name} label={meta.label} score={o.score} maxScore={occasionMax} icon={meta.emoji} barColor={theme.colors.primary} barBg={theme.colors.violetSoft} />;
+                })}
+              </View>
+            ) : null}
           <View style={s.pyramid}>
             <PyramidSection label="Notes de Tête" notes={parfum.notesTete} color={s.topDot} chipBg={s.topChip} chipCl={s.topChipText} lblCl="#059669" />
             <PyramidSection label="Notes de Cœur" notes={parfum.notesCoeur} color={s.heartDot} chipBg={s.heartChip} chipCl={s.heartChipText} lblCl="#D97706" />

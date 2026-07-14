@@ -17,7 +17,7 @@ import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context'
 import { theme } from '../../src/theme/theme';
 import { useAppTheme } from '../../src/hooks/useAppTheme';
 import { hapticsLight } from '../../src/services/haptics';
-import { consumePendingParfum } from '../../src/services/catalog-bridge';
+import { consumePendingParfum, setPendingParfum } from '../../src/services/catalog-bridge';
 import CatalogPage from '../../src/features/catalog/CatalogPage';
 import ProfilePage from '../../src/features/profile/ProfilePage';
 
@@ -69,6 +69,7 @@ export default function TabPager() {
     useCallback(() => {
       const p = consumePendingParfum();
       if (p) {
+        setPendingParfum(p); // re-stocke pour la fiche détail
         // Petit dÃ©lai pour laisser l'animation de dismiss se terminer
         const t = setTimeout(() => router.push(`/catalog/${p.id}`), 200);
         return () => clearTimeout(t);

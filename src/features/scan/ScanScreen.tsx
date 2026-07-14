@@ -84,7 +84,7 @@ export function ScanScreen() {
         const parfums = frag.map(f => fragellaToParfum(f));
         if (user?.uid) saveScan(user.uid, { rawText: JSON.stringify({ marque: scanResult.marque, nom: scanResult.nom, typeParfum: scanResult.typeParfum }), marque: scanResult.marque ?? undefined, nom: scanResult.nom ?? undefined, typeParfum: scanResult.typeParfum ?? undefined, parfumId: frag[0]?.id }).catch(() => {});
         // Cache automatique pour les futures recherches
-        batchCacheParfums(parfums).catch(() => {});
+        try { await batchCacheParfums(parfums); } catch {}
         dispatch({ type: 'SCAN_SUCCESS', parfums });
       } else {
         dispatch({ type: 'SCAN_NO_RESULT', scanResult: scanResult.marque ? scanResult : { marque: scanResult.marque, nom: scanResult.nom ?? null, volumeMl: null, typeParfum: scanResult.typeParfum ?? null } });
