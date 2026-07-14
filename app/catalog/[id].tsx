@@ -210,7 +210,7 @@ export default function CatalogDetailPage() {
                 </View>
                 {'priceValue' in parfum && parfum.priceValue && (
                   <Text style={[s.dealValue, parfum.priceValue === 'overpriced' ? s.dealOver : parfum.priceValue === 'fair' ? s.dealFair : s.dealGood]}>
-                    {parfum.priceValue === 'overpriced' ? '💸 Surcôté' : parfum.priceValue === 'fair' ? '⚖️ Prix correct' : '🎯 Bonne affaire'}
+                    {parfum.priceValue === 'overpriced' ? '💸 Trop cher' : parfum.priceValue === 'fair' ? '⚖️ Prix correct' : '🎯 Bonne affaire'}
                   </Text>
                 )}
               </View>
@@ -223,6 +223,11 @@ export default function CatalogDetailPage() {
               )}
             </View>
           ) : null}
+          <View style={s.pyramid}>
+            <PyramidSection label="Notes de Tête" notes={parfum.notesTete} color={s.topDot} chipBg={s.topChip} chipCl={s.topChipText} lblCl="#059669" />
+            <PyramidSection label="Notes de Cœur" notes={parfum.notesCoeur} color={s.heartDot} chipBg={s.heartChip} chipCl={s.heartChipText} lblCl="#D97706" />
+            <PyramidSection label="Notes de Fond" notes={parfum.notesFond} color={s.baseDot} chipBg={s.baseChip} chipCl={s.baseChipText} lblCl="#7C3AED" last />
+          </View>
           {/* ─── Accords principaux ─── */}
           {'mainAccords' in parfum && parfum.mainAccords && parfum.mainAccords.length > 0 ? (
             <View style={s.infoZone}>
@@ -243,7 +248,7 @@ export default function CatalogDetailPage() {
               <View style={s.infoZone}>
                 <SectionTitle icon="🌸" title="Saisonnalité" />
                 {seasonData.map(function(item) {
-                  var meta = SEASON_META[item.name.toLowerCase()] ?? { label: s.name, color: theme.colors.primary, bg: theme.colors.violetSoft, emoji: '📅' };
+                  var meta = SEASON_META[item.name.toLowerCase()] ?? { label: item.name, color: theme.colors.primary, bg: theme.colors.violetSoft, emoji: '📅' };
                   var m = scoreLabel(item.score, seasonMax, 'Très adapté', 'Adapté'); return <View key={item.name} style={s.gaugeRow}><View style={[s.gaugeIcon, { backgroundColor: meta.bg }]}><Text style={{fontSize:15}}>{meta.emoji}</Text></View><View style={s.gaugeBody}><Text style={s.gaugeLabel}>{meta.label}</Text><View style={s.gaugeTrack}><View style={[s.gaugeFill, { width: `${m.pct}%`, backgroundColor: meta.color }]} /></View></View><Text style={[s.gaugeVal, { color: meta.color }]}>{m.label}</Text></View>;
                 })}
               </View>
@@ -258,11 +263,6 @@ export default function CatalogDetailPage() {
                 })}
               </View>
             ) : null}
-          <View style={s.pyramid}>
-            <PyramidSection label="Notes de Tête" notes={parfum.notesTete} color={s.topDot} chipBg={s.topChip} chipCl={s.topChipText} lblCl="#059669" />
-            <PyramidSection label="Notes de Cœur" notes={parfum.notesCoeur} color={s.heartDot} chipBg={s.heartChip} chipCl={s.heartChipText} lblCl="#D97706" />
-            <PyramidSection label="Notes de Fond" notes={parfum.notesFond} color={s.baseDot} chipBg={s.baseChip} chipCl={s.baseChipText} lblCl="#7C3AED" last />
-          </View>
         </View>
       </ScrollView>
     </SafeAreaView>
