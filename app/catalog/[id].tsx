@@ -62,6 +62,16 @@ function sillageMeta(v: string): { label: string; pct: number } {
   return { label: v, pct: 40 };
 }
 
+function scoreLabel(score: number, maxScore: number, highLabel: string, midLabel: string): { label: string; pct: number } {
+  const ratio = maxScore > 0 ? score / maxScore : 0;
+  const pct = Math.round(Math.max(0, Math.min(100, ratio * 100)));
+  if (ratio >= 0.8) return { label: highLabel, pct };
+  if (ratio >= 0.6) return { label: midLabel, pct };
+  if (ratio >= 0.4) return { label: 'Modéré', pct };
+  if (ratio >= 0.2) return { label: 'Peu adapté', pct };
+  return { label: 'Déconseillé', pct };
+}
+
 function typeParfumLabel(v: string): string {
   const k = v.toLowerCase().replace(/[^a-z]/g, '');
   if (k.includes('extrait') || k.includes('pure')) return 'Extrait';
@@ -232,9 +242,9 @@ export default function CatalogDetailPage() {
             {seasonData && seasonMax > 0 ? (
               <View style={s.infoZone}>
                 <SectionTitle icon="🌸" title="Saisonnalité" />
-                {seasonData.map(function(s) {
-                  var meta = SEASON_META[s.name.toLowerCase()] ?? { label: s.name, color: theme.colors.primary, bg: theme.colors.violetSoft, emoji: '📅' };
-                  return <StatBar key={s.name} label={meta.label} score={s.score} maxScore={seasonMax} icon={meta.emoji} barColor={meta.color} barBg={meta.bg} />;
+                {seasonData.map(function(item) {
+                  var meta = SEASON_META[item.name.toLowerCase()] ?? { label: s.name, color: theme.colors.primary, bg: theme.colors.violetSoft, emoji: '📅' };
+                  var m = scoreLabel(item.score, seasonMax, 'Très adapté', 'Adapté'); return <View key={item.name} style={s.gaugeRow}><View style={[s.gaugeIcon, { backgroundColor: meta.bg }]}><Text style={{fontSize:15}}>{meta.emoji}</Text></View><View style={s.gaugeBody}><Text style={s.gaugeLabel}>{meta.label}</Text><View style={s.gaugeTrack}><View style={[s.gaugeFill, { width: `${m.pct}%`, backgroundColor: meta.color }]} /></View></View><Text style={[s.gaugeVal, { color: meta.color }]}>{m.label}</Text></View>;
                 })}
               </View>
             ) : null}
@@ -242,9 +252,9 @@ export default function CatalogDetailPage() {
             {occasionData && occasionMax > 0 ? (
               <View style={s.infoZone}>
                 <SectionTitle icon="🎭" title="Occasions" />
-                {occasionData.map(function(o) {
-                  var meta = OCCASION_META[o.name.toLowerCase()] ?? { label: o.name, emoji: '📍' };
-                  return <StatBar key={o.name} label={meta.label} score={o.score} maxScore={occasionMax} icon={meta.emoji} barColor={theme.colors.primary} barBg={theme.colors.violetSoft} />;
+                {occasionData.map(function(item) {
+                  var meta = OCCASION_META[item.name.toLowerCase()] ?? { label: item.name, emoji: '📍' };
+                  var m = scoreLabel(item.score, occasionMax, 'Idéal', 'Recommandé'); return <View key={item.name} style={s.gaugeRow}><View style={[s.gaugeIcon, { backgroundColor: theme.colors.violetSoft }]}><Text style={{fontSize:15}}>{meta.emoji}</Text></View><View style={s.gaugeBody}><Text style={s.gaugeLabel}>{meta.label}</Text><View style={s.gaugeTrack}><View style={[s.gaugeFill, { width: `${m.pct}%`, backgroundColor: theme.colors.primary }]} /></View></View><Text style={[s.gaugeVal, { color: theme.colors.violetInk }]}>{m.label}</Text></View>;
                 })}
               </View>
             ) : null}
