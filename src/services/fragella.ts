@@ -26,7 +26,8 @@ export interface FragranceResult {
   mainAccords?: string[];
   rating?: string | null;
   popularity?: string | null;
-  // Métadonnées étendues (maximiser la collecte)
+  popularityScore?: number;  // score normalise (0-100)
+  ratingScore?: number;      // parseFloat(rating)
   country?: string;
   imageUrlTransparent?: string;
   mainAccordsPercentage?: Record<string, string>;
@@ -62,6 +63,8 @@ export interface ParfumSearchResult {
   gender?: string | null;
   rating?: string | null;
   popularity?: string | null;
+  popularityScore?: number;
+  ratingScore?: number;
   priceValue?: string | null;
   country?: string;
   imageUrlTransparent?: string;
@@ -78,6 +81,25 @@ export interface ParfumSearchResult {
 const FRAGELLA_BASE = 'https://api.fragella.com/api/v1';
 
 // ─── Helpers ──────────────────────────────────────────────
+
+
+function popScore(v: string | undefined): number | undefined {
+  if (!v) return undefined;
+  const k = v.toLowerCase().trim();
+  if (k.includes('very high') || k.includes('extremely')) return 100;
+  if (k.includes('high')) return 75;
+  if (k.includes('medium') || k.includes('moderate')) return 50;
+  if (k.includes('low') && !k.includes('very')) return 25;
+  if (k.includes('very low')) return 0;
+  const n = parseFloat(k);
+  return isNaN(n) ? undefined : n;
+}
+
+function rateScore(v: string | undefined): number | undefined {
+  if (!v) return undefined;
+  const n = parseFloat(v);
+  return isNaN(n) ? undefined : n;
+}
 
 export function normalize(s: string): string {
   return s.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().replace(/[^a-z0-9]+/g, '_').replace(/^_|_$/g, '');
@@ -141,6 +163,8 @@ function mapFragrance(raw: Record<string, unknown>): FragranceResult {
     rating: (raw['rating'] as string) ?? undefined,
     popularity: (raw['Popularity'] as string) ?? undefined,
     // Métadonnées étendues
+    popularityScore: popScore(pop as string),
+    ratingScore: rateScore(rat as string),
     country: (raw['Country'] as string) ?? undefined,
     imageUrlTransparent: (raw['Image URL Transparent'] as string) ?? undefined,
     mainAccordsPercentage: (raw['Main Accords Percentage'] as Record<string, string>) ?? undefined,
@@ -192,6 +216,8 @@ export function fragellaToParfum(frag: FragranceResult): ParfumSearchResult {
     gender: frag.gender,
     rating: frag.rating,
     popularity: frag.popularity,
+    popularityScore: frag.popularityScore,
+    ratingScore: frag.ratingScore,
     priceValue: frag.priceValue,
     country: frag.country,
     imageUrlTransparent: frag.imageUrlTransparent,

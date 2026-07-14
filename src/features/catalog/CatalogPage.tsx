@@ -8,7 +8,9 @@ import { Ionicons } from '@expo/vector-icons';
 import { useAuthContext } from '../../contexts/AuthContext';
 import { useCatalog } from '../../hooks/useCatalog';
 import ParfumCard from '../../components/ParfumCard';
+import { getPopularParfums } from '../../services/firestore';
 import { theme } from '../../theme/theme';
+import type { ParfumSearchResult } from '../../services/fragella';
 
 import { consumePendingCatalogQuery } from '../../services/catalog-bridge';
 
@@ -18,7 +20,13 @@ export default function CatalogPage() {
   const initialQuery = routeQuery ?? consumePendingCatalogQuery();
   const [searchText, setSearchText] = useState(initialQuery ?? '');
   const { parfums, searching, search, clear } = useCatalog();
+  const [popularParfums, setPopularParfums] = useState<ParfumSearchResult[]>([]);
+  const [popularLoading, setPopularLoading] = useState(true);
   const handleSearch = (t: string) => { setSearchText(t); t.trim().length >= 3 ? search(t) : clear(); };
+
+  useEffect(() => {
+    getPopularParfums(6).then(p => { setPopularParfums(p); setPopularLoading(false); });
+  }, []);
 
   // Recherche auto quand on arrive depuis le scan avec ?q=...
   useEffect(() => {
@@ -37,10 +45,17 @@ export default function CatalogPage() {
       <View style={s.searchWrap}><TextInput style={s.searchInput} placeholder="Rechercher un parfum..." placeholderTextColor={theme.colors.textMuted} value={searchText} onChangeText={handleSearch} autoCapitalize="none" autoCorrect={false}/></View>
       {!searchText ? (
         <View style={s.ghostSection}><Text style={s.ghostLabel}>Parfums populaires</Text>
-          <View style={s.ghostCards}>
-            <View style={s.ghostCard}><View style={s.ghostImg}/><View style={s.ghostBody}><Text style={s.ghostBrand}>CHANEL</Text><Text style={s.ghostName}>Bleu de Chanel</Text></View></View>
-            <View style={s.ghostCard}><View style={[s.ghostImg,s.ghostImgAlt]}/><View style={s.ghostBody}><Text style={s.ghostBrand}>DIOR</Text><Text style={s.ghostName}>Sauvage</Text></View></View>
-          </View>
+          {popularLoading ? <ActivityIndicator style={{ marginTop: 20 }} color={theme.colors.primary} /> :
+           popularParfums.length > 0 ? (
+            <View style={s.popularGrid}>
+              {popularParfums.map(p => <ParfumCard key={p.id} parfum={p} />)}
+            </View>
+          ) : (
+            <View style={s.ghostCards}>
+              <View style={s.ghostCard}><View style={s.ghostImg}/><View style={s.ghostBody}><Text style={s.ghostBrand}>CHANEL</Text><Text style={s.ghostName}>Bleu de Chanel</Text></View></View>
+              <View style={s.ghostCard}><View style={[s.ghostImg,s.ghostImgAlt]}/><View style={s.ghostBody}><Text style={s.ghostBrand}>DIOR</Text><Text style={s.ghostName}>Sauvage</Text></View></View>
+            </View>
+          )}
         </View>
       ) : (
         <><Text style={s.resultsCount}>{parfums.length} parfum(s)</Text>{searching && <ActivityIndicator style={{marginTop:12}} color={theme.colors.primary}/>}
@@ -79,4 +94,5 @@ const s = StyleSheet.create({
   emptyDesc:{fontSize:14,color:theme.colors.textMuted,textAlign:'center',lineHeight:20,marginTop:8},
   emptyScanBtn:{marginTop:20,backgroundColor:theme.colors.primary,paddingHorizontal:20,paddingVertical:12,borderRadius:theme.radius.base,...theme.shadow.button},
   emptyScanText:{color:'#FFF',fontWeight:'600',fontSize:16},
+  popularGrid:{gap:4},
 });

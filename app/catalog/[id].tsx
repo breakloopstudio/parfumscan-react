@@ -1,4 +1,4 @@
-﻿// app/catalog/[id].tsx — Fiche détail parfum
+// app/catalog/[id].tsx — Fiche détail parfum
 
 import { useState, useEffect, useRef } from 'react';
 import { View, Text, ScrollView, Image, Pressable, ActivityIndicator, Linking, StyleSheet } from 'react-native';
@@ -170,21 +170,7 @@ export default function CatalogDetailPage() {
         setLoading(false);
         return;
       }
-
-      // Step 4: Fallback — Fragella par ID (endpoint /fragrances/:id, donnees completes)
-      try {
-        const detail = await getFragranceById(id);
-        if (detail) {
-          const p = fragellaToParfum(detail);
-          setParfum(p);
-          cacheParfumFromSearch(p).catch(() => {});
-          setLoading(false);
-          return;
-        }
-      } catch (e) {
-        console.warn('[detail] Fragella getById failed:', (e as Error)?.message);
-      }
-
+      // Step 4: Dernier recours - recherche textuelle Fragella
       // Step 5: Dernier recours — recherche textuelle Fragella
       try {
         const searchQuery = id.replace(/_/g, ' ').trim();
@@ -303,6 +289,8 @@ export default function CatalogDetailPage() {
             {parfum.annee && <View style={s.tagYear}><Text style={s.tagYearText}>{parfum.annee}</Text></View>}
             {'gender' in parfum && parfum.gender && <View style={s.tagGender}><Text style={s.tagGenderText}>{parfum.gender === 'men' ? '👨 Homme' : parfum.gender === 'women' ? '👩 Femme' : '🧑 Unisexe'}</Text></View>}
             {'typeParfum' in parfum && parfum.typeParfum && <View style={s.tagType}><Text style={s.tagTypeText}>{typeParfumLabel(parfum.typeParfum)}</Text></View>}
+            {'ratingScore' in parfum && parfum.ratingScore ? <View style={s.tagRating}><Ionicons name="star" size={13} color="#D97706" /><Text style={s.tagRatingText}> {parfum.ratingScore}</Text></View> : ('rating' in parfum && parfum.rating ? <View style={s.tagRating}><Ionicons name="star" size={13} color="#D97706" /><Text style={s.tagRatingText}> {parfum.rating}</Text></View> : null)}
+            {'popularityScore' in parfum && parfum.popularityScore != null ? <View style={[s.tagRating, s.tagPopularity]}><Ionicons name="trending-up" size={13} color={theme.colors.primary} /><Text style={s.tagPopularityText}>{parfum.popularityScore >= 75 ? 'Tr\u00e8s populaire' : parfum.popularityScore >= 50 ? 'Populaire' : 'Peu connu'}</Text></View> : null}
           </View>
           {/* ─── Longévité & Sillage ─── */}
           {('longevity' in parfum && parfum.longevity) || ('sillage' in parfum && parfum.sillage) ? (
@@ -434,6 +422,10 @@ const s = StyleSheet.create({
   baseChipText: { color: '#5B21B6' },
   // ─── Nouvelles sections ───
   tagType: { backgroundColor: '#FFF7ED', paddingHorizontal: 12, paddingVertical: 5, borderRadius: 20 },
+  tagRating: { flexDirection: 'row', alignItems: 'center', backgroundColor: '#FFFBEB', paddingHorizontal: 10, paddingVertical: 5, borderRadius: 20 },
+  tagRatingText: { fontSize: 12, fontWeight: '700', color: '#D97706' },
+  tagPopularity: { backgroundColor: theme.colors.violetSoft },
+  tagPopularityText: { fontSize: 11, fontWeight: '600', color: theme.colors.primary },
   tagTypeText: { fontSize: 11, fontWeight: '500', color: '#9A3412' },
   infoZone: { marginBottom: 20, gap: 8 },
   sectionTitle: { flexDirection: 'row', alignItems: 'center', gap: 6, marginBottom: 4 },

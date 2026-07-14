@@ -90,6 +90,8 @@ export async function cacheParfumFromSearch(p: ParfumSearchResult): Promise<stri
       gender: p.gender ?? null,
       rating: p.rating ?? null,
       popularity: p.popularity ?? null,
+      popularityScore: p.popularityScore ?? null,
+      ratingScore: p.ratingScore ?? null,
       priceValue: p.priceValue ?? null,
       country: p.country ?? null,
       imageUrlTransparent: p.imageUrlTransparent ?? null,
@@ -170,6 +172,8 @@ export async function batchCacheParfums(parfums: ParfumSearchResult[]): Promise<
         gender: p.gender ?? null,
         rating: p.rating ?? null,
         popularity: p.popularity ?? null,
+        popularityScore: p.popularityScore ?? null,
+        ratingScore: p.ratingScore ?? null,
         priceValue: p.priceValue ?? null,
         country: p.country ?? null,
         imageUrlTransparent: p.imageUrlTransparent ?? null,
@@ -225,6 +229,21 @@ export async function searchParfumsCached(query: string): Promise<ParfumSearchRe
       .sort((a: any, b: any) => b._score - a._score)
       .slice(0, 15)
       .map(({ _score, ...rest }: any) => rest as ParfumSearchResult);
+  } catch {
+    return [];
+  }
+}
+
+/** Recupere les parfums les plus populaires depuis le cache Firestore.
+ *  Tries par popularityScore decroissant. docs sans score ignores. */
+export async function getPopularParfums(limit: number = 6): Promise<ParfumSearchResult[]> {
+  try {
+    const snap = await col()
+      .orderBy('popularityScore', 'desc')
+      .limit(limit)
+      .get();
+    if (snap.empty) return [];
+    return snap.docs.map((d: any) => ({ id: d.id, ...d.data() } as ParfumSearchResult));
   } catch {
     return [];
   }

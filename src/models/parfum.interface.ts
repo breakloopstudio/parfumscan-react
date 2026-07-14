@@ -41,6 +41,8 @@ export interface Parfum {
   gender?: string | null;
   rating?: string | null;
   popularity?: string | null;
+  popularityScore?: number;
+  ratingScore?: number;
   priceValue?: string | null;
   country?: string;
   imageUrlTransparent?: string;
