@@ -82,7 +82,7 @@ export function ScanScreen() {
       if (frag.length > 0) {
         hapticsSuccess();
         const parfums = frag.map(f => fragellaToParfum(f));
-        if (user?.uid) saveScan(user.uid, { rawText: JSON.stringify({ marque: scanResult.marque, nom: scanResult.nom, typeParfum: scanResult.typeParfum }), marque: scanResult.marque ?? undefined, nom: scanResult.nom ?? undefined, typeParfum: scanResult.typeParfum ?? undefined, parfumId: frag[0]?.id }).catch(() => {});
+        if (user?.uid) saveScan(user.uid, { rawText: JSON.stringify({ marque: scanResult.marque, nom: scanResult.nom, typeParfum: scanResult.typeParfum }), marque: frag[0]?.marque ?? scanResult.marque ?? undefined, nom: frag[0]?.nom ?? scanResult.nom ?? undefined, typeParfum: scanResult.typeParfum ?? undefined, parfumId: frag[0]?.id }).catch(() => {});
         // Cache automatique pour les futures recherches
         try { await batchCacheParfums(parfums); } catch {}
         dispatch({ type: 'SCAN_SUCCESS', parfums });
