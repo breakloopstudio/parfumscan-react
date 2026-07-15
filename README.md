@@ -163,10 +163,11 @@ La page `app/catalog/[id].tsx` affiche les métadonnées de l'API Fragella :
 - Longévité & Sillage (jauges visuelles avec labels)
 - Prix, réduction, lien affilié
 - Pyramide olfactive (notes de tete/coeur/fond - traduites en francais)
-- Accords principaux (barres - traduits en francais)
+- Accords principaux (barres triees par score decroissant - traduits en francais)
 - Saisonnalite
 - Occasions
 - Badge famille olfactive (traduit FR)
+- Notes capitalisees (1ere lettre majuscule)
 
 > **Indicateur dev** : pastille en haut a droite (visible uniquement en __DEV__)
 > - Vert = live API Fragella (bridge)
