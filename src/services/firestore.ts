@@ -123,7 +123,8 @@ export async function deleteAllCachedParfums(): Promise<number> {
  */
 export async function cacheParfumFromSearch(p: ParfumSearchResult): Promise<string> {
   const docRef = col().doc(p.id);
-  const existing = await docRef.get();
+  let existing: FirebaseFirestoreTypes.DocumentSnapshot;
+  try { existing = await docRef.get(); } catch { existing = { exists: false } as any; }
 
   if (!existing.exists) {
     const now = new Date();
@@ -205,7 +206,6 @@ export async function batchCacheParfums(parfums: ParfumSearchResult[]): Promise<
   const batch = firestore().batch();
 
   for (const p of parfums) {
-    const docRef = col().doc(p.id);
     const keywords = buildSearchKeywords(p.marque, p.nom);
     batch.set(docRef, {
       nom: p.nom,
@@ -221,6 +221,7 @@ export async function batchCacheParfums(parfums: ParfumSearchResult[]): Promise<
       typeParfum: p.typeParfum ?? null,
       source: 'fragella-cached' as const,
       cachedAt: now,
+      createdAt: now,
       updatedAt: now,
       searchKeywords: keywords,
       fragellaId: p.fragellaId ?? null,
