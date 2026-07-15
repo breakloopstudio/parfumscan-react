@@ -8,55 +8,94 @@
 const NOTE_DICT: Record<string, string> = {
   // Agrumes
   "bergamot": "bergamote",
+  "sicilian bergamot": "bergamote de Sicile",
+  "calabrian bergamot": "bergamote de Calabre",
   "lemon": "citron",
+  "italian lemon": "citron d'Italie",
+  "sicilian lemon": "citron de Sicile",
+  "californian lemon": "citron de Californie",
+  "amalfi lemon": "citron d'Amalfi",
   "grapefruit": "pamplemousse",
   "mandarin orange": "mandarine",
+  "mandarin": "mandarine",
+  "italian mandarin": "mandarine d'Italie",
+  "green mandarin": "mandarine verte",
   "orange": "orange",
   "bitter orange": "orange amère",
+  "blood orange": "orange sanguine",
+  "sicilian orange": "orange de Sicile",
+  "tangerine": "tangerine",
   "lime": "citron vert",
   "citruses": "agrumes",
   "citrus": "agrumes",
+  "sicilian citruses": "agrumes de Sicile",
   "yuzu": "yuzu",
   "petitgrain": "petitgrain",
 
   // Fruits
   "apple": "pomme",
+  "green apple": "pomme verte",
   "pear": "poire",
   "peach": "pêche",
+  "white peach": "pêche blanche",
+  "apricot": "abricot",
   "blackberry": "mûre",
   "black currant": "cassis",
   "cassis": "cassis",
   "raspberry": "framboise",
+  "strawberry": "fraise",
   "pineapple": "ananas",
   "plum": "prune",
   "damask plum": "prune de Damas",
   "litchi": "litchi",
   "cherry": "cerise",
   "coconut": "noix de coco",
+  "mango": "mangue",
+  "passionfruit": "fruit de la passion",
+  "nectarine": "nectarine",
+  "cranberry": "canneberge",
   "melon": "melon",
   "boysenberry": "mûre de Boysen",
   "red berries": "fruits rouges",
+  "wild berries": "baies sauvages",
+  "berry fruits": "fruits rouges",
+  "grapes": "raisin",
   "watermelon": "pastèque",
   "fig": "figue",
+  "rhubarb leaf": "feuille de rhubarbe",
 
   // Épicés
   "pink pepper": "poivre rose",
   "black pepper": "poivre noir",
+  "black and pink pepper": "poivre noir et rose",
+  "pepper": "poivre",
+  "sichuan pepper": "poivre du Sichuan",
+  "green pepper": "poivre vert",
   "saffron": "safran",
   "cardamom": "cardamome",
+  "cardamon": "cardamome",
+  "guatemalan cardamom": "cardamome du Guatemala",
   "cinnamon": "cannelle",
+  "clove": "clou de girofle",
   "cloves": "clou de girofle",
   "nutmeg": "noix de muscade",
   "ginger": "gingembre",
   "caraway": "carvi",
   "coriander": "coriandre",
+  "cumin": "cumin",
+  "anise": "anis",
+  "licorice": "réglisse",
   "curry tree": "kaloupilé",
   "basil": "basilic",
   "thyme": "thym",
+  "red thyme": "thym rouge",
   "sage": "sauge",
   "clary sage": "sauge sclarée",
   "rosemary": "romarin",
   "tarragon": "estragon",
+  "oregano": "origan",
+  "exotic spices": "épices exotiques",
+  "bay leaf": "feuille de laurier",
 
   // Floraux
   "rose": "rose",
@@ -153,20 +192,36 @@ const NOTE_DICT: Record<string, string> = {
 
   // Gourmands
   "vanilla": "vanille",
+  "vanila": "vanille",
+  "bourbon vanilla": "vanille Bourbon",
+  "madagascar vanilla": "vanille de Madagascar",
+  "vanilla bean": "gousse de vanille",
+  "vanilla sugar": "sucre vanillé",
   "tonka bean": "fève tonka",
   "caramel": "caramel",
   "chocolate": "chocolat",
   "cocoa": "cacao",
+  "cacao": "cacao",
   "honey": "miel",
+  "white honey": "miel blanc",
   "almond": "amande",
+  "bitter almond": "amande amère",
+  "sweet almond": "amande douce",
+  "almond milk": "lait d'amande",
   "praline": "praliné",
   "coffee": "café",
+  "roasted coffee beans": "grains de café torréfiés",
   "chestnut": "marron",
+  "hazelnut": "noisette",
   "marshmallow": "guimauve",
   "cotton candy": "barbe à papa",
   "sugar": "sucre",
+  "brown sugar": "sucre roux",
   "lactonic": "lacté",
   "milk": "lait",
+  "ice cream": "glace",
+  "popcorn": "pop-corn",
+  "carrot": "carotte",
 
   // Synthétiques
   "ambroxan": "ambroxan",
@@ -243,9 +298,12 @@ const FULL_DICT: Record<string, string> = { ...ACCORD_DICT, ...NOTE_DICT };
 
 // ─── Fonction publique ──────────────────────────────────────
 
-/** Traduit une note ou un accord EN → FR. Fallback : retourne la valeur originale. */
+/** Traduit une note ou un accord EN → FR avec capitalisation.
+ *  Fallback : retourne la valeur originale capitalisée. */
 export function translateNote(note: string): string {
   if (!note) return note;
   const key = note.toLowerCase().trim();
-  return FULL_DICT[key] ?? note;
+  const translated = FULL_DICT[key] ?? note;
+  // Capitaliser la première lettre
+  return translated.charAt(0).toUpperCase() + translated.slice(1);
 }
