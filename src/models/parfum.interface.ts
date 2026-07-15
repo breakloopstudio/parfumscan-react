@@ -28,7 +28,7 @@ export interface Parfum {
   offers?: PriceOffer[];
 
   // --- Cache Fragella ---
-  source?: 'fragella' | 'seed' | 'manual';
+  source?: 'fragella' | 'fragella-cached' | 'seed' | 'manual';
   cachedAt?: Date;
   imageVerified?: boolean;
   typeParfum?: string | null;

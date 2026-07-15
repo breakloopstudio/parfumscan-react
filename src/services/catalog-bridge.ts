@@ -15,12 +15,12 @@ export function consumePendingCatalogQuery(): string | null {
 }
 
 export function setPendingParfum(p: ParfumSearchResult | Parfum) {
-  console.log('[bridge] setPendingParfum:', p.id, p.marque, p.nom);
+  if (__DEV__) console.log('[bridge] setPendingParfum:', p.id, p.marque, p.nom);
   _pendingParfum = p;
 }
 export function consumePendingParfum(): ParfumSearchResult | Parfum | null {
   const p = _pendingParfum;
   _pendingParfum = null;
-  console.log('[bridge] consumePendingParfum:', p?.id, p ? (p as any).marque : 'null');
+  if (__DEV__) console.log('[bridge] consumePendingParfum:', p?.id);
   return p;
 }

@@ -1,11 +1,10 @@
 // src/hooks/useCatalog.ts — Recherche catalogue avec cache-first Firestore + debounce
 
 import { useState, useCallback, useRef, useEffect } from 'react';
-import { searchFragranceByQuery, fragellaToParfum, type FragranceResult, type ParfumSearchResult } from '../services/fragella';
+import { searchFragranceByQuery, fragellaToParfum, type ParfumSearchResult } from '../services/fragella';
 import { searchParfumsCached, batchCacheParfums } from '../services/firestore';
 
 export function useCatalog() {
-  const [results, setResults] = useState<FragranceResult[]>([]);
   const [parfums, setParfums] = useState<ParfumSearchResult[]>([]);
   const [searching, setSearching] = useState(false);
   const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -18,14 +17,13 @@ export function useCatalog() {
   const search = useCallback((query: string) => {
     if (timerRef.current) clearTimeout(timerRef.current);
     const q = query.trim();
-    if (q.length < 3) { setResults([]); setParfums([]); return; }
+    if (q.length < 3) { setParfums([]); return; }
     setSearching(true);
     timerRef.current = setTimeout(async () => {
       // Étape 1 : Chercher dans le cache Firestore (gratuit)
       const cached = await searchParfumsCached(q);
       if (mountedRef.current && cached.length >= 5) {
         setParfums(cached);
-        setResults([]);
         setSearching(false);
         return;
       }
@@ -33,7 +31,6 @@ export function useCatalog() {
       // Étape 2 : Fallback API Fragella (payant)
       const r = await searchFragranceByQuery(q);
       if (mountedRef.current) {
-        setResults(r);
         const mapped = r.map(f => fragellaToParfum(f));
         setParfums(mapped);
         setSearching(false);
@@ -48,10 +45,9 @@ export function useCatalog() {
 
   const clear = useCallback(() => {
     if (timerRef.current) clearTimeout(timerRef.current);
-    setResults([]);
     setParfums([]);
     setSearching(false);
   }, []);
 
-  return { results, parfums, searching, search, clear };
+  return { parfums, searching, search, clear };
 }

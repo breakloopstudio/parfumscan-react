@@ -1,6 +1,7 @@
 // src/components/ParfumCard.tsx — Carte parfum réutilisable
 
 import { View, Text, Image, Pressable, Linking, StyleSheet } from 'react-native';
+import { useState } from 'react';
 import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { theme } from '../theme/theme';
@@ -21,6 +22,7 @@ function getDiscount(p: Parfum | ParfumSearchResult): number | null {
 
 export default function ParfumCard({ parfum, showDeal = false, onPressOverride }: Props) {
   const router = useRouter();
+  const [imgFailed, setImgFailed] = useState(false);
   const discount = getDiscount(parfum);
   const bestPrice = parfum.bestPrice ?? null;
 
@@ -35,9 +37,9 @@ export default function ParfumCard({ parfum, showDeal = false, onPressOverride }
 
   return (
     <Pressable style={s.card} onPress={goToDetail}>
-        {parfum.imageUrl && (
+        {parfum.imageUrl && !imgFailed && (
           <View style={s.imgWrap}>
-            <Image source={{ uri: parfum.imageUrl }} style={s.img} />
+            <Image source={{ uri: parfum.imageUrl }} style={s.img} onError={() => setImgFailed(true)} />
             <View style={s.imgOverlay} />
             {discount !== null && <View style={s.dealBadge}><Text style={s.dealBadgeText}>-{discount}%</Text></View>}
           </View>

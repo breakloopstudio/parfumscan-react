@@ -13,6 +13,18 @@ import { theme } from '../../theme/theme';
 import { getParfumById } from '../../services/firestore';
 import { setPendingParfum } from '../../services/catalog-bridge';
 
+function formatScanDate(d: Date | FirestoreDate | undefined): string {
+  if (!d) return '';
+  const date = 'toDate' in (d as object) ? (d as FirestoreDate).toDate() : new Date(d as Date);
+  return date.toLocaleString([], { day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' });
+}
+
+function getLevel(count: number): string {
+  if (count >= 20) return 'Expert du bon plan';
+  if (count >= 5) return 'Chasseur de bonnes affaires';
+  return 'Nez novice';
+}
+
 type Tab = 'favoris' | 'scans';
 
 interface Props { onGoToCatalog: () => void }
@@ -34,8 +46,10 @@ export default function ProfilePage({ onGoToCatalog }: Props) {
     router.push(`/catalog/${parfumId}`);
   };
 
-  const scanCount = scans.length, level = scanCount >= 20 ? 'Expert du bon plan' : scanCount >= 5 ? 'Chasseur de bonnes affaires' : 'Nez novice';
-  const initial = user?.email?.charAt(0).toUpperCase() ?? '?', savings = scanCount * 18;
+  const scanCount = scans.length;
+  const level = getLevel(scanCount);
+  const initial = user?.email?.charAt(0).toUpperCase() ?? '?';
+  const savings = scanCount * 18;
 
   const favDel = (id:string) => Alert.alert('Supprimer','Retirer des favoris ?',[{text:'Annuler',style:'cancel'},{text:'Supprimer',style:'destructive',onPress:()=>removeFavori(id)}]);
   const scanDel = (id:string) => Alert.alert('Supprimer',"Supprimer de l'historique ?",[{text:'Annuler',style:'cancel'},{text:'Supprimer',style:'destructive',onPress:()=>removeScan(id)}]);
@@ -63,7 +77,7 @@ export default function ProfilePage({ onGoToCatalog }: Props) {
             <Pressable style={[s.tab,tab==='scans'&&s.tabActive]} onPress={()=>setTab('scans')}><Ionicons name="scan-outline" size={18} color={tab==='scans'?theme.colors.primary:theme.colors.textMuted}/><Text style={[s.tabText,tab==='scans'&&s.tabTextActive]}>Historique</Text></Pressable>
           </View>
           {tab==='favoris'&&(favLoading?<ActivityIndicator style={{marginTop:32}} color={theme.colors.primary}/>:favoris.length===0?<View style={s.emp}><Ionicons name="heart-outline" size={48} color={theme.colors.textMuted}/><Text style={s.emptyTitle}>Ton nez n'a pas encore de coup de cœur</Text><Text style={s.emptyDesc}>Explore le catalogue et garde tes parfums préférés à portée de main.</Text><Pressable style={s.emptyBtn} onPress={onGoToCatalog}><Text style={s.emptyBtnText}>Explorer le catalogue</Text></Pressable></View>:favoris.map(f=>(<Pressable key={f.id} style={s.listItem} onPress={()=>goToDetail(f.parfumId)}><View style={s.itemLeft}><Ionicons name="heart" size={20} color={theme.colors.danger}/><View><Text style={s.itemName}>{f.nom??f.parfumId.replace(/_/g,' ')}</Text>{f.marque ? <Text style={s.itemBrand}>{f.marque}</Text> : null}</View></View><Pressable onPress={()=>favDel(f.id)} hitSlop={12}><Ionicons name="trash-outline" size={20} color={theme.colors.textMuted}/></Pressable></Pressable>)))}
-          {tab==='scans'&&(scanLoading?<ActivityIndicator style={{marginTop:32}} color={theme.colors.primary}/>:scans.length===0?<View style={s.emp}><Ionicons name="scan-outline" size={48} color={theme.colors.textMuted}/><Text style={s.emptyTitle}>Aucun scan</Text><Text style={s.emptyDesc}>Scanne ton premier flacon !</Text></View>:scans.map(scan=>(<Pressable key={scan.id} style={s.listItem} onPress={()=>scan.parfumId&&goToDetail(scan.parfumId)}><View style={s.itemLeft}><Ionicons name="scan-outline" size={20} color={theme.colors.primary}/><View><Text style={s.itemName}>{scan.marque ? scan.marque + ' ' : ''}{scan.nom ?? scan.marque ?? 'Scan'}{scan.typeParfum?' · '+scan.typeParfum:''}</Text><Text style={s.itemBrand}>{(()=>{const d=scan.scannedAt;if(!d)return'';return 'toDate' in (d as object)?(d as FirestoreDate).toDate().toLocaleString([], { day:'numeric', month:'short', year:'numeric', hour:'2-digit', minute:'2-digit' }):new Date(d as Date).toLocaleString([], { day:'numeric', month:'short', year:'numeric', hour:'2-digit', minute:'2-digit' })})()}</Text></View></View><Pressable onPress={()=>scanDel(scan.id)} hitSlop={12}><Ionicons name="trash-outline" size={20} color={theme.colors.textMuted}/></Pressable></Pressable>)))}
+          {tab==='scans'&&(scanLoading?<ActivityIndicator style={{marginTop:32}} color={theme.colors.primary}/>:scans.length===0?<View style={s.emp}><Ionicons name="scan-outline" size={48} color={theme.colors.textMuted}/><Text style={s.emptyTitle}>Aucun scan</Text><Text style={s.emptyDesc}>Scanne ton premier flacon !</Text></View>:scans.map(scan=>(<Pressable key={scan.id} style={s.listItem} onPress={()=>scan.parfumId&&goToDetail(scan.parfumId)}><View style={s.itemLeft}><Ionicons name="scan-outline" size={20} color={theme.colors.primary}/><View><Text style={s.itemName}>{scan.marque ? scan.marque + ' ' : ''}{scan.nom ?? scan.marque ?? 'Scan'}{scan.typeParfum?' · '+scan.typeParfum:''}</Text><Text style={s.itemBrand}>{formatScanDate(scan.scannedAt)}</Text></View></View><Pressable onPress={()=>scanDel(scan.id)} hitSlop={12}><Ionicons name="trash-outline" size={20} color={theme.colors.textMuted}/></Pressable></Pressable>)))}
         </ScrollView>
     </SafeAreaView>
   );
