@@ -1,8 +1,8 @@
-# ðŸ§´ ParfumScan React Native
+# 🧴 ParfumScan React Native
 
 <div align="center">
 
-**Scanner de parfums intelligent â€” Reconnais n'importe quel flacon en une photo**
+**Scanner de parfums intelligent — Reconnais n'importe quel flacon en une photo**
 
 [![Expo SDK 54](https://img.shields.io/badge/Expo-SDK%2054-4630EB?logo=expo)](https://expo.dev)
 [![React Native 0.81](https://img.shields.io/badge/React%20Native-0.81-61DAFB?logo=react)](https://reactnative.dev)
@@ -14,25 +14,25 @@
 
 ---
 
-## âœ¨ FonctionnalitÃ©s
+## ✨ Fonctionnalités
 
 | Module | Description |
 |---|---|
-| | **UI/UX** | Edge-to-edge Android (barres transparentes, fond derriÃ¨re les barres systÃ¨me) |
-| ðŸ“¸ **Scan intelligent** | Photo â†’ GPT-4o Vision â†’ API Fragella (74K parfums) |
-| ðŸ“š **Catalogue** | Recherche cache-first (Firestore â†’ Fragella), ghost cards, fiche dÃ©tail enrichie |
-| â¤ï¸ **Favoris** | Sauvegarde Firestore temps rÃ©el, donnÃ©es dÃ©normalisÃ©es |
-| ðŸ‘¤ **Profil** | Google Sign-In, stats gamifiÃ©es, historique de scans |
-| ðŸŒ™ **Dark mode** | ThÃ¨me automatique avec 45 design tokens |
-| ðŸ” **Auth** | Email + Google, role admin, AuthGuard automatique |
-| ðŸ§  **Fiche dÃ©tail robuste** | Bridge preview + Firestore always + Fragella by ID fallback, id normalisÃ© |
-| ðŸ’¾ **Cache intelligent** | Cache Firestore partagÃ© entre utilisateurs, 0 appel API redondant |
+| | **UI/UX** | Edge-to-edge Android (barres transparentes, fond derrière les barres système) |
+| 📸 **Scan intelligent** | Photo → GPT-4o Vision → API Fragella (74K parfums) |
+| 📚 **Catalogue** | Recherche cache-first (Firestore → Fragella), ghost cards, fiche détail enrichie |
+| ❤️ **Favoris** | Sauvegarde Firestore temps réel, données dénormalisées |
+| 👤 **Profil** | Google Sign-In, stats gamifiées, historique de scans |
+| 🌙 **Dark mode** | Thème automatique avec 45 design tokens |
+| 🔐 **Auth** | Email + Google, role admin, AuthGuard automatique |
+| 🧠 **Fiche détail robuste** | Bridge preview + Firestore always + Fragella by ID fallback, id normalisé |
+| 💾 **Cache intelligent** | Cache Firestore partagé entre utilisateurs, 0 appel API redondant |
 
 ---
 
-## ðŸ—ï¸ Stack technique
+## 🏗️ Stack technique
 
-| CatÃ©gorie | Technologies |
+| Catégorie | Technologies |
 |---|---|
 | **Frontend** | React Native 0.81, Expo SDK 54, Expo Router 6 |
 | **Langage** | TypeScript 5.7 (strict) |
@@ -44,10 +44,10 @@
 
 ---
 
-## ðŸš€ DÃ©marrage rapide
+## 🚀 Démarrage rapide
 
-### PrÃ©requis
-- Node.js â‰¥ 18
+### Prérequis
+- Node.js ≥ 18
 - Firebase CLI (`npm i -g firebase-tools`)
 - Expo CLI (`npx expo`)
 
@@ -65,12 +65,12 @@ cd functions && npm install && cd ..
 ### Variables d'environnement
 
 ```bash
-# Racine â€” Ã©mulateurs Firebase (optionnel)
+# Racine — émulateurs Firebase (optionnel)
 cp .env.example .env
 
-# Cloud Functions â€” clÃ©s API requis
+# Cloud Functions — clés API requis
 cp functions/.env.example functions/.env
-# Puis Ã©dite functions/.env avec tes vraies clÃ©s :
+# Puis édite functions/.env avec tes vraies clés :
 #   OPENAI_API_KEY=sk-...
 #   FRAGELLA_API_KEY=...
 ```
@@ -78,17 +78,17 @@ cp functions/.env.example functions/.env
 ### Lancement
 
 ```bash
-# Expo Go (mode dÃ©gradÃ© â€” Firebase dÃ©sactivÃ©)
+# Expo Go (mode dégradé — Firebase désactivé)
 npm start
 
-# Development build (mode complet â€” Firebase actif)
+# Development build (mode complet — Firebase actif)
 npm run android   # ou npm run ios
 
-# Ã‰mulateurs Firebase locaux
+# Émulateurs Firebase locaux
 npm run emulators
 ```
 
-### Build APK (installation sur tÃ©lÃ©phone)
+### Build APK (installation sur téléphone)
 
 ```bash
 # 1. Builder l'APK release
@@ -97,113 +97,114 @@ build_release.bat
 # 2. L'APK est dans :
 #    android/app/build/outputs/apk/release/app-release.apk
 
-# 3. TransfÃ©rer sur le tÃ©lÃ©phone (USB, cloud, Telegram...)
-# 4. Ouvrir le fichier .apk sur le tÃ©lÃ©phone â†’ Installer
+# 3. Transférer sur le téléphone (USB, cloud, Telegram...)
+# 4. Ouvrir le fichier .apk sur le téléphone → Installer
 ```
 
 ---
 
-## ðŸ“ Architecture
+## 📁 Architecture
 
 ```
 app/
-â”œâ”€â”€ _layout.tsx               # Root : GestureHandler + AuthProvider + AuthGuard
-â”œâ”€â”€ index.tsx                 # Splash â†’ redirection
-â”œâ”€â”€ (tabs)/
-â”‚   â”œâ”€â”€ _layout.tsx           # Stack (index + scan)
-â”‚   â”œâ”€â”€ index.tsx             # TabPager Reanimated (Catalog â†” Profil) + pont pending
-â”‚   â””â”€â”€ scan.tsx              # Scanner overlay (push FAB)
-â”œâ”€â”€ auth/
-â”‚   â”œâ”€â”€ login.tsx             # Connexion email + Google
-â”‚   â””â”€â”€ register.tsx          # Inscription
-â”œâ”€â”€ catalog/[id].tsx          # DÃ©tail enrichi : type, longÃ©vitÃ©/sillage, accords, saisonnalitÃ©, occasions, pyramide, favori
-â””â”€â”€ admin.tsx                 # Administration (seed + reset cache + upload)
+├── _layout.tsx               # Root : GestureHandler + AuthProvider + AuthGuard
+├── index.tsx                 # Splash → redirection
+├── (tabs)/
+│   ├── _layout.tsx           # Stack (index + scan)
+│   ├── index.tsx             # TabPager Reanimated (Catalog ↔ Profil) + pont pending
+│   └── scan.tsx              # Scanner overlay (push FAB)
+├── auth/
+│   ├── login.tsx             # Connexion email + Google
+│   └── register.tsx          # Inscription
+├── catalog/[id].tsx          # Détail enrichi : type, longévité/sillage, accords, saisonnalité, occasions, pyramide, favori
+└── admin.tsx                 # Administration (seed + reset cache + upload)
 
 src/
-â”œâ”€â”€ services/     (9)         # Firebase, Firestore (upsert intelligent), Fragella, GPT-4oâ€¦
-â”œâ”€â”€ hooks/        (7)         # useAuth, useScanReducer, useCatalog (cache-first + score popularitÃ©)â€¦
-â”œâ”€â”€ contexts/     (1)         # AuthContext (Provider + Hook)
-â”œâ”€â”€ components/   (2)         # ParfumCard (bridge + onPressOverride), AppLoader
-â”œâ”€â”€ features/
-â”‚   â”œâ”€â”€ scan/     (7)         # ScanScreen + 6 sous-Ã©tats
-â”‚   â”œâ”€â”€ catalog/  (1)         # CatalogPage (composant, pas une route !)
-â”‚   â””â”€â”€ profile/  (1)         # ProfilePage (favoris dÃ©normalisÃ©s, bridge dÃ©tail)
-â”œâ”€â”€ models/       (4)         # Interfaces : Parfum, ParfumSearchResult, UserFavori (+imageUrl), UserScan (+imageUrl), ScanResult
-â”œâ”€â”€ theme/        (1)         # 45 design tokens (light + dark)
-â”œâ”€â”€ config/       (3)         # Firebase config, env, index
-â””â”€â”€ utils/        (2)         # Error translator, normalize
+├── services/     (9)         # Firebase, Firestore (upsert intelligent), Fragella, GPT-4o…
+├── hooks/        (7)         # useAuth, useScanReducer, useCatalog (cache-first + score popularité)…
+├── contexts/     (1)         # AuthContext (Provider + Hook)
+├── components/   (3)         # ParfumCard (bridge + onPressOverride), AppLoader, ErrorBoundary
+├── features/
+│   ├── scan/     (7)         # ScanScreen + 6 sous-états
+│   ├── catalog/  (1)         # CatalogPage (composant, pas une route !)
+│   └── profile/  (1)         # ProfilePage (favoris dénormalisés, bridge détail)
+├── models/       (4)         # Interfaces : Parfum, ParfumSearchResult, UserFavori (+imageUrl), UserScan (+imageUrl), ScanResult
+├── theme/        (1)         # 45 design tokens (light + dark)
+├── config/       (3)         # Firebase config, env, index
+└── utils/        (2)         # Error translator, translate-note (traduction notes FR)
 
 functions/                    # Cloud Functions Firebase
-â”œâ”€â”€ src/index.ts              # Analyse GPT-4o Vision
-â””â”€â”€ lib/                      # Build JavaScript
+├── src/index.ts              # Analyse GPT-4o Vision
+└── lib/                      # Build JavaScript
 ```
 
 ---
 
-## ðŸ“± Flux de scan (v5.0)
+## 📱 Flux de scan (v5.0)
 
 ```
-Idle â†’ [Tap Scanner] â†’ CameraView â†’ [Capture]
-  â†’ Scanning (step 0â†’1â†’2) â†’ GPT-4o Vision (detail:auto â†’ retry high si vide)
-  â†’ Confidence haute ? â†’ Fragella â†’ await batchCacheParfums() â†’ RÃ©sultats
-  â†’ Confidence basse ? â†’ Clarification manuelle â†’ Fragella
-  â†’ RÃ©sultat â†’ Tap parfum â†’ setPendingParfum() â†’ dismissTo tabs
-      â†’ TabPager consume + re-set â†’ push /catalog/:id
-      â†’ Fiche dÃ©tail consumePendingParfum() â†’ donnÃ©es enrichies affichÃ©es
-  â†’ RÃ©sultat â†’ Voir catalogue â†’ setPendingCatalogQuery() + router.back()
+Idle → [Tap Scanner] → CameraView → [Capture]
+  → Scanning (step 0→1→2) → GPT-4o Vision (detail:auto → retry high si vide)
+  → Confidence haute ? → Fragella → await batchCacheParfums() → Résultats
+  → Confidence basse ? → Clarification manuelle → Fragella
+  → Résultat → Tap parfum → setPendingParfum() → dismissTo tabs
+      → TabPager consume + re-set → push /catalog/:id
+      → Fiche détail consumePendingParfum() → données enrichies affichées
+  → Résultat → Voir catalogue → setPendingCatalogQuery() + router.back()
 ```
 
-> **Pont inter-Ã©crans** : `setPendingParfum()` stocke les donnÃ©es en mÃ©moire,
+> **Pont inter-écrans** : `setPendingParfum()` stocke les données en mémoire,
 > `consumePendingParfum()` les lit une seule fois. Le TabPager re-stocke
-> immÃ©diatement aprÃ¨s consommation pour que la fiche dÃ©tail les reÃ§oive.
+> immédiatement après consommation pour que la fiche détail les reçoive.
 
-### Fiche dÃ©tail enrichie
+### Fiche détail enrichie
 
-La page `app/catalog/[id].tsx` affiche les mÃ©tadonnÃ©es de l'API Fragella :
-- LongÃ©vitÃ© & Sillage (jauges visuelles avec labels)
-- Prix, rÃ©duction, lien affiliÃ©
-- Pyramide olfactive (notes de tÃªte/cÅ“ur/fond)
-- Accords principaux (barres : labels Dominant/Prominent â†’ %)
-- SaisonnalitÃ© (jauges style longÃ©vitÃ© : TrÃ¨s adaptÃ©â€¦DÃ©conseillÃ©)
-- Occasions (jauges : IdÃ©alâ€¦DÃ©conseillÃ©)
+La page `app/catalog/[id].tsx` affiche les métadonnées de l'API Fragella :
+- Longévité & Sillage (jauges visuelles avec labels)
+- Prix, réduction, lien affilié
+- Pyramide olfactive (notes de tete/coeur/fond - traduites en francais)
+- Accords principaux (barres - traduits en francais)
+- Saisonnalite
+- Occasions
+- Badge famille olfactive (traduit FR)
 
 > **Indicateur dev** : pastille en haut a droite (visible uniquement en __DEV__)
-> indique si les donnees sont enrichies - Vert = live API Fragella (bridge)
+> - Vert = live API Fragella (bridge)
 > - Bleu = cache Firestore
-> - Violet = donnees admin
-> - Rouge = source inconnue
+> - Violet = donnees admin (seed/manual)
+> - Rouge = source inconnue (fallback)
 
-## ðŸ“š Flux de recherche (cache-first v5.3)
+## 📚 Flux de recherche (cache-first v5.3)
 
 ```
-Saisie â‰¥ 3 caractÃ¨res â†’ useCatalog() â†’ debounce 800ms
-  1. searchParfumsCached(query) â†’ Firestore (gratuit, score = tokens + popularitÃ© + exact match)
-  2. Si < 5 rÃ©sultats â†’ searchFragranceByQuery() â†’ API payante
-  3. batchCacheParfums(results) â†’ Firestore (batch.set {merge:true} + createdAt, sans read prÃ©alable)
+Saisie ≥ 3 caractères → useCatalog() → debounce 800ms
+  1. searchParfumsCached(query) → Firestore (gratuit, score = tokens + popularité + exact match)
+  2. Si < 5 résultats → searchFragranceByQuery() → API payante
+  3. batchCacheParfums(results) → Firestore (batch.set {merge:true} + createdAt, sans read préalable)
 
-Avantage : chaque recherche n'est payÃ©e qu'une fois,
-tous utilisateurs confondus. Le score intÃ¨gre la popularitÃ©
-â†’ les parfums populaires remontent naturellement.
+Avantage : chaque recherche n'est payée qu'une fois,
+tous utilisateurs confondus. Le score intègre la popularité
+→ les parfums populaires remontent naturellement.
 
-âš ï¸ L'endpoint `/fragrances?search=` de Fragella retourne TOUTES les mÃ©tadonnÃ©es
-  (longÃ©vitÃ©, sillage, saisonnalitÃ©, occasions, accords, etc.) â€” identique au dÃ©tail.
-  â†’ `fragellaId` = champ `_id` de l'API (âš ï¸ underscore, pas `Id`/`id`/`ID`).
-  â†’ La fiche dÃ©tail utilise `getFragranceById()` en enrichissement si `fragellaId` disponible.
-  â†’ Les donnÃ©es enrichies sont mergÃ©es dans Firestore (upsert intelligent).
-  â†’ Si `fragellaId` absent â†’ skip enrichissement.
+⚠️ L'endpoint `/fragrances?search=` de Fragella retourne TOUTES les métadonnées
+  (longévité, sillage, saisonnalité, occasions, accords, etc.) — identique au détail.
+  → `fragellaId` = champ `_id` de l'API (⚠️ underscore, pas `Id`/`id`/`ID`).
+  → La fiche détail utilise `getFragranceById()` en enrichissement si `fragellaId` disponible.
+  → Les données enrichies sont mergées dans Firestore (upsert intelligent).
+  → Si `fragellaId` absent → skip enrichissement.
 ```
 
 ### Catalogue idle
 
-Ã€ l''ouverture (sans recherche) : `getPopularParfums(6)` â†’ Firestore (triÃ©s par popularityScore desc).
-Plus de ghost cards Chanel/Dior â€” 100% donnÃ©es rÃ©elles du cache.
+À l''ouverture (sans recherche) : `getPopularParfums(6)` → Firestore (triés par popularityScore desc).
+Plus de ghost cards Chanel/Dior — 100% données réelles du cache.
 
 ### Favoris & Historique enrichis
 
 Les documents `UserFavori` et `UserScan` stockent `imageUrl` et `familleOlactive`
-dÃ©normalisÃ©s â†’ affichage direct sans appel API Firestore ni Fragella.
+dénormalisés → affichage direct sans appel API Firestore ni Fragella.
 
 ---
-## ðŸ“„ Licence
+## 📄 Licence
 
-MIT â€” voir [LICENSE](./LICENSE)
+MIT — voir [LICENSE](./LICENSE)
