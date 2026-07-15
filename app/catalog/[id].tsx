@@ -310,7 +310,7 @@ export default function CatalogDetailPage() {
           <View style={s.titleRow}>
             <View style={{flex:1}}><Text style={s.brand}>{parfum.marque}</Text><Text style={s.name}>{parfum.nom}</Text></View>
             <Pressable onPress={toggleFav} hitSlop={12}><Ionicons name={isFav?'heart':'heart-outline'} size={28} color={isFav?theme.colors.danger:theme.colors.textMuted}/></Pressable>
-            {__DEV__ && <View style={{width:8,height:8,borderRadius:4,backgroundColor:parfum.source === 'fragella'?'#10B981':'#EF4444',marginLeft:4}} />}
+            {__DEV__ && <View style={{width:8,height:8,borderRadius:4,backgroundColor:parfum.source==='fragella'?'#10B981':parfum.source==='fragella-cached'?'#3B82F6':parfum.source==='seed'||parfum.source==='manual'?'#8B5CF6':'#EF4444',marginLeft:4}} />}
           </View>
           <View style={s.badges}>
             <View style={s.tagFamily}><Text style={s.tagFamilyText}>{translateNote(parfum.familleOlactive)}</Text></View>
