@@ -13,6 +13,7 @@ import { searchFragrance, searchFragranceByQuery, getFragranceById, fragellaToPa
 import type { ParfumSearchResult } from '../../src/services/fragella';
 import { theme } from '../../src/theme/theme';
 import type { Parfum } from '../../src/models';
+import { translateNote } from '../../src/utils/translate-note';
 
 // ─── Mappings FR ─────────────────────────────────────────────
 
@@ -312,7 +313,7 @@ export default function CatalogDetailPage() {
             {__DEV__ && <View style={{width:8,height:8,borderRadius:4,backgroundColor:parfum.source === 'fragella'?'#10B981':'#EF4444',marginLeft:4}} />}
           </View>
           <View style={s.badges}>
-            <View style={s.tagFamily}><Text style={s.tagFamilyText}>{parfum.familleOlactive}</Text></View>
+            <View style={s.tagFamily}><Text style={s.tagFamilyText}>{translateNote(parfum.familleOlactive)}</Text></View>
             {parfum.annee && <View style={s.tagYear}><Text style={s.tagYearText}>{parfum.annee}</Text></View>}
             {'gender' in parfum && parfum.gender && <View style={s.tagGender}><Text style={s.tagGenderText}>{parfum.gender === 'men' ? '👨 Homme' : parfum.gender === 'women' ? '👩 Femme' : '🧑 Unisexe'}</Text></View>}
             {'typeParfum' in parfum && parfum.typeParfum && <View style={s.tagType}><Text style={s.tagTypeText}>{typeParfumLabel(parfum.typeParfum)}</Text></View>}
@@ -357,9 +358,9 @@ export default function CatalogDetailPage() {
             </View>
           ) : null}
           <View style={s.pyramid}>
-            <PyramidSection label="Notes de Tête" notes={parfum.notesTete} color={s.topDot} chipBg={s.topChip} chipCl={s.topChipText} lblCl="#059669" />
-            <PyramidSection label="Notes de Cœur" notes={parfum.notesCoeur} color={s.heartDot} chipBg={s.heartChip} chipCl={s.heartChipText} lblCl="#D97706" />
-            <PyramidSection label="Notes de Fond" notes={parfum.notesFond} color={s.baseDot} chipBg={s.baseChip} chipCl={s.baseChipText} lblCl="#7C3AED" last />
+            <PyramidSection label="Notes de Tête" notes={parfum.notesTete.map(translateNote)} color={s.topDot} chipBg={s.topChip} chipCl={s.topChipText} lblCl="#059669" />
+            <PyramidSection label="Notes de Cœur" notes={parfum.notesCoeur.map(translateNote)} color={s.heartDot} chipBg={s.heartChip} chipCl={s.heartChipText} lblCl="#D97706" />
+            <PyramidSection label="Notes de Fond" notes={parfum.notesFond.map(translateNote)} color={s.baseDot} chipBg={s.baseChip} chipCl={s.baseChipText} lblCl="#7C3AED" last />
           </View>
           {/* ─── Accords principaux ─── */}
           {'mainAccords' in parfum && parfum.mainAccords && parfum.mainAccords.length > 0 ? (
@@ -368,10 +369,10 @@ export default function CatalogDetailPage() {
               {parfum.mainAccordsPercentage
                 ? Object.entries(parfum.mainAccordsPercentage).map(([name, pctStr], i, arr) => {
                     var n = parseInt(pctStr.replace("%", ""), 10); var pct = !isNaN(n) ? n : ({ dominant: 95, prominent: 75, moderate: 50, soft: 30, subtle: 15, faint: 5 })[pctStr.toLowerCase().trim()] ?? 40;
-                    return <AccordBar key={name} name={name} pct={pct} index={i} total={arr.length} />;
+                    return <AccordBar key={name} name={translateNote(name)} pct={pct} index={i} total={arr.length} />;
                   })
                 : parfum.mainAccords.map((name, i, arr) => (
-                    <AccordBar key={name} name={name} pct={100 - i * 12} index={i} total={arr.length} />
+                    <AccordBar key={name} name={translateNote(name)} pct={100 - i * 12} index={i} total={arr.length} />
                   ))
               }
             </View>

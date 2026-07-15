@@ -7,6 +7,7 @@ import { theme } from '../theme/theme';
 import type { Parfum } from '../models';
 import type { ParfumSearchResult } from '../services/fragella';
 import { setPendingParfum } from '../services/catalog-bridge';
+import { translateNote } from '../utils/translate-note';
 
 interface Props { parfum: Parfum | ParfumSearchResult; showDeal?: boolean; onPressOverride?: () => void; }
 
@@ -47,13 +48,13 @@ export default function ParfumCard({ parfum, showDeal = false, onPressOverride }
         </View>
         <View style={s.body}>
           <View style={s.tags}>
-            <View style={s.tagFamily}><Text style={s.tagFamilyText}>{parfum.familleOlactive}</Text></View>
+            <View style={s.tagFamily}><Text style={s.tagFamilyText}>{translateNote(parfum.familleOlactive)}</Text></View>
             {parfum.annee && <View style={s.tagYear}><Text style={s.tagYearText}>{parfum.annee}</Text></View>}
           </View>
           {parfum.notesTete.length > 0 && (
             <View style={s.notes}>
               <Text style={s.notesLabel}>Tête</Text>
-              <Text style={s.notesText}>{parfum.notesTete.slice(0, 3).join(' · ')}</Text>
+              <Text style={s.notesText}>{parfum.notesTete.slice(0, 3).map(translateNote).join(' · ')}</Text>
             </View>
           )}
         </View>
