@@ -292,7 +292,7 @@ export async function searchFragrance(marque: string, nom: string, typeParfum?: 
     return results;
   } catch (err: unknown) {
     console.error('[Fragella] search error:', err instanceof Error ? err.message : String(err));
-    throw err;
+    return [];
   }
 }
 

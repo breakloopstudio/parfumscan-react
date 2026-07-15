@@ -177,7 +177,7 @@ La page `app/catalog/[id].tsx` affiche les métadonnées de l'API Fragella :
 Saisie ≥ 3 caractères → useCatalog() → debounce 800ms
   1. searchParfumsCached(query) → Firestore (gratuit, score = tokens + popularité + exact match)
   2. Si < 5 résultats → searchFragranceByQuery() → API payante
-  3. batchCacheParfums(results) → Firestore (batch.set {merge:true} + createdAt, sans read préalable)
+   3. batchCacheParfums(results) → Firestore (batch.set {merge:true}, sans read préalable)
 
 Avantage : chaque recherche n'est payée qu'une fois,
 tous utilisateurs confondus. Le score intègre la popularité
