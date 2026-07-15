@@ -125,7 +125,7 @@ function mapFragrance(raw: Record<string, unknown>): FragranceResult {
   const nameNorm = normalize(name);
   
   // DEBUG: log les cl�s du premier r�sultat pour v�rifier les m�tadonn�es enrichies
-  if (!((globalThis as any).__fragellaLogged)) { console.log('[Fragella] raw keys:', Object.keys(raw).sort().join(', ')); (globalThis as any).__fragellaLogged = true; }
+  if (!((globalThis as { __fragellaLogged?: boolean }).__fragellaLogged)) { console.log('[Fragella] raw keys:', Object.keys(raw).sort().join(', ')); (globalThis as { __fragellaLogged?: boolean }).__fragellaLogged = true; }
 
   // DEBUG: log Popularity et rating bruts pour voir ce que l'API renvoie
   const pop = raw['Popularity'];
@@ -258,8 +258,8 @@ export async function getFragranceById(id: string): Promise<FragranceResult | nu
     }
     const data = await response.json() as Record<string, unknown>;
     return mapFragrance(data);
-  } catch (err: any) {
-    console.error('[Fragella] getById error:', err?.message ?? err);
+  } catch (err: unknown) {
+    console.error('[Fragella] getById error:', err instanceof Error ? err.message : String(err));
     return null;
   }
 }
@@ -290,8 +290,8 @@ export async function searchFragrance(marque: string, nom: string, typeParfum?: 
     }
 
     return results;
-  } catch (err: any) {
-    console.error('[Fragella] search error:', err?.message ?? err);
+  } catch (err: unknown) {
+    console.error('[Fragella] search error:', err instanceof Error ? err.message : String(err));
     throw err;
   }
 }
@@ -311,8 +311,8 @@ export async function searchFragranceByQuery(query: string): Promise<FragranceRe
     }
     const data = await response.json() as Array<Record<string, unknown>>;
     return data.map(mapFragrance);
-  } catch (err: any) {
-    console.error('[Fragella] searchByQuery error:', err?.message ?? err);
+  } catch (err: unknown) {
+    console.error('[Fragella] searchByQuery error:', err instanceof Error ? err.message : String(err));
     return [];
   }
 }

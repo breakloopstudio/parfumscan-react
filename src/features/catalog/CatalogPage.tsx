@@ -46,16 +46,10 @@ export default function CatalogPage() {
       {!searchText ? (
         <View style={s.ghostSection}><Text style={s.ghostLabel}>Parfums populaires</Text>
           {popularLoading ? <ActivityIndicator style={{ marginTop: 20 }} color={theme.colors.primary} /> :
-           popularParfums.length > 0 ? (
             <View style={s.popularGrid}>
               {popularParfums.map(p => <ParfumCard key={p.id} parfum={p} />)}
             </View>
-          ) : (
-            <View style={s.ghostCards}>
-              <View style={s.ghostCard}><View style={s.ghostImg}/><View style={s.ghostBody}><Text style={s.ghostBrand}>CHANEL</Text><Text style={s.ghostName}>Bleu de Chanel</Text></View></View>
-              <View style={s.ghostCard}><View style={[s.ghostImg,s.ghostImgAlt]}/><View style={s.ghostBody}><Text style={s.ghostBrand}>DIOR</Text><Text style={s.ghostName}>Sauvage</Text></View></View>
-            </View>
-          )}
+          }
         </View>
       ) : (
         <><Text style={s.resultsCount}>{parfums.length} parfum(s)</Text>{searching && <ActivityIndicator style={{marginTop:12}} color={theme.colors.primary}/>}
@@ -82,13 +76,6 @@ const s = StyleSheet.create({
   resultsCount:{paddingHorizontal:16,paddingTop:4,fontSize:13,color:theme.colors.textMuted},
   ghostSection:{padding:16},
   ghostLabel:{fontSize:13,fontWeight:'600',textTransform:'uppercase',letterSpacing:1.5,color:theme.colors.textMuted,marginBottom:12},
-  ghostCards:{flexDirection:'row',gap:12},
-  ghostCard:{flex:1,backgroundColor:theme.colors.surface,borderRadius:14,overflow:'hidden',...theme.shadow.card,opacity:.6},
-  ghostImg:{height:100,backgroundColor:'#E8E0F0'},
-  ghostImgAlt:{backgroundColor:'#DFE8F0'},
-  ghostBody:{padding:10,gap:2},
-  ghostBrand:{fontSize:10,textTransform:'uppercase',letterSpacing:1.5,color:theme.colors.textMuted,fontWeight:'600'},
-  ghostName:{fontFamily:'PlayfairDisplay_600SemiBold',fontSize:15,color:theme.colors.text},
   empty:{alignItems:'center',paddingTop:48},
   emptyTitle:{fontFamily:'PlayfairDisplay_600SemiBold',fontSize:20,color:theme.colors.text,marginTop:12},
   emptyDesc:{fontSize:14,color:theme.colors.textMuted,textAlign:'center',lineHeight:20,marginTop:8},

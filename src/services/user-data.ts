@@ -1,6 +1,6 @@
 // src/services/user-data.ts — Favoris + scans utilisateur
 
-import firestore from '@react-native-firebase/firestore';
+import firestore, { type FirebaseFirestoreTypes } from '@react-native-firebase/firestore';
 import type { UserFavori, UserScan } from '../models';
 
 function favCol(uid: string) { return firestore().collection(`users/${uid}/favoris`); }
@@ -8,13 +8,13 @@ function scanCol(uid: string) { return firestore().collection(`users/${uid}/scan
 
 export function onFavoris(uid: string, cb: (favoris: UserFavori[]) => void): () => void {
   const q = favCol(uid).orderBy('addedAt', 'desc');
-  return q.onSnapshot((snap: any) => cb(snap.docs.map((d: any) => ({ id: d.id, ...d.data() } as UserFavori))));
+  return q.onSnapshot((snap: FirebaseFirestoreTypes.QuerySnapshot) => cb(snap.docs.map((d: FirebaseFirestoreTypes.DocumentSnapshot) => ({ id: d.id, ...d.data() } as UserFavori))));
 }
 
-export async function addFavori(uid: string, parfumId: string, nom?: string, marque?: string): Promise<string> {
+export async function addFavori(uid: string, parfumId: string, nom?: string, marque?: string, imageUrl?: string, familleOlactive?: string): Promise<string> {
   const existing = await favCol(uid).where('parfumId', '==', parfumId).limit(1).get();
   if (!existing.empty) return existing.docs[0].id;
-  const ref = await favCol(uid).add({ parfumId, nom: nom ?? null, marque: marque ?? null, addedAt: new Date() });
+  const ref = await favCol(uid).add({ parfumId, nom: nom ?? null, marque: marque ?? null, imageUrl: imageUrl ?? null, familleOlactive: familleOlactive ?? null, addedAt: new Date() });
   return ref.id;
 }
 
@@ -30,7 +30,7 @@ export async function isParfumFavori(uid: string, parfumId: string): Promise<{ i
 
 export function onScans(uid: string, cb: (scans: UserScan[]) => void): () => void {
   const q = scanCol(uid).orderBy('scannedAt', 'desc');
-  return q.onSnapshot((snap: any) => cb(snap.docs.map((d: any) => ({ id: d.id, ...d.data() } as UserScan))));
+  return q.onSnapshot((snap: FirebaseFirestoreTypes.QuerySnapshot) => cb(snap.docs.map((d: FirebaseFirestoreTypes.DocumentSnapshot) => ({ id: d.id, ...d.data() } as UserScan))));
 }
 
 export async function saveScan(uid: string, data: Omit<UserScan, 'id' | 'scannedAt'>): Promise<void> {

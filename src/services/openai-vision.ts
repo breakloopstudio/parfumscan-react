@@ -15,9 +15,10 @@ export async function analyzeImage(base64Image: string): Promise<ScanResult> {
   try {
     const result = await callable({ imageBase64: base64Image });
     return result.data;
-  } catch (err: any) {
-    const code = err?.code;
-    console.error('[OpenAI Vision] code:', code, 'message:', err?.message);
+  } catch (err: unknown) {
+    const e = err as { code?: string; message?: string };
+    const code = e?.code;
+    console.error('[OpenAI Vision] code:', code, 'message:', e?.message);
     // Traduire les erreurs Firebase en messages utilisateur compréhensibles
     if (code === 'not-found') throw new Error('Service d\'analyse IA indisponible. Réessayez plus tard.');
     if (code === 'internal') throw new Error('Échec de l\'analyse IA. Veuillez réessayer.');

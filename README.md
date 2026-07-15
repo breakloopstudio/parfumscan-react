@@ -120,15 +120,15 @@ app/
 └── admin.tsx                 # Administration (seed + reset cache + upload)
 
 src/
-├── services/     (9)         # Firebase, Firestore (cache-first), Fragella, GPT-4o…
-├── hooks/        (7)         # useAuth, useScanReducer, useCatalog (cache-first)…
+├── services/     (9)         # Firebase, Firestore (upsert intelligent), Fragella, GPT-4o…
+├── hooks/        (7)         # useAuth, useScanReducer, useCatalog (cache-first + score popularité)…
 ├── contexts/     (1)         # AuthContext (Provider + Hook)
 ├── components/   (2)         # ParfumCard (bridge + onPressOverride), AppLoader
 ├── features/
 │   ├── scan/     (7)         # ScanScreen + 6 sous-états
 │   ├── catalog/  (1)         # CatalogPage (composant, pas une route !)
 │   └── profile/  (1)         # ProfilePage (favoris dénormalisés, bridge détail)
-├── models/       (4)         # Interfaces : Parfum, ParfumSearchResult, UserFavori, UserScan, ScanResult
+├── models/       (4)         # Interfaces : Parfum, ParfumSearchResult, UserFavori (+imageUrl), UserScan (+imageUrl), ScanResult
 ├── theme/        (1)         # 45 design tokens (light + dark)
 ├── config/       (3)         # Firebase config, env, index
 └── utils/        (2)         # Error translator, normalize
@@ -171,21 +171,33 @@ La page `app/catalog/[id].tsx` affiche les métadonnées de l'API Fragella :
 > indique si les données sont enrichies (🟢 vert = API Fragella) ou
 > basiques (🔴 rouge = cache Firestore périmé). Visible uniquement en `__DEV__`.
 
-## 📚 Flux de recherche (cache-first v5.0)
+## 📚 Flux de recherche (cache-first v5.3)
 
 ```
 Saisie ≥ 3 caractères → useCatalog() → debounce 800ms
-  1. searchParfumsCached(query) → Firestore (gratuit, partagé)
+  1. searchParfumsCached(query) → Firestore (gratuit, score = tokens + popularité + exact match)
   2. Si < 5 résultats → searchFragranceByQuery() → API payante
-  3. batchCacheParfums(results) → Firestore (pour la prochaine fois)
+  3. batchCacheParfums(results) → Firestore (upsert intelligent : lecture existant → set ou update partiel)
 
 Avantage : chaque recherche n'est payée qu'une fois,
-tous utilisateurs confondus.
+tous utilisateurs confondus. Le score intègre la popularité
+→ les parfums populaires remontent naturellement.
 
-⚠️ L'endpoint /fragrances?search= de Fragella ne renvoie PAS TOUJOURS toutes les métadonnées (saisonnalité, occasions peuvent manquer pour certains parfums comme Creed Aventus).
-  → La fiche détail utilise getFragranceById() (/fragrances/:id) comme enrichissement automatique si seasonRanking/occasionRanking absents.
-  → Les données enrichies sont mergées et cachées dans Firestore (upsert intelligent des métadonnées manquantes).
+⚠️ L''endpoint /fragrances?search= de Fragella ne renvoie PAS TOUJOURS toutes les métadonnées (saisonnalité, occasions peuvent manquer).
+  → La fiche détail utilise getFragranceById() (/fragrances/:id) comme enrichissement automatique.
+  → Les données enrichies sont mergées et cachées dans Firestore (upsert intelligent, jamais d''écrasement aveugle).
+  → Si fragellaId absent → skip enrichissement (pas de fallback avec ID normalisé → 404).
 ```
+
+### Catalogue idle
+
+À l''ouverture (sans recherche) : `getPopularParfums(6)` → Firestore (triés par popularityScore desc).
+Plus de ghost cards Chanel/Dior — 100% données réelles du cache.
+
+### Favoris & Historique enrichis
+
+Les documents `UserFavori` et `UserScan` stockent `imageUrl` et `familleOlactive`
+dénormalisés → affichage direct sans appel API Firestore ni Fragella.
 
 ---
 ## 📄 Licence

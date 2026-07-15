@@ -1,6 +1,6 @@
 // src/services/fcm.ts — Notifications push Firebase Cloud Messaging
 
-import messaging from '@react-native-firebase/messaging';
+import messaging, { type FirebaseMessagingTypes } from '@react-native-firebase/messaging';
 
 export async function requestFcmPermission(): Promise<boolean> {
   const status = await messaging().requestPermission();
@@ -15,12 +15,12 @@ export function onFcmTokenRefresh(cb: (token: string) => void): () => void {
   return messaging().onTokenRefresh(cb);
 }
 
-export function onFcmMessage(cb: (payload: any) => void): () => void {
-  return messaging().onMessage(async (msg: any) => { cb(msg); });
+export function onFcmMessage(cb: (payload: FirebaseMessagingTypes.RemoteMessage) => void): () => void {
+  return messaging().onMessage(async (msg: FirebaseMessagingTypes.RemoteMessage) => { cb(msg); });
 }
 
-export function onFcmNotificationOpened(cb: (payload: any) => void): () => void {
-  return messaging().onNotificationOpenedApp((msg: any) => { cb(msg); });
+export function onFcmNotificationOpened(cb: (payload: FirebaseMessagingTypes.RemoteMessage) => void): () => void {
+  return messaging().onNotificationOpenedApp((msg: FirebaseMessagingTypes.RemoteMessage) => { cb(msg); });
 }
 
 export async function deleteFcmToken(): Promise<void> {

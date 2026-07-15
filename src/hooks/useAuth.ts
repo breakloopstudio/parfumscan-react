@@ -2,7 +2,7 @@
 // Hook d'authentification
 
 import { useState, useEffect, useCallback } from 'react';
-import auth from '@react-native-firebase/auth';
+import auth, { type FirebaseAuthTypes } from '@react-native-firebase/auth';
 import firestore from '@react-native-firebase/firestore';
 import { GoogleSignin } from '@react-native-google-signin/google-signin';
 import { isFirebaseReady } from '../services/firebase';
@@ -11,7 +11,7 @@ import { translateFirebaseError } from '../utils/error-translator';
 const AUTH_TIMEOUT_MS = 3000;
 
 export function useAuth() {
-  const [user, setUser] = useState<any>(null);
+  const [user, setUser] = useState<FirebaseAuthTypes.User | null>(null);
   const [authReady, setAuthReady] = useState(false);
   const [isAdmin, setIsAdmin] = useState(false);
 
@@ -25,7 +25,7 @@ export function useAuth() {
     const markReady = () => { if (!resolved) { resolved = true; setAuthReady(true); } };
     const timeout = setTimeout(markReady, AUTH_TIMEOUT_MS);
 
-    const unsubscribe = auth().onAuthStateChanged(async (firebaseUser: any) => {
+    const unsubscribe = auth().onAuthStateChanged(async (firebaseUser: FirebaseAuthTypes.User | null) => {
       setUser(firebaseUser);
       if (firebaseUser) {
         try {

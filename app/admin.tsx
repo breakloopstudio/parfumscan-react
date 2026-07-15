@@ -13,7 +13,7 @@ import type { Parfum } from '../src/models';
 import { uploadParfumImage } from '../src/services/storage';
 
 // Lazy: expo-image-picker optionnel → l'upload est désactivé si non installé
-let ImagePicker: any = null;
+let ImagePicker: typeof import('expo-image-picker') | null = null;
 try { ImagePicker = require('expo-image-picker'); } catch {}
 
 export default function AdminPage() {

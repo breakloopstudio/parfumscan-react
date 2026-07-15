@@ -12,4 +12,6 @@ export interface UserScan {
   typeParfum?: string;
   scannedAt: Date | FirestoreDate;
   parfumId?: string;
+  imageUrl?: string;      // dénormalisé pour affichage sans appel API
+  familleOlactive?: string; // dénormalisé pour affichage sans appel API
 }

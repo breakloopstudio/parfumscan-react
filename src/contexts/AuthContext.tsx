@@ -2,16 +2,17 @@
 // Provider d'authentification React — remplace la DI Angular AuthService
 
 import React, { createContext, useContext, type ReactNode } from 'react';
+import type { FirebaseAuthTypes } from '@react-native-firebase/auth';
 import { useAuth } from '../hooks/useAuth';
 
 interface AuthContextValue {
-  user: any;
+  user: FirebaseAuthTypes.User | null;
   authReady: boolean;
   isAdmin: boolean;
   isAuthenticated: boolean;
-  register: (email: string, password: string) => Promise<any>;
-  login: (email: string, password: string) => Promise<any>;
-  loginWithGoogle: () => Promise<any>;
+  register: (email: string, password: string) => Promise<FirebaseAuthTypes.UserCredential>;
+  login: (email: string, password: string) => Promise<FirebaseAuthTypes.UserCredential>;
+  loginWithGoogle: () => Promise<FirebaseAuthTypes.UserCredential>;
   logout: () => Promise<void>;
 }
 
