@@ -33,7 +33,7 @@
         "expo-build-properties",
         {
           "android": {
-            "ndkVersion": "30.0.15729638"
+            "ndkVersion": "27.0.12077973"
           }
         }
       ],
@@ -45,8 +45,7 @@
       ],
       "@react-native-google-signin/google-signin",
       "@react-native-firebase/app",
-      "@react-native-firebase/auth",
-      "expo-build-properties"
+      "@react-native-firebase/auth"
     ]
   }
 }

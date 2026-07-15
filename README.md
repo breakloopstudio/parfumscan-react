@@ -208,6 +208,16 @@ Les documents `UserFavori` et `UserScan` stockent `imageUrl` et `familleOlactive
 dénormalisés → affichage direct sans appel API Firestore ni Fragella.
 
 ---
+## v5.5 — Bugfixes (16/07/2026)
+
+- **C4** `app/catalog/[id].tsx` — `consumePendingParfum()` sorti du render (`useRef(fn())` → `useState(() => fn())`)
+- **C5** `src/services/firestore.ts` — `onParfums` utilise `orderBy('updatedAt')` au lieu de `createdAt` (docs batch-cachés n'avaient pas de `createdAt`)
+- **H1** `app.json` — NDK corrigé (`30.x` inexistant → `27.0.12077973` LTS)
+- **H2** `app.json` — plugin `expo-build-properties` en doublon supprimé
+- **H8** `src/features/profile/ProfilePage.tsx` — FavHeart migré de `Animated` natif vers Reanimated
+
+---
+
 ## 📄 Licence
 
 MIT — voir [LICENSE](./LICENSE)

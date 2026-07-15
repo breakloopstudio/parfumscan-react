@@ -152,7 +152,7 @@ export default function CatalogDetailPage() {
   const [loading, setLoading] = useState(true);
   const [isFav, setIsFav] = useState(false);
   const [favoriId, setFavoriId] = useState<string | null>(null);
-  const pendingRef = useRef<Parfum | ParfumSearchResult | null>(consumePendingParfum());
+  const [pending] = useState<Parfum | ParfumSearchResult | null>(() => consumePendingParfum());
   const loadingRef = useRef(false);
   // Chargement auto-suffisant : bridge (preview) -> Firestore -> Fragella by ID -> Fragella search
   useEffect(() => {
@@ -164,8 +164,6 @@ export default function CatalogDetailPage() {
     const load = async () => {
       try {
         // Step 1: Bridge data — affichage instantané si disponible
-        const pending = pendingRef.current;
-          
         if (pending && pending.id === id) {
           setParfum(pending);
             

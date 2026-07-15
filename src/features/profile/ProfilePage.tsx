@@ -1,10 +1,11 @@
 ﻿// app/(tabs)/profile.tsx — Profil (utilisé par le TabPager index.tsx)
 
-import { useState, useRef } from 'react';
-import { View, Text, ScrollView, Pressable, Image, Animated, ActivityIndicator, Alert, StyleSheet } from 'react-native';
+import { useState } from 'react';
+import { View, Text, ScrollView, Pressable, Image, ActivityIndicator, Alert, StyleSheet } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Link, useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
+import Animated, { useSharedValue, useAnimatedStyle, withTiming, runOnJS } from 'react-native-reanimated';
 import { useAuthContext } from '../../contexts/AuthContext';
 import { useFavoris } from '../../hooks/useFavoris';
 import { useScans } from '../../hooks/useScans';
@@ -34,16 +35,22 @@ function ScanItemImage({ imageUrl }: { imageUrl?: string }) {
 }
 
 function FavHeart({ onPress }: { onPress: () => void }) {
-  const scale = useRef(new Animated.Value(1)).current;
+  const scale = useSharedValue(1);
+  const animatedStyle = useAnimatedStyle(() => ({
+    transform: [{ scale: scale.value }],
+  }));
   const handlePress = () => {
-    Animated.sequence([
-      Animated.timing(scale, { toValue: 1.3, duration: 100, useNativeDriver: true }),
-      Animated.timing(scale, { toValue: 1, duration: 150, useNativeDriver: true }),
-    ]).start(() => onPress());
+    scale.value = withTiming(1.3, { duration: 100 }, (finished) => {
+      if (finished) {
+        scale.value = withTiming(1, { duration: 150 }, (finished) => {
+          if (finished) runOnJS(onPress)();
+        });
+      }
+    });
   };
   return (
     <Pressable onPress={handlePress} hitSlop={12}>
-      <Animated.View style={{ transform: [{ scale }] }}>
+      <Animated.View style={animatedStyle}>
         <Ionicons name="heart" size={20} color={theme.colors.danger} />
       </Animated.View>
     </Pressable>

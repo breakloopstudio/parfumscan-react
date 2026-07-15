@@ -61,7 +61,7 @@ function docToParfum(doc: FirebaseFirestoreTypes.DocumentSnapshot): Parfum {
 }
 
 export function onParfums(cb: (parfums: Parfum[]) => void): () => void {
-  const q = col().orderBy('createdAt', 'desc');
+  const q = col().orderBy('updatedAt', 'desc');
   return q.onSnapshot((snap: FirebaseFirestoreTypes.QuerySnapshot) => cb(snap.docs.map(docToParfum)));
 }
 
