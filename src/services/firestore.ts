@@ -219,7 +219,7 @@ export async function batchCacheParfums(parfums: ParfumSearchResult[]): Promise<
       bestPrice: p.bestPrice ?? null,
       referencePrice: p.referencePrice ?? null,
       typeParfum: p.typeParfum ?? null,
-      source: p.source,
+      source: 'fragella-cached' as const,
       cachedAt: now,
       updatedAt: now,
       searchKeywords: keywords,
