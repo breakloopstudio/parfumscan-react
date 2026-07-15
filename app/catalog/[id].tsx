@@ -102,7 +102,6 @@ function typeParfumLabel(v: string): string {
   return v;
 }
 
-// ─── Sous-composants ─────────────────────────────────────────
 
 function StatBar({ label, score, maxScore, icon, barColor, barBg }: { label: string; score: number; maxScore?: number; icon: string; barColor: string; barBg: string }) {
   const m = maxScore ?? 100;

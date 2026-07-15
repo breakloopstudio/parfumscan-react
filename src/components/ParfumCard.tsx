@@ -10,7 +10,7 @@ import type { ParfumSearchResult } from '../services/fragella';
 import { setPendingParfum } from '../services/catalog-bridge';
 import { translateNote } from '../utils/translate-note';
 
-interface Props { parfum: Parfum | ParfumSearchResult; showDeal?: boolean; onPressOverride?: () => void; }
+interface Props { parfum: Parfum | ParfumSearchResult; showDeal?: boolean; compact?: boolean; onPressOverride?: () => void; }
 
 function getDiscount(p: Parfum | ParfumSearchResult): number | null {
   if (typeof p.discountPct === 'number') return Math.round(p.discountPct);
@@ -20,11 +20,30 @@ function getDiscount(p: Parfum | ParfumSearchResult): number | null {
   return null;
 }
 
-export default function ParfumCard({ parfum, showDeal = false, onPressOverride }: Props) {
+const PALETTE = ['#5B21B6','#1E40AF','#065F46','#92400E','#991B1B','#9D174D','#3730A3','#854D0E'];
+
+function brandColor(brand: string): string {
+  let hash = 0;
+  for (let i = 0; i < brand.length; i++) hash = brand.charCodeAt(i) + ((hash << 5) - hash);
+  return PALETTE[Math.abs(hash) % PALETTE.length];
+}
+
+function resolveImageUrl(p: Parfum | ParfumSearchResult): string | null {
+  if (p.imageUrl) return p.imageUrl;
+  if (p.imageUrlTransparent) return p.imageUrlTransparent;
+  if (p.imageFallbacks && p.imageFallbacks.length > 0) return p.imageFallbacks[0];
+  return null;
+}
+
+export default function ParfumCard({ parfum, showDeal = false, compact = false, onPressOverride }: Props) {
   const router = useRouter();
   const [imgFailed, setImgFailed] = useState(false);
   const discount = getDiscount(parfum);
   const bestPrice = parfum.bestPrice ?? null;
+  const imageUrl = resolveImageUrl(parfum);
+  const hasImage = imageUrl !== null;
+  const showImage = hasImage && !imgFailed;
+  const tint = brandColor(parfum.marque);
 
   const goToDetail = () => {
     if (onPressOverride) {
@@ -36,31 +55,37 @@ export default function ParfumCard({ parfum, showDeal = false, onPressOverride }
   };
 
   return (
-    <Pressable style={s.card} onPress={goToDetail}>
-        {parfum.imageUrl && !imgFailed && (
-          <View style={s.imgWrap}>
-            <Image source={{ uri: parfum.imageUrl }} style={s.img} onError={() => setImgFailed(true)} />
+    <Pressable style={compact ? s.cardCompact : s.card} onPress={goToDetail}>
+        {showImage ? (
+          <View style={compact ? s.imgWrapCompact : s.imgWrap}>
+            <Image source={{ uri: imageUrl }} style={compact ? s.imgCompact : s.img} onError={() => setImgFailed(true)} />
             <View style={s.imgOverlay} />
-            {discount !== null && <View style={s.dealBadge}><Text style={s.dealBadgeText}>-{discount}%</Text></View>}
+            {discount !== null && <View style={compact ? s.dealBadgeCompact : s.dealBadge}><Text style={compact ? s.dealBadgeTextCompact : s.dealBadgeText}>-{discount}%</Text></View>}
+          </View>
+        ) : (
+          <View style={[compact ? s.imgPlaceholderCompact : s.imgPlaceholder, { backgroundColor: tint }]}>
+            <Text style={compact ? s.placeholderInitCompact : s.placeholderInit}>
+              {parfum.marque.charAt(0).toUpperCase()}
+            </Text>
           </View>
         )}
-        <View style={s.header}>
-          <Text style={s.brand}>{parfum.marque}</Text>
-          <Text style={s.title}>{parfum.nom}</Text>
+        <View style={compact ? s.headerCompact : s.header}>
+          <Text style={compact ? s.brandCompact : s.brand}>{parfum.marque}</Text>
+          <Text style={compact ? s.titleCompact : s.title} numberOfLines={compact ? 2 : undefined} ellipsizeMode="tail">{parfum.nom}</Text>
         </View>
-        <View style={s.body}>
-          <View style={s.tags}>
-            <View style={s.tagFamily}><Text style={s.tagFamilyText}>{translateNote(parfum.familleOlactive)}</Text></View>
-            {parfum.annee && <View style={s.tagYear}><Text style={s.tagYearText}>{parfum.annee}</Text></View>}
+        <View style={compact ? s.bodyCompact : s.body}>
+          <View style={compact ? s.tagsCompact : s.tags}>
+            <View style={compact ? s.tagFamilyCompact : s.tagFamily}><Text style={compact ? s.tagFamilyTextCompact : s.tagFamilyText}>{translateNote(parfum.familleOlactive)}</Text></View>
+            {parfum.annee && <View style={compact ? s.tagYearCompact : s.tagYear}><Text style={compact ? s.tagYearTextCompact : s.tagYearText}>{parfum.annee}</Text></View>}
           </View>
-          {parfum.notesTete.length > 0 && (
+          {!compact && parfum.notesTete.length > 0 && (
             <View style={s.notes}>
               <Text style={s.notesLabel}>Tête</Text>
               <Text style={s.notesText}>{parfum.notesTete.slice(0, 3).map(translateNote).join(' · ')}</Text>
             </View>
           )}
         </View>
-        {showDeal && (
+        {!compact && showDeal && (
           <View style={s.dealZone}>
             <View style={s.dealPrice}>
               {bestPrice !== null ? (
@@ -131,4 +156,23 @@ const s = StyleSheet.create({
   dealCta: { flexDirection: 'row', alignItems: 'center', gap: 2 },
   dealCtaText: { fontSize: 13, fontWeight: '700', color: theme.colors.primary },
   dealCtaGhost: { fontSize: 13, fontWeight: '600', color: theme.colors.textMuted },
+  // ── Compact ──
+  cardCompact: { margin: 4, borderRadius: theme.radius.card, backgroundColor: theme.colors.surface, overflow: 'hidden', ...theme.shadow.card },
+  imgWrapCompact: { position: 'relative', maxHeight: 130, overflow: 'hidden' },
+  imgCompact: { width: '100%', height: 130, resizeMode: 'cover' },
+  dealBadgeCompact: { position: 'absolute', top: 6, right: 6, backgroundColor: theme.colors.reward, paddingHorizontal: 6, paddingVertical: 3, borderRadius: 20 },
+  dealBadgeTextCompact: { color: '#1F1A2E', fontWeight: '800', fontSize: 10 },
+  headerCompact: { padding: 10, paddingBottom: 0 },
+  brandCompact: { fontSize: 10, textTransform: 'uppercase', letterSpacing: 1, color: theme.colors.textMuted, marginBottom: 1 },
+  titleCompact: { fontFamily: 'PlayfairDisplay_600SemiBold', fontSize: 14, color: theme.colors.text, lineHeight: 18 },
+  bodyCompact: { paddingHorizontal: 10, paddingTop: 4, paddingBottom: 8 },
+  tagsCompact: { flexDirection: 'row', gap: 4, flexWrap: 'wrap' },
+  tagFamilyCompact: { backgroundColor: theme.colors.violetSoft, paddingHorizontal: 6, paddingVertical: 2, borderRadius: 20 },
+  tagFamilyTextCompact: { fontSize: 9, fontWeight: '500', color: theme.colors.violetInk },
+  tagYearCompact: { backgroundColor: theme.colors.rewardSoft, paddingHorizontal: 6, paddingVertical: 2, borderRadius: 20 },
+  tagYearTextCompact: { fontSize: 9, fontWeight: '500', color: theme.colors.reward },
+  imgPlaceholder: { width: '100%', height: 180, justifyContent: 'center', alignItems: 'center' },
+  imgPlaceholderCompact: { width: '100%', height: 130, justifyContent: 'center', alignItems: 'center' },
+  placeholderInit: { fontSize: 72, fontWeight: '700', color: '#FFFFFF', opacity: 0.5 },
+  placeholderInitCompact: { fontSize: 48, fontWeight: '700', color: '#FFFFFF', opacity: 0.5 },
 });

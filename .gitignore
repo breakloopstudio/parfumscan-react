@@ -46,6 +46,10 @@ AGENTS.md
 firestore-debug.log
 ui-debug.log
 
+# ─── MCP config (contient clé API) ───────────────────────────────
+.mcp.json
+Backend
+
 # ─── Fichiers temporaires ────────────────────────────────────────
 temp/
 *.tgz

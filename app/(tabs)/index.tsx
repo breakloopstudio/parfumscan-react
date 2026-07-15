@@ -15,7 +15,6 @@ import Animated, {
 import { Ionicons } from '@expo/vector-icons';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { theme } from '../../src/theme/theme';
-import { useAppTheme } from '../../src/hooks/useAppTheme';
 import { hapticsLight } from '../../src/services/haptics';
 import { consumePendingParfum, setPendingParfum } from '../../src/services/catalog-bridge';
 import CatalogPage from '../../src/features/catalog/CatalogPage';
@@ -38,7 +37,7 @@ export default function TabPager() {
   const { width: windowWidth } = useWindowDimensions();
   const router = useRouter();
   const segments = useSegments();
-  const { isDark, colors } = useAppTheme();
+  const colors = theme.colors;
   const insets = useSafeAreaInsets();
 
   const pageWidth = useSharedValue(windowWidth || 400);
@@ -69,7 +68,7 @@ export default function TabPager() {
     useCallback(() => {
       const p = consumePendingParfum();
       if (p) {
-        setPendingParfum(p); // re-stocke pour la fiche détail
+        setPendingParfum(p); // re-stocke pour la fiche dï¿½tail
         // Petit dÃ©lai pour laisser l'animation de dismiss se terminer
         const t = setTimeout(() => router.push(`/catalog/${p.id}`), 200);
         return () => clearTimeout(t);
@@ -146,8 +145,8 @@ export default function TabPager() {
     return { transform: [{ translateX: progress * tabCenterDist }] };
   });
 
-  const barBg = isDark ? theme.colors.dark.tabBar : theme.colors.surface;
-  const barBorder = isDark ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.06)';
+  const barBg = theme.colors.surface;
+  const barBorder = 'rgba(0,0,0,0.06)';
 
   // Ne rien afficher tant que la largeur n'est pas connue
   if (windowWidth === 0) {

@@ -43,34 +43,6 @@ export const theme = {
 
     scanBeam: 'rgba(124, 58, 237, 0.85)',
     glow: 'rgba(124, 58, 237, 0.35)',
-
-    // Dark mode
-    dark: {
-      background: '#0F0A1A',
-      toolbar: '#1A1333',
-      tabBar: '#1A1333',
-      tabBarBorder: '#2D1F4E',
-      surface: '#1A1333',
-      surface2: '#241A45',
-      border: '#2D1F4E',
-      text: '#F3F4F6',
-      textMuted: '#A79FC0',
-      light: '#1F1A2E',
-      rewardSoft: '#2A2136',
-      dealSoft: '#10261F',
-      violetSoft: '#241A45',
-      violetInk: '#C4B5FD',
-      // Pyramide olfactive dark
-      pyramidTop: '#34D399',
-      pyramidTopSoft: '#064E3B',
-      pyramidTopInk: '#A7F3D0',
-      pyramidHeart: '#FBBF24',
-      pyramidHeartSoft: '#78350F',
-      pyramidHeartInk: '#FDE68A',
-      pyramidBase: '#A78BFA',
-      pyramidBaseSoft: '#2E1065',
-      pyramidBaseInk: '#DDD6FE',
-    },
   },
 
   fonts: {

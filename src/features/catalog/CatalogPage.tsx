@@ -14,6 +14,17 @@ import type { ParfumSearchResult } from '../../services/fragella';
 
 import { consumePendingCatalogQuery } from '../../services/catalog-bridge';
 
+function seededShuffle<T>(arr: T[], seed: number): T[] {
+  const shuffled = [...arr];
+  let s = seed;
+  for (let i = shuffled.length - 1; i > 0; i--) {
+    s = (s * 16807 + 0) % 2147483647;
+    const j = s % (i + 1);
+    [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
+  }
+  return shuffled;
+}
+
 export default function CatalogPage() {
   const { authReady, isAuthenticated } = useAuthContext();
   const { q: routeQuery } = useLocalSearchParams<{ q?: string }>();
@@ -25,7 +36,11 @@ export default function CatalogPage() {
   const handleSearch = (t: string) => { setSearchText(t); t.trim().length >= 3 ? search(t) : clear(); };
 
   useEffect(() => {
-    getPopularParfums(6).then(p => { setPopularParfums(p); setPopularLoading(false); });
+    const today = Math.floor(Date.now() / 86400000);
+    getPopularParfums(30).then(p => {
+      setPopularParfums(seededShuffle(p, today).slice(0, 8));
+      setPopularLoading(false);
+    });
   }, []);
 
   // Recherche auto quand on arrive depuis le scan avec ?q=...
@@ -44,13 +59,27 @@ export default function CatalogPage() {
       {!searchText && <View style={s.hero}><Ionicons name="sparkles-outline" size={32} color={theme.colors.primary}/><Text style={s.heroTitle}>ParfumScan</Text><Text style={s.heroSub}>Trouve ton parfum au meilleur prix</Text></View>}
       <View style={s.searchWrap}><TextInput style={s.searchInput} placeholder="Rechercher un parfum..." placeholderTextColor={theme.colors.textMuted} value={searchText} onChangeText={handleSearch} autoCapitalize="none" autoCorrect={false}/></View>
       {!searchText ? (
-        <View style={s.ghostSection}><Text style={s.ghostLabel}>Parfums populaires</Text>
-          {popularLoading ? <ActivityIndicator style={{ marginTop: 20 }} color={theme.colors.primary} /> :
-            <View style={s.popularGrid}>
-              {popularParfums.map(p => <ParfumCard key={p.id} parfum={p} />)}
-            </View>
-          }
-        </View>
+        <>
+          {popularLoading ? (
+            <View style={s.ghostSection}><Text style={s.ghostLabel}>Parfums populaires</Text><ActivityIndicator style={{ marginTop: 20 }} color={theme.colors.primary} /></View>
+          ) : (
+            <FlatList
+              data={popularParfums}
+              numColumns={2}
+              keyExtractor={p => p.id}
+              renderItem={({ item }) => (
+                <View style={s.popularCardWrap}>
+                  <ParfumCard parfum={item} compact />
+                </View>
+              )}
+              columnWrapperStyle={s.popularRow}
+              ListHeaderComponent={<Text style={s.ghostLabel}>Parfums populaires</Text>}
+              contentContainerStyle={{ paddingHorizontal: 16, paddingBottom: 16 }}
+              style={{ flex: 1 }}
+              showsVerticalScrollIndicator={false}
+            />
+          )}
+        </>
       ) : (
         <><Text style={s.resultsCount}>{parfums.length} parfum(s)</Text>{searching && <ActivityIndicator style={{marginTop:12}} color={theme.colors.primary}/>}
         <FlatList data={parfums} keyExtractor={(p, i) => `${p.id}_${i}`} renderItem={({item})=><ParfumCard parfum={item} showDeal/>} contentContainerStyle={{paddingBottom:16}} showsVerticalScrollIndicator={false}
@@ -81,5 +110,5 @@ const s = StyleSheet.create({
   emptyDesc:{fontSize:14,color:theme.colors.textMuted,textAlign:'center',lineHeight:20,marginTop:8},
   emptyScanBtn:{marginTop:20,backgroundColor:theme.colors.primary,paddingHorizontal:20,paddingVertical:12,borderRadius:theme.radius.base,...theme.shadow.button},
   emptyScanText:{color:'#FFF',fontWeight:'600',fontSize:16},
-  popularGrid:{gap:4},
+  popularRow:{gap:8,marginBottom:8}, popularCardWrap:{flex:1,maxWidth:'50%'},
 });

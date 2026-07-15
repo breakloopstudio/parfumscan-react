@@ -7,7 +7,7 @@ import { useState, useEffect } from 'react';
 import { View, Text, Pressable, StyleSheet } from 'react-native';
 import Animated, { useSharedValue, useAnimatedStyle, withTiming } from 'react-native-reanimated';
 import { Ionicons } from '@expo/vector-icons';
-import { useAppTheme } from '../../hooks/useAppTheme';
+import { theme } from '../../theme/theme';
 import { translateNote } from '../../utils/translate-note';
 
 // ─── Types ───────────────────────────────────────────────────
@@ -38,12 +38,10 @@ const LAYERS: LayerDef[] = [
   { key: 'base',  label: 'Notes de Fond', subtitle: 'Empreinte persistante', colorToken: 'pyramidBase',  softToken: 'pyramidBaseSoft',  inkToken: 'pyramidBaseInk',  dotShape: 'diamond' },
 ];
 
-const MINI_W = { top: 14, heart: 22, base: 30 };
-
 // ─── Composant ────────────────────────────────────────────────
 
 export default function OlfactoryPyramid({ topNotes, heartNotes, baseNotes }: Props) {
-  const { colors } = useAppTheme();
+  const colors = theme.colors;
   const [activeLayer, setActiveLayer] = useState<LayerKey | null>('heart');
 
   const notesMap: Record<LayerKey, string[]> = { top: topNotes, heart: heartNotes, base: baseNotes };
@@ -77,9 +75,27 @@ export default function OlfactoryPyramid({ topNotes, heartNotes, baseNotes }: Pr
     <View style={s.root}>
       <View style={s.headerRow}>
         <View style={s.miniPyramid}>
-          <View style={[s.miniBar, s.miniBarTop,   { backgroundColor: colors.pyramidTop }]} />
-          <View style={[s.miniBar, s.miniBarHeart, { backgroundColor: colors.pyramidHeart }]} />
-          <View style={[s.miniBar, s.miniBarBase,  { backgroundColor: colors.pyramidBase }]} />
+          {/* Base — violet (fond) */}
+          <View style={[s.pyrLayer, {
+            top: 18, left: 1,
+            borderLeftWidth: 24, borderRightWidth: 24, borderBottomWidth: 16,
+            borderLeftColor: 'transparent', borderRightColor: 'transparent',
+            borderBottomColor: colors.pyramidBase,
+          }]} />
+          {/* Cœur — ambré (milieu) */}
+          <View style={[s.pyrLayer, {
+            top: 8, left: 8,
+            borderLeftWidth: 17, borderRightWidth: 17, borderBottomWidth: 14,
+            borderLeftColor: 'transparent', borderRightColor: 'transparent',
+            borderBottomColor: colors.pyramidHeart,
+          }]} />
+          {/* Tête — vert (dessus) */}
+          <View style={[s.pyrLayer, {
+            top: 0, left: 16,
+            borderLeftWidth: 9, borderRightWidth: 9, borderBottomWidth: 12,
+            borderLeftColor: 'transparent', borderRightColor: 'transparent',
+            borderBottomColor: colors.pyramidTop,
+          }]} />
         </View>
         <View style={s.headerTextWrap}>
           <Text style={[s.title, { color: colors.text }]}>Pyramide olfactive</Text>
@@ -159,11 +175,8 @@ const DOT_BASE = { width: 10, height: 10, marginTop: 4 };
 const s = StyleSheet.create({
   root: { marginTop: 24, marginBottom: 4 },
   headerRow:      { flexDirection: 'row', alignItems: 'center', gap: 12, marginBottom: 16 },
-  miniPyramid:    { alignItems: 'center', gap: 2, marginTop: 2 },
-  miniBar:        { height: 5, borderRadius: 2 },
-  miniBarTop:     { width: MINI_W.top },
-  miniBarHeart:   { width: MINI_W.heart },
-  miniBarBase:    { width: MINI_W.base },
+  miniPyramid:    { width: 50, height: 36, marginTop: 2, overflow: 'hidden' },
+  pyrLayer:       { position: 'absolute', width: 0, height: 0 },
   headerTextWrap: { flex: 1 },
   title:          { fontFamily: 'PlayfairDisplay_600SemiBold', fontSize: 15 },
   subtitle:       { fontSize: 12, marginTop: 1 },

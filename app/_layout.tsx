@@ -7,7 +7,7 @@ import { StatusBar } from 'expo-status-bar';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { AuthProvider, useAuthContext } from '../src/contexts/AuthContext';
 import { ErrorBoundary } from '../src/components/ErrorBoundary';
-import { useAppTheme } from '../src/hooks/useAppTheme';
+import { theme } from '../src/theme/theme';
 import { isFirebaseReady } from '../src/services/firebase';
 import '../src/services/firebase';
 
@@ -20,7 +20,7 @@ function AuthGuard({ children }: { children: React.ReactNode }) {
   const { authReady, isAuthenticated } = useAuthContext();
   const segments = useSegments();
   const router = useRouter();
-  const { colors } = useAppTheme();
+  const colors = theme.colors;
   useEffect(() => {
     if (!authReady) return;
     // Expo Go : pas de Firebase → on skip l'auth
@@ -37,14 +37,14 @@ function AuthGuard({ children }: { children: React.ReactNode }) {
 
 export default function RootLayout() {
   const [ready, setReady] = useState(false);
-  const { isDark, colors } = useAppTheme();
+  const colors = theme.colors;
   useEffect(() => { const t = setTimeout(() => setReady(true), 400); return () => clearTimeout(t); }, []);
   if (!ready) return <View style={{ flex: 1, justifyContent: 'center' as const, alignItems: 'center' as const, backgroundColor: colors.background }}><ActivityIndicator size="large" color="#7C3AED" /></View>;
   return (
     <GestureHandlerRootView style={{ flex: 1, backgroundColor: colors.background }}>
       <AuthProvider>
         <StatusBar
-          style={isDark ? 'light' : 'dark'}
+          style="dark"
           translucent={Platform.OS === 'android'}
           backgroundColor={Platform.OS === 'android' ? 'transparent' : undefined}
         />
