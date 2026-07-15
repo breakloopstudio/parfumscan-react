@@ -65,6 +65,15 @@ function sillageMeta(v: string): { label: string; pct: number } {
 }
 
 
+function accordScore(pctStr: string): number {
+  const n = parseInt(pctStr.replace('%', ''), 10);
+  if (!isNaN(n)) return n;
+  const labels: Record<string, number> = { dominant: 95, prominent: 75, moderate: 50, soft: 30, subtle: 15, faint: 5 };
+  return labels[pctStr.toLowerCase().trim()] ?? 40;
+}
+
+
+
 function popLabel(score: number): { label: string; color: string } {
   if (score >= 80) return { label: 'Très populaire', color: '#F59E0B' };
   if (score >= 60) return { label: 'Populaire', color: '#D97706' };
@@ -367,10 +376,11 @@ export default function CatalogDetailPage() {
             <View style={s.infoZone}>
               <SectionTitle icon="🎯" title="Accords principaux" />
               {parfum.mainAccordsPercentage
-                ? Object.entries(parfum.mainAccordsPercentage).map(([name, pctStr], i, arr) => {
-                    var n = parseInt(pctStr.replace("%", ""), 10); var pct = !isNaN(n) ? n : ({ dominant: 95, prominent: 75, moderate: 50, soft: 30, subtle: 15, faint: 5 })[pctStr.toLowerCase().trim()] ?? 40;
-                    return <AccordBar key={name} name={translateNote(name)} pct={pct} index={i} total={arr.length} />;
-                  })
+                ? Object.entries(parfum.mainAccordsPercentage)
+                    .sort(([, a], [, b]) => accordScore(b) - accordScore(a))
+                    .map(([name, pctStr], i, arr) => (
+                      <AccordBar key={name} name={translateNote(name)} pct={accordScore(pctStr)} index={i} total={arr.length} />
+                    ))
                 : parfum.mainAccords.map((name, i, arr) => (
                     <AccordBar key={name} name={translateNote(name)} pct={100 - i * 12} index={i} total={arr.length} />
                   ))
@@ -456,7 +466,7 @@ const s = StyleSheet.create({
   tagPopularity: { backgroundColor: theme.colors.violetSoft },
   tagPopularityText: { fontSize: 11, fontWeight: '600', color: theme.colors.primary },
   tagTypeText: { fontSize: 11, fontWeight: '500', color: '#9A3412' },
-  infoZone: { marginBottom: 20, gap: 8 },
+  infoZone: { marginTop: 20, marginBottom: 20, gap: 8 },
   sectionTitle: { flexDirection: 'row', alignItems: 'center', gap: 6, marginBottom: 4 },
   sectionIcon: { fontSize: 15 },
   sectionTitleText: { fontFamily: 'PlayfairDisplay_600SemiBold', fontSize: 15, color: theme.colors.text },
