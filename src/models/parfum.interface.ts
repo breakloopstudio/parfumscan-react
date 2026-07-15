@@ -33,6 +33,7 @@ export interface Parfum {
   imageVerified?: boolean;
   typeParfum?: string | null;
   searchKeywords?: string[];  // tokens normalisés pour cache-first (ex: ["creed","aventus","creed_aventus"])
+  fragellaId?: string;       // ID original Fragella (pour endpoint /:id)
   // Métadonnées étendues collectées via l'API Fragella
   purchaseUrl?: string | null;
   mainAccords?: string[];

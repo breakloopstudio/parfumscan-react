@@ -183,10 +183,12 @@ Avantage : chaque recherche n'est payée qu'une fois,
 tous utilisateurs confondus. Le score intègre la popularité
 → les parfums populaires remontent naturellement.
 
-⚠️ L''endpoint /fragrances?search= de Fragella ne renvoie PAS TOUJOURS toutes les métadonnées (saisonnalité, occasions peuvent manquer)
-  → La fiche détail utilise getFragranceById() (/fragrances/:id) comme enrichissement automatique.
-  → Les données enrichies sont mergées et cachées dans Firestore (upsert intelligent, jamais d''écrasement aveugle).
-  → Si fragellaId absent → skip enrichissement (pas de fallback avec ID normalisé → 404).
+⚠️ L'endpoint `/fragrances?search=` de Fragella retourne TOUTES les métadonnées
+  (longévité, sillage, saisonnalité, occasions, accords, etc.) — identique au détail.
+  → `fragellaId` = champ `_id` de l'API (⚠️ underscore, pas `Id`/`id`/`ID`).
+  → La fiche détail utilise `getFragranceById()` en enrichissement si `fragellaId` disponible.
+  → Les données enrichies sont mergées dans Firestore (upsert intelligent).
+  → Si `fragellaId` absent → skip enrichissement.
 ```
 
 ### Catalogue idle

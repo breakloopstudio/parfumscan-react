@@ -137,7 +137,7 @@ function mapFragrance(raw: Record<string, unknown>): FragranceResult {
   const seasonRanking = (raw['Season Ranking'] as Array<{ name: string; score: number }>) ?? undefined;
   const occasionRanking = (raw['Occasion Ranking'] as Array<{ name: string; score: number }>) ?? undefined;
   // Capturer l'ID original Fragella (pour les appels à l'endpoint détail /:id)
-  const fragellaId = (raw['Id'] ?? raw['id'] ?? raw['ID']) as string | undefined;
+  const fragellaId = (raw['_id'] ?? raw['Id'] ?? raw['id'] ?? raw['ID']) as string | undefined;
   if (!seasonRanking || !occasionRanking) {
     console.log('[Fragella] ⚠️ Metadata missing for', brand, name, '— season:', !!seasonRanking, 'occasion:', !!occasionRanking);
   }

@@ -207,6 +207,7 @@ export async function batchCacheParfums(parfums: ParfumSearchResult[]): Promise<
 
   for (const p of parfums) {
     const keywords = buildSearchKeywords(p.marque, p.nom);
+    const docRef = col().doc(p.id);
     batch.set(docRef, {
       nom: p.nom,
       marque: p.marque,
