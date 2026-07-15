@@ -1,7 +1,7 @@
-// app/catalog/[id].tsx — Fiche détail parfum
+﻿// app/catalog/[id].tsx — Fiche détail parfum
 
 import { useState, useEffect, useRef } from 'react';
-import { View, Text, ScrollView, Image, Pressable, ActivityIndicator, Linking, StyleSheet, type ViewStyle } from 'react-native';
+import { View, Text, ScrollView, Image, Pressable, ActivityIndicator, Linking, StyleSheet } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
@@ -14,6 +14,7 @@ import type { ParfumSearchResult } from '../../src/services/fragella';
 import { theme } from '../../src/theme/theme';
 import type { Parfum } from '../../src/models';
 import { translateNote } from '../../src/utils/translate-note';
+import OlfactoryPyramid from '../../src/features/catalog/OlfactoryPyramid';
 
 // ─── Mappings FR ─────────────────────────────────────────────
 
@@ -102,10 +103,6 @@ function typeParfumLabel(v: string): string {
 }
 
 // ─── Sous-composants ─────────────────────────────────────────
-
-function PyramidSection({ label, notes, color, chipBg, chipCl, lblCl, last }: { label: string; notes: string[]; color: ViewStyle; chipBg: ViewStyle; chipCl: ViewStyle; lblCl: string; last?: boolean }) {
-  return <View style={[s.pyramidSection, last && { borderLeftColor: 'transparent', paddingBottom: 0 }]}><View style={[s.pyramidDot, color]} /><Text style={[s.pyramidLabel, { color: lblCl }]}>{label}</Text><View style={s.pyramidNotes}>{(notes || []).map(n => <View key={n} style={[s.noteChip, chipBg]}><Text style={[s.noteChipText, chipCl]}>{n}</Text></View>)}</View></View>;
-}
 
 function StatBar({ label, score, maxScore, icon, barColor, barBg }: { label: string; score: number; maxScore?: number; icon: string; barColor: string; barBg: string }) {
   const m = maxScore ?? 100;
@@ -366,11 +363,13 @@ export default function CatalogDetailPage() {
               )}
             </View>
           ) : null}
-          <View style={s.pyramid}>
-            <PyramidSection label="Notes de Tête" notes={parfum.notesTete.map(translateNote)} color={s.topDot} chipBg={s.topChip} chipCl={s.topChipText} lblCl="#059669" />
-            <PyramidSection label="Notes de Cœur" notes={parfum.notesCoeur.map(translateNote)} color={s.heartDot} chipBg={s.heartChip} chipCl={s.heartChipText} lblCl="#D97706" />
-            <PyramidSection label="Notes de Fond" notes={parfum.notesFond.map(translateNote)} color={s.baseDot} chipBg={s.baseChip} chipCl={s.baseChipText} lblCl="#7C3AED" last />
-          </View>
+          <SectionTitle icon="▲" title="Pyramide olfactive" />
+          <Text style={s.pyramidDesc}>Découvrez son évolution sur la peau</Text>
+          <OlfactoryPyramid
+            topNotes={parfum.notesTete}
+            heartNotes={parfum.notesCoeur}
+            baseNotes={parfum.notesFond}
+          />
           {/* ─── Accords principaux ─── */}
           {'mainAccords' in parfum && parfum.mainAccords && parfum.mainAccords.length > 0 ? (
             <View style={s.infoZone}>
@@ -443,22 +442,7 @@ const s = StyleSheet.create({
   dealGood: { color: '#059669' },
   dealBtn: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8, backgroundColor: theme.colors.primary, paddingVertical: 14, borderRadius: 12, marginTop: 4, ...theme.shadow.button },
   dealBtnText: { color: '#FFF', fontWeight: '700', fontSize: 16 },
-  pyramid: { gap: 0 },
-  pyramidSection: { paddingLeft: 16, paddingBottom: 12, borderLeftWidth: 2, borderLeftColor: theme.colors.border, position: 'relative' },
-  pyramidDot: { width: 10, height: 10, borderRadius: 5, position: 'absolute', left: -6, top: 2 },
-  pyramidLabel: { fontSize: 13, fontWeight: '600', marginBottom: 8, marginLeft: 8 },
-  pyramidNotes: { flexDirection: 'row', flexWrap: 'wrap', gap: 6 },
-  noteChip: { paddingHorizontal: 12, paddingVertical: 4, borderRadius: 14 },
-  noteChipText: { fontSize: 12, fontWeight: '500' },
-  topDot: { backgroundColor: '#A7F3D0' },
-  heartDot: { backgroundColor: '#FDE68A' },
-  baseDot: { backgroundColor: '#DDD6FE' },
-  topChip: { backgroundColor: '#ECFDF5' },
-  topChipText: { color: '#065F46' },
-  heartChip: { backgroundColor: '#FFFBEB' },
-  heartChipText: { color: '#92400E' },
-  baseChip: { backgroundColor: '#F5F3FF' },
-  baseChipText: { color: '#5B21B6' },
+  pyramidDesc: { fontSize: 13, color: theme.colors.textMuted, marginBottom: 4 },
   // ─── Nouvelles sections ───
   tagType: { backgroundColor: '#FFF7ED', paddingHorizontal: 12, paddingVertical: 5, borderRadius: 20 },
   tagRating: { flexDirection: 'row', alignItems: 'center', backgroundColor: '#FFFBEB', paddingHorizontal: 10, paddingVertical: 5, borderRadius: 20 },

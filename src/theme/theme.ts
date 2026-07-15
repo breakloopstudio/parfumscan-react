@@ -29,6 +29,16 @@ export const theme = {
     dealSoft: '#ECFDF5',
     violetSoft: '#EDE9FE',
     violetInk: '#5B21B6',
+    // Pyramide olfactive — 3 couches sémantiques
+    pyramidTop: '#059669',
+    pyramidTopSoft: '#ECFDF5',
+    pyramidTopInk: '#065F46',
+    pyramidHeart: '#D97706',
+    pyramidHeartSoft: '#FFFBEB',
+    pyramidHeartInk: '#92400E',
+    pyramidBase: '#7C3AED',
+    pyramidBaseSoft: '#F5F3FF',
+    pyramidBaseInk: '#5B21B6',
     background: '#FAF8F5',
 
     scanBeam: 'rgba(124, 58, 237, 0.85)',
@@ -50,6 +60,16 @@ export const theme = {
       dealSoft: '#10261F',
       violetSoft: '#241A45',
       violetInk: '#C4B5FD',
+      // Pyramide olfactive dark
+      pyramidTop: '#34D399',
+      pyramidTopSoft: '#064E3B',
+      pyramidTopInk: '#A7F3D0',
+      pyramidHeart: '#FBBF24',
+      pyramidHeartSoft: '#78350F',
+      pyramidHeartInk: '#FDE68A',
+      pyramidBase: '#A78BFA',
+      pyramidBaseSoft: '#2E1065',
+      pyramidBaseInk: '#DDD6FE',
     },
   },
 
