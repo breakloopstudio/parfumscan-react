@@ -363,8 +363,6 @@ export default function CatalogDetailPage() {
               )}
             </View>
           ) : null}
-          <SectionTitle icon="▲" title="Pyramide olfactive" />
-          <Text style={s.pyramidDesc}>Découvrez son évolution sur la peau</Text>
           <OlfactoryPyramid
             topNotes={parfum.notesTete}
             heartNotes={parfum.notesCoeur}

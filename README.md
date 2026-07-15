@@ -162,7 +162,7 @@ Idle → [Tap Scanner] → CameraView → [Capture]
 La page `app/catalog/[id].tsx` affiche les métadonnées de l'API Fragella :
 - Longévité & Sillage (jauges visuelles avec labels)
 - Prix, réduction, lien affilié
-- Pyramide olfactive (strates accordeon Reanimated, coeur ouvert par defaut, traduite FR)
+- Pyramide olfactive (timeline interactive avec mini-pyramide vert/orange/violet, pastilles differenciees ○/●/◆, accordeon exclusif Reanimated, coeur ouvert par defaut, traduite FR)
 - Accords principaux (barres triees par score decroissant - traduits en francais)
 - Saisonnalite
 - Occasions
