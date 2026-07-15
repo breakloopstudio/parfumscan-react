@@ -23,7 +23,6 @@
 | 📚 **Catalogue** | Recherche cache-first (Firestore → Fragella), ghost cards, fiche détail enrichie |
 | ❤️ **Favoris** | Sauvegarde Firestore temps réel, données dénormalisées |
 | 👤 **Profil** | Google Sign-In, stats gamifiées, historique de scans |
-| 🌙 **Dark mode** | Thème automatique avec 45 design tokens |
 | 🔐 **Auth** | Email + Google, role admin, AuthGuard automatique |
 | 🧠 **Fiche détail robuste** | Bridge preview + Firestore always + Fragella by ID fallback, id normalisé |
 | 💾 **Cache intelligent** | Cache Firestore partagé entre utilisateurs, 0 appel API redondant |
@@ -78,10 +77,8 @@ cp functions/.env.example functions/.env
 ### Lancement
 
 ```bash
-# Expo Go (mode dégradé — Firebase désactivé)
 npm start
 
-# Development build (mode complet — Firebase actif)
 npm run android   # ou npm run ios
 
 # Émulateurs Firebase locaux
@@ -128,7 +125,6 @@ src/
 │   ├── scan/     (7)         # ScanScreen + 6 sous-états
 │   ├── catalog/  (1)         # CatalogPage (composant, pas une route !)
 │   └── profile/  (1)         # ProfilePage (favoris dénormalisés, bridge détail)
-├── models/       (4)         # Interfaces : Parfum, ParfumSearchResult, UserFavori (+imageUrl), UserScan (+imageUrl), ScanResult
 ├── theme/        (1)         # 45 design tokens (light + dark)
 ├── config/       (3)         # Firebase config, env, index
 └── utils/        (2)         # Error translator, translate-note (traduction notes FR)
@@ -162,7 +158,7 @@ Idle → [Tap Scanner] → CameraView → [Capture]
 La page `app/catalog/[id].tsx` affiche les métadonnées de l'API Fragella :
 - Longévité & Sillage (jauges visuelles avec labels)
 - Prix, réduction, lien affilié
-- Pyramide olfactive (timeline interactive avec mini-pyramide vert/orange/violet, pastilles differenciees ○/●/◆, accordeon exclusif Reanimated, coeur ouvert par defaut, traduite FR)
+- Pyramide olfactive (timeline interactive avec mini-pyramide 3 triangles superposes vert/ambre/violet 50x36px, pastilles differenciees ○/●/◆, accordeon exclusif Reanimated, coeur ouvert par defaut, traduite FR)
 - Accords principaux (barres triees par score decroissant - traduits en francais)
 - Saisonnalite
 - Occasions
@@ -197,8 +193,14 @@ tous utilisateurs confondus. Le score intègre la popularité
 
 ### Catalogue idle
 
-À l''ouverture (sans recherche) : `getPopularParfums(6)` → Firestore (triés par popularityScore desc).
+À l''ouverture (sans recherche) : `getPopularParfums(30)` → Firestore (triés par popularityScore desc),
+shuffle journalier déterministe (Lehmer RNG), puis affichés en grille 2 colonnes avec `ParfumCard compact` (image 130px, sans notes ni zone deal).
 Plus de ghost cards Chanel/Dior — 100% données réelles du cache.
+
+Les miniatures flacon (44×44) sont affichées dans les deux onglets via le CDN Fragella
+(gratuit, pas d'appel API). Fallback automatique sur icône scan/cœur si l'image échoue.
+Le bouton unfavorite utilise un cœur avec animation heartbeat (scale bounce 250ms).
+
 
 ### Favoris & Historique enrichis
 
