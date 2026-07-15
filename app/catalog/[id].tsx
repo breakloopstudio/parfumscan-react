@@ -1,4 +1,4 @@
-﻿// app/catalog/[id].tsx — Fiche détail parfum
+// app/catalog/[id].tsx — Fiche détail parfum
 
 import { useState, useEffect, useRef } from 'react';
 import { View, Text, ScrollView, Image, Pressable, ActivityIndicator, Linking, StyleSheet, type ViewStyle } from 'react-native';
@@ -9,7 +9,7 @@ import { useAuthContext } from '../../src/contexts/AuthContext';
 import { getParfumById, cacheParfumFromSearch } from '../../src/services/firestore';
 import { isParfumFavori, addFavori, removeFavori } from '../../src/services/user-data';
 import { consumePendingParfum } from '../../src/services/catalog-bridge';
-import { searchFragranceByQuery, getFragranceById, fragellaToParfum } from '../../src/services/fragella';
+import { searchFragrance, searchFragranceByQuery, getFragranceById, fragellaToParfum } from '../../src/services/fragella';
 import type { ParfumSearchResult } from '../../src/services/fragella';
 import { theme } from '../../src/theme/theme';
 import type { Parfum } from '../../src/models';
@@ -61,6 +61,15 @@ function sillageMeta(v: string): { label: string; pct: number } {
   if (key.includes('moderate') || key.includes('modéré')) return { label: 'Modéré', pct: 50 };
   if (key.includes('intimate') || key.includes('soft') || key.includes('léger') || key.includes('faible')) return { label: 'Intime', pct: 25 };
   return { label: v, pct: 40 };
+}
+
+
+function popLabel(score: number): { label: string; color: string } {
+  if (score >= 80) return { label: 'Très populaire', color: '#F59E0B' };
+  if (score >= 60) return { label: 'Populaire', color: '#D97706' };
+  if (score >= 40) return { label: 'Connu', color: '#B45309' };
+  if (score >= 20) return { label: 'De niche', color: '#92400E' };
+  return { label: 'Confidentiel', color: '#78350F' };
 }
 
 function scoreLabel(score: number, maxScore: number, highLabel: string, midLabel: string): { label: string; pct: number } {
@@ -137,9 +146,8 @@ export default function CatalogDetailPage() {
   const [loading, setLoading] = useState(true);
   const [isFav, setIsFav] = useState(false);
   const [favoriId, setFavoriId] = useState<string | null>(null);
+  const pendingRef = useRef<Parfum | ParfumSearchResult | null>(consumePendingParfum());
   const loadingRef = useRef(false);
-  const pendingRef = useRef<Parfum | ParfumSearchResult | null>(consumePendingParfum());  
-
   // Chargement auto-suffisant : bridge (preview) -> Firestore -> Fragella by ID -> Fragella search
   useEffect(() => {
     if (!id) return;
@@ -151,8 +159,10 @@ export default function CatalogDetailPage() {
       try {
         // Step 1: Bridge data — affichage instantané si disponible
         const pending = pendingRef.current;
+          
         if (pending && pending.id === id) {
           setParfum(pending);
+            
         }
 
         // Step 2: Toujours tenter Firestore (données plus complètes : enriched metadata)
@@ -160,6 +170,7 @@ export default function CatalogDetailPage() {
           const cached = await getParfumById(id);
           if (cached) {
             setParfum(cached); // override le preview bridge
+            
             return;
           }
         } catch (e) {
@@ -167,11 +178,13 @@ export default function CatalogDetailPage() {
         }
 
         // Step 3: Si on a déjà le bridge, on s'arrête là (pas besoin d'appeler l'API)
+          
         if (pending && pending.id === id) {
           return;
         }
 
         // Step 4: Dernier recours — recherche textuelle Fragella
+          
         try {
           const searchQuery = id.replace(/_/g, ' ').trim();
           const results = await searchFragranceByQuery(searchQuery);
@@ -180,17 +193,17 @@ export default function CatalogDetailPage() {
             setParfum(p);
             cacheParfumFromSearch(p).catch(() => {});
           } else {
-            setParfum(null);
           }
         } catch (e) {
           console.warn('[detail] Fragella search failed:', (e as Error)?.message);
-          setParfum(null);
+          if (!parfum) setParfum(null);
         }
       } catch (fatalErr) {
         console.error('[detail] FATAL load error:', fatalErr);
-        setParfum(null);
+        if (!parfum) setParfum(null);
       } finally {
         setLoading(false);
+        
       }
     };
 
@@ -214,15 +227,21 @@ export default function CatalogDetailPage() {
     const hasOccasion = parfum.occasionRanking && parfum.occasionRanking.length > 0;
     if (hasSeason && hasOccasion) return; // déjà complet
 
-    // Utiliser l'ID Fragella original si disponible
-    const fragellaId = parfum.fragellaId;
-    if (!fragellaId) return;
-    getFragranceById(fragellaId).then(detail => {
+    // Utiliser l'ID Fragella original si disponible, sinon chercher via search
+    const enrich = async () => {
+      let fragellaId = parfum.fragellaId;
+      if (!fragellaId && parfum.marque && parfum.nom) {
+        const results = await searchFragrance(parfum.marque, parfum.nom);
+        if (results[0]?.fragellaId) {
+          fragellaId = results[0].fragellaId;
+        }
+      }
+      if (!fragellaId) return;
+      const detail = await getFragranceById(fragellaId);
       if (!detail) return;
       const enriched = fragellaToParfum(detail);
       setParfum(prev => {
         if (!prev) return enriched;
-        // Merge : on garde les données existantes, on ajoute les métadonnées manquantes
         return {
           ...prev,
           seasonRanking: prev.seasonRanking ?? enriched.seasonRanking,
@@ -234,6 +253,8 @@ export default function CatalogDetailPage() {
           gender: prev.gender ?? enriched.gender,
           rating: prev.rating ?? enriched.rating,
           popularity: prev.popularity ?? enriched.popularity,
+          popularityScore: prev.popularityScore ?? enriched.popularityScore,
+          ratingScore: prev.ratingScore ?? enriched.ratingScore,
           priceValue: prev.priceValue ?? enriched.priceValue,
           country: prev.country ?? enriched.country,
           generalNotes: prev.generalNotes ?? enriched.generalNotes,
@@ -241,11 +262,12 @@ export default function CatalogDetailPage() {
           referencePrice: prev.referencePrice ?? enriched.referencePrice,
           imageUrl: prev.imageUrl ?? enriched.imageUrl,
           purchaseUrl: prev.purchaseUrl ?? enriched.purchaseUrl,
+          fragellaId: prev.fragellaId ?? enriched.fragellaId,
         } as ParfumSearchResult;
       });
-      // Cache aussi dans Firestore pour la prochaine fois
       cacheParfumFromSearch(enriched).catch(() => {});
-    }).catch(() => {});
+    };
+    enrich().catch(() => {});
   }, [parfum, id]);
 
   const toggleFav = async () => {
@@ -272,7 +294,6 @@ export default function CatalogDetailPage() {
       }
     }
   };
-
   if (loading) return <View style={s.center}><ActivityIndicator size="large" color={theme.colors.primary} /></View>;
   if (!parfum) return <View style={s.center}><Text style={{color:theme.colors.textMuted}}>Parfum introuvable.</Text></View>;
 
@@ -299,10 +320,11 @@ export default function CatalogDetailPage() {
             {/* Popularit� masqu�e */}
           </View>
           {/* ─── Longévité & Sillage ─── */}
-          {('longevity' in parfum && parfum.longevity) || ('sillage' in parfum && parfum.sillage) ? (
+          {('longevity' in parfum && parfum.longevity) || ('sillage' in parfum && parfum.sillage) || ('popularityScore' in parfum && typeof parfum.popularityScore === 'number') ? (
             <View style={s.infoZone}>
               {('longevity' in parfum && parfum.longevity) ? (() => { const m = longevityMeta(parfum.longevity!); return <View style={s.gaugeRow}><View style={[s.gaugeIcon, { backgroundColor: theme.colors.violetSoft }]}><Ionicons name="time-outline" size={14} color={theme.colors.violetInk} /></View><View style={s.gaugeBody}><Text style={s.gaugeLabel}>Longévité</Text><View style={s.gaugeTrack}><View style={[s.gaugeFill, { width: `${m.pct}%`, backgroundColor: theme.colors.primary }]} /></View></View><Text style={[s.gaugeVal, { color: theme.colors.violetInk }]}>{m.label}</Text></View>; })() : null}
               {('sillage' in parfum && parfum.sillage) ? (() => { const m = sillageMeta(parfum.sillage!); return <View style={s.gaugeRow}><View style={[s.gaugeIcon, { backgroundColor: theme.colors.rewardSoft }]}><Ionicons name="pulse-outline" size={14} color={theme.colors.reward} /></View><View style={s.gaugeBody}><Text style={s.gaugeLabel}>Sillage</Text><View style={s.gaugeTrack}><View style={[s.gaugeFill, { width: `${m.pct}%`, backgroundColor: theme.colors.reward }]} /></View></View><Text style={[s.gaugeVal, { color: theme.colors.reward }]}>{m.label}</Text></View>; })() : null}
+              {('popularityScore' in parfum && typeof parfum.popularityScore === 'number') ? (() => { const pop = popLabel(parfum.popularityScore!); return <View style={s.gaugeRow}><View style={[s.gaugeIcon, { backgroundColor: '#FFF7ED' }]}><Ionicons name="flame-outline" size={14} color={pop.color} /></View><View style={s.gaugeBody}><Text style={s.gaugeLabel}>Popularité</Text><View style={s.gaugeTrack}><View style={[s.gaugeFill, { width: `${parfum.popularityScore}%`, backgroundColor: pop.color }]} /></View></View><Text style={[s.gaugeVal, { color: pop.color }]}>{pop.label}</Text></View>; })() : null}
             </View>
           ) : null}
 

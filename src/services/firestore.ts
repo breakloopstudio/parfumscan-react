@@ -1,4 +1,4 @@
-﻿// src/services/firestore.ts — CRUD collection `parfums` + cache Fragella
+// src/services/firestore.ts — CRUD collection `parfums` + cache Fragella
 
 import firestore, { type FirebaseFirestoreTypes } from '@react-native-firebase/firestore';
 import type { Parfum } from '../models';
@@ -92,6 +92,29 @@ export async function deleteParfum(id: string): Promise<void> {
   await col().doc(id).delete();
 }
 
+/** Supprime TOUS les parfums de la collection Firestore (reset cache complet).
+ *  Utilise des batchs de 500 docs (limite Firestore). */
+export async function deleteAllCachedParfums(): Promise<number> {
+  const snap = await col().limit(500).get();
+  if (snap.empty) return 0;
+
+  let totalDeleted = 0;
+
+  let currentSnap: FirebaseFirestoreTypes.QuerySnapshot = snap;
+  while (!currentSnap.empty) {
+    const batch = firestore().batch();
+    for (const doc of currentSnap.docs) {
+      batch.delete(doc.ref);
+    }
+    await batch.commit();
+    totalDeleted += currentSnap.docs.length;
+    const lastDoc = currentSnap.docs[currentSnap.docs.length - 1];
+    currentSnap = await col().limit(500).startAfter(lastDoc).get();
+  }
+
+  return totalDeleted;
+}
+
  
 
 /** Cache un résultat Fragella dans Firestore (upsert intelligent).
@@ -108,15 +131,15 @@ export async function cacheParfumFromSearch(p: ParfumSearchResult): Promise<stri
     await docRef.set({
       nom: p.nom,
       marque: p.marque,
-      annee: p.annee,
+      annee: p.annee ?? null,
       familleOlactive: p.familleOlactive,
       notesTete: p.notesTete,
       notesCoeur: p.notesCoeur,
       notesFond: p.notesFond,
-      imageUrl: p.imageUrl,
-      bestPrice: p.bestPrice,
-      referencePrice: p.referencePrice,
-      typeParfum: p.typeParfum,
+      imageUrl: p.imageUrl ?? null,
+      bestPrice: p.bestPrice ?? null,
+      referencePrice: p.referencePrice ?? null,
+      typeParfum: p.typeParfum ?? null,
       source: 'fragella-cached' as const,
       cachedAt: now,
       createdAt: now,
@@ -175,94 +198,57 @@ export async function cacheParfumFromSearch(p: ParfumSearchResult): Promise<stri
   return p.id;
 }
 
-/** Cache plusieurs résultats Fragella en batch (max 500 par batch Firestore).
- *  Appelé après chaque recherche pour éviter de rappeler l'API. */
+/** Cache plusieurs resultats Fragella en batch. Utilise set+merge (pas de get prealable). */
 export async function batchCacheParfums(parfums: ParfumSearchResult[]): Promise<number> {
   if (parfums.length === 0) return 0;
-  let count = 0;
   const now = new Date();
   const batch = firestore().batch();
 
   for (const p of parfums) {
     const docRef = col().doc(p.id);
-    const existingSnap = await docRef.get();
     const keywords = buildSearchKeywords(p.marque, p.nom);
-
-    if (!existingSnap.exists) {
-      // Nouveau document : set complet
-      batch.set(docRef, {
-        nom: p.nom,
-        marque: p.marque,
-        annee: p.annee,
-        familleOlactive: p.familleOlactive,
-        notesTete: p.notesTete,
-        notesCoeur: p.notesCoeur,
-        notesFond: p.notesFond,
-        imageUrl: p.imageUrl,
-        bestPrice: p.bestPrice,
-        referencePrice: p.referencePrice,
-        typeParfum: p.typeParfum,
-        source: 'fragella-cached' as const,
-        cachedAt: now,
-        createdAt: now,
-        updatedAt: now,
-        searchKeywords: keywords,
-        fragellaId: p.fragellaId ?? null,
-        purchaseUrl: p.purchaseUrl ?? null,
-        mainAccords: p.mainAccords ?? null,
-        longevity: p.longevity ?? null,
-        sillage: p.sillage ?? null,
-        gender: p.gender ?? null,
-        rating: p.rating ?? null,
-        popularity: p.popularity ?? null,
-        popularityScore: p.popularityScore ?? null,
-        ratingScore: p.ratingScore ?? null,
-        priceValue: p.priceValue ?? null,
-        country: p.country ?? null,
-        imageUrlTransparent: p.imageUrlTransparent ?? null,
-        mainAccordsPercentage: p.mainAccordsPercentage ?? null,
-        generalNotes: p.generalNotes ?? null,
-        confidence: p.confidence ?? null,
-        seasonRanking: p.seasonRanking ?? null,
-        occasionRanking: p.occasionRanking ?? null,
-        imageFallbacks: p.imageFallbacks ?? null,
-      });
-    } else {
-      // Document existant : update partiel (prix, image, keywords + enrichir null→non-null)
-      const existingData = existingSnap.data() ?? {};
-      const updateData: Record<string, unknown> = {
-        cachedAt: now,
-        updatedAt: now,
-      };
-      // Champs volatils : toujours rafraîchir
-      if (p.bestPrice !== undefined) updateData.bestPrice = p.bestPrice;
-      if (p.referencePrice !== undefined) updateData.referencePrice = p.referencePrice;
-      if (p.imageUrl !== undefined && p.imageUrl) updateData.imageUrl = p.imageUrl;
-      updateData.searchKeywords = keywords;
-      // Métadonnées enrichies : ne remplir que si absentes dans le cache
-      const enrichFields: Array<keyof ParfumSearchResult> = [
-        'fragellaId', 'seasonRanking', 'occasionRanking', 'mainAccords', 'mainAccordsPercentage',
-        'longevity', 'sillage', 'gender', 'rating', 'popularity', 'popularityScore', 'ratingScore',
-        'priceValue', 'country', 'imageUrlTransparent', 'generalNotes', 'confidence', 'imageFallbacks',
-        'purchaseUrl',
-      ];
-      for (const field of enrichFields) {
-        const newVal = (p as Record<string, unknown>)[field];
-        const existingVal = existingData[field];
-        if (newVal !== undefined && newVal !== null && (existingVal === undefined || existingVal === null)) {
-          updateData[field] = newVal;
-        }
-      }
-      if (Object.keys(updateData).length > 2) {
-        batch.update(docRef, updateData);
-      }
-    }
-    count++;
+    batch.set(docRef, {
+      nom: p.nom,
+      marque: p.marque,
+      annee: p.annee ?? null,
+      familleOlactive: p.familleOlactive,
+      notesTete: p.notesTete,
+      notesCoeur: p.notesCoeur,
+      notesFond: p.notesFond,
+      imageUrl: p.imageUrl ?? null,
+      bestPrice: p.bestPrice ?? null,
+      referencePrice: p.referencePrice ?? null,
+      typeParfum: p.typeParfum ?? null,
+      source: p.source,
+      cachedAt: now,
+      updatedAt: now,
+      searchKeywords: keywords,
+      fragellaId: p.fragellaId ?? null,
+      purchaseUrl: p.purchaseUrl ?? null,
+      mainAccords: p.mainAccords ?? null,
+      longevity: p.longevity ?? null,
+      sillage: p.sillage ?? null,
+      gender: p.gender ?? null,
+      rating: p.rating ?? null,
+      popularity: p.popularity ?? null,
+      popularityScore: p.popularityScore ?? null,
+      ratingScore: p.ratingScore ?? null,
+      priceValue: p.priceValue ?? null,
+      country: p.country ?? null,
+      imageUrlTransparent: p.imageUrlTransparent ?? null,
+      mainAccordsPercentage: p.mainAccordsPercentage ?? null,
+      generalNotes: p.generalNotes ?? null,
+      confidence: p.confidence ?? null,
+      seasonRanking: p.seasonRanking ?? null,
+      occasionRanking: p.occasionRanking ?? null,
+      imageFallbacks: p.imageFallbacks ?? null,
+    }, { merge: true });
   }
 
   await batch.commit();
-  return count;
+  return parfums.length;
 }
+
 export async function searchParfumsCached(query: string): Promise<ParfumSearchResult[]> {
   const q = query.trim().toLowerCase();
   if (q.length < 2) return [];

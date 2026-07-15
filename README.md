@@ -1,4 +1,4 @@
-﻿# 🧴 ParfumScan React Native
+# 🧴 ParfumScan React Native
 
 <div align="center">
 
@@ -177,13 +177,13 @@ La page `app/catalog/[id].tsx` affiche les métadonnées de l'API Fragella :
 Saisie ≥ 3 caractères → useCatalog() → debounce 800ms
   1. searchParfumsCached(query) → Firestore (gratuit, score = tokens + popularité + exact match)
   2. Si < 5 résultats → searchFragranceByQuery() → API payante
-  3. batchCacheParfums(results) → Firestore (upsert intelligent : lecture existant → set ou update partiel)
+  3. batchCacheParfums(results) → Firestore (batch.set {merge:true}, sans read préalable)
 
 Avantage : chaque recherche n'est payée qu'une fois,
 tous utilisateurs confondus. Le score intègre la popularité
 → les parfums populaires remontent naturellement.
 
-⚠️ L''endpoint /fragrances?search= de Fragella ne renvoie PAS TOUJOURS toutes les métadonnées (saisonnalité, occasions peuvent manquer).
+⚠️ L''endpoint /fragrances?search= de Fragella ne renvoie PAS TOUJOURS toutes les métadonnées (saisonnalité, occasions peuvent manquer)
   → La fiche détail utilise getFragranceById() (/fragrances/:id) comme enrichissement automatique.
   → Les données enrichies sont mergées et cachées dans Firestore (upsert intelligent, jamais d''écrasement aveugle).
   → Si fragellaId absent → skip enrichissement (pas de fallback avec ID normalisé → 404).
