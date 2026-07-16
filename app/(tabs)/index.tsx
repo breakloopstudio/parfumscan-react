@@ -90,15 +90,21 @@ export default function TabPager() {
   }, []);
 
   const gesture = Gesture.Pan()
-    .activeOffsetX([-10, 10])
-    // ✅ Sans failOffsetY → tolère les swipes en arc de pouce (pas de cassure)
+    .activeOffsetX([-15, 15])
+    .failOffsetY([-15, 15])
     .onUpdate((e) => {
       const base = -currentPage.value * pageWidth.value;
       const dest = base + e.translationX;
-      if (dest > 0) translateX.value = dest * 0.25;
-      else if (dest < -(PAGES - 1) * pageWidth.value)
-        translateX.value = -(PAGES - 1) * pageWidth.value + (dest + (PAGES - 1) * pageWidth.value) * 0.25;
-      else translateX.value = dest;
+      const leftLimit = 0;
+      const rightLimit = -(PAGES - 1) * pageWidth.value;
+      const DAMPING = 0.3;
+      if (dest > leftLimit) {
+        translateX.value = leftLimit + (dest - leftLimit) * DAMPING;
+      } else if (dest < rightLimit) {
+        translateX.value = rightLimit + (dest - rightLimit) * DAMPING;
+      } else {
+        translateX.value = dest;
+      }
     })
     .onEnd((e) => {
       const swipedRight = e.translationX > 0;
@@ -163,7 +169,7 @@ export default function TabPager() {
             <CatalogPage />
           </Animated.View>
           <Animated.View style={[s.page, proStyle]}>
-            <ProfilePage onGoToCatalog={() => goTo(0)} />
+            <ProfilePage onGoToCatalog={() => goTo(0)} isActive={activePage === 1} />
           </Animated.View>
         </View>
       </GestureDetector>

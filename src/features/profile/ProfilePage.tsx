@@ -68,14 +68,15 @@ function getLevel(count: number): string {
 
 type Tab = 'favoris' | 'scans';
 
-interface Props { onGoToCatalog: () => void }
+interface Props { onGoToCatalog: () => void; isActive?: boolean }
 
-export default function ProfilePage({ onGoToCatalog }: Props) {
+export default function ProfilePage({ onGoToCatalog, isActive = true }: Props) {
   const { user, authReady, isAuthenticated, logout } = useAuthContext();
   const router = useRouter();
   const [tab, setTab] = useState<Tab>('favoris');
-  const { favoris, loading: favLoading, removeFavori } = useFavoris(user?.uid ?? null);
-  const { scans, loading: scanLoading, removeScan } = useScans(user?.uid ?? null);
+  const uid = isActive ? (user?.uid ?? null) : null;
+  const { favoris, loading: favLoading, removeFavori } = useFavoris(uid);
+  const { scans, loading: scanLoading, removeScan } = useScans(uid);
   const [imgFailed, setImgFailed] = useState(false);
 
   const goToDetail = async (parfumId: string) => {
