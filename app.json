@@ -54,7 +54,10 @@
           "cameraPermission": "Autoriser ParfumScan à utiliser votre appareil photo pour scanner les flacons de parfum."
         }
       ],
-      "@react-native-google-signin/google-signin"
+      "@react-native-google-signin/google-signin",
+      "expo-asset",
+      "expo-image",
+      "expo-status-bar"
     ]
   }
 }
