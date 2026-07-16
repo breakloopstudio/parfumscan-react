@@ -1,10 +1,10 @@
-// app/_layout.tsx — Root layout (GestureHandler + Auth + Fonts + Stack + Edge-to-edge)
+// app/_layout.tsx — Root layout (GestureHandler + Auth + SplashScreen + Edge-to-edge)
 
-import { useEffect, useState } from 'react';
-import { Platform, View, ActivityIndicator } from 'react-native';
+import { useEffect } from 'react';
 import { Stack, useRouter, useSegments } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
+import * as SplashScreen from 'expo-splash-screen';
 import { AuthProvider, useAuthContext } from '../src/contexts/AuthContext';
 import { ErrorBoundary } from '../src/components/ErrorBoundary';
 import { theme } from '../src/theme/theme';
@@ -16,38 +16,38 @@ try {
   GoogleSignin.configure({ webClientId: '831514606817-xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx.apps.googleusercontent.com' });
 } catch {}
 
+SplashScreen.preventAutoHideAsync().catch(() => {});
+
 function AuthGuard({ children }: { children: React.ReactNode }) {
   const { authReady, isAuthenticated } = useAuthContext();
   const segments = useSegments();
   const router = useRouter();
-  const colors = theme.colors;
+
+  useEffect(() => {
+    if (authReady) {
+      SplashScreen.hideAsync().catch(() => {});
+    }
+  }, [authReady]);
+
   useEffect(() => {
     if (!authReady) return;
-    // Expo Go : pas de Firebase → on skip l'auth
     if (!isFirebaseReady()) return;
-    // Route racine (index) : laisser app/index.tsx gérer la redirection
     if (!segments[0]) return;
     const inAuth = segments[0] === 'auth';
     if (!isAuthenticated && !inAuth) router.replace('/auth/login');
     else if (isAuthenticated && inAuth) router.replace('/(tabs)');
   }, [authReady, isAuthenticated, segments]);
-  if (!authReady) return <View style={{ flex: 1, justifyContent: 'center' as const, alignItems: 'center' as const, backgroundColor: colors.background }}><ActivityIndicator size="large" color="#7C3AED" /></View>;
+
+  if (!authReady) return null;
   return <>{children}</>;
 }
 
 export default function RootLayout() {
-  const [ready, setReady] = useState(false);
   const colors = theme.colors;
-  useEffect(() => { const t = setTimeout(() => setReady(true), 400); return () => clearTimeout(t); }, []);
-  if (!ready) return <View style={{ flex: 1, justifyContent: 'center' as const, alignItems: 'center' as const, backgroundColor: colors.background }}><ActivityIndicator size="large" color="#7C3AED" /></View>;
   return (
     <GestureHandlerRootView style={{ flex: 1, backgroundColor: colors.background }}>
       <AuthProvider>
-        <StatusBar
-          style="dark"
-          translucent={Platform.OS === 'android'}
-          backgroundColor={Platform.OS === 'android' ? 'transparent' : undefined}
-        />
+        <StatusBar style="dark" />
         <AuthGuard>
           <ErrorBoundary>
           <Stack screenOptions={{ headerShown: false }}>

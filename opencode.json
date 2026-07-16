@@ -4,5 +4,12 @@
     "AGENTS.md",
     ".clinerules/rules.md",
     ".clinerules/reference.md"
-  ]
+  ],
+  "mcp": {
+    "firebase": {
+      "type": "local",
+      "command": ["npx", "-y", "firebase-tools@latest", "mcp", "--dir", "C:\\dev\\ParfumScan_react", "--only", "auth,firestore,functions,storage,messaging"],
+      "enabled": true
+    }
+  }
 }

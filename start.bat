@@ -9,7 +9,7 @@ echo   ParfumScan - Dev Build
 echo ======================================
 echo.
 echo [>>] Starting Expo development build...
-echo      (first build: ~3-5 min | after: Fast Refresh)
+echo      (first build: ~3-5 min ^| after: Fast Refresh)
 echo.
 npx expo run:android
 pause

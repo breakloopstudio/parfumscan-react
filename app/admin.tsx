@@ -3,8 +3,9 @@
 import { useState, useEffect } from 'react';
 import {
   View, Text, ScrollView, Pressable, ActivityIndicator,
-  StyleSheet, Image, Alert,
+  StyleSheet, Alert,
 } from 'react-native';
+import { Image } from 'expo-image';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useAuthContext } from '../src/contexts/AuthContext';
 import { onParfums, updateParfum } from '../src/services/firestore';
@@ -97,7 +98,7 @@ export default function AdminPage() {
         {selectedParfum?.imageUrl && (
           <View style={s.currentImgWrap}>
             <Text style={s.fieldLabel}>Image actuelle</Text>
-            <Image source={{ uri: selectedParfum.imageUrl }} style={s.currentImg} />
+            <Image source={{ uri: selectedParfum.imageUrl }} style={s.currentImg} contentFit="cover" transition={200} />
           </View>
         )}
 
@@ -108,7 +109,7 @@ export default function AdminPage() {
 
         {selectedUri && (
           <View style={s.previewWrap}>
-            <Image source={{ uri: selectedUri }} style={s.preview} />
+            <Image source={{ uri: selectedUri }} style={s.preview} contentFit="cover" transition={200} />
             <Pressable style={s.clearPreview} onPress={() => setSelectedUri(null)}>
               <Text style={{color:theme.colors.danger,fontSize:13}}>✕ Retirer</Text>
             </Pressable>

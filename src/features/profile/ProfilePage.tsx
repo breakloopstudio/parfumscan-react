@@ -1,7 +1,8 @@
 ﻿// app/(tabs)/profile.tsx — Profil (utilisé par le TabPager index.tsx)
 
 import { useState } from 'react';
-import { View, Text, ScrollView, Pressable, Image, ActivityIndicator, Alert, StyleSheet } from 'react-native';
+import { View, Text, ScrollView, Pressable, ActivityIndicator, Alert, StyleSheet } from 'react-native';
+import { Image } from 'expo-image';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Link, useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
@@ -29,6 +30,8 @@ function ScanItemImage({ imageUrl }: { imageUrl?: string }) {
     <Image
       source={{ uri: imageUrl }}
       style={s.itemImage}
+      contentFit="cover"
+      transition={200}
       onError={() => setFailed(true)}
     />
   );
@@ -102,7 +105,7 @@ export default function ProfilePage({ onGoToCatalog }: Props) {
             <Pressable style={s.logoutIcon} onPress={async()=>{await logout();router.replace('/auth/login');}} hitSlop={8}>
               <Ionicons name="log-out-outline" size={18} color={theme.colors.textMuted}/>
             </Pressable>
-            {user?.photoURL && !imgFailed ? <Image source={{uri:user.photoURL}} style={s.avatar} onError={()=>setImgFailed(true)}/> : <View style={s.avatarFb}><Text style={s.avatarTxt}>{initial}</Text></View>}
+            {user?.photoURL && !imgFailed ? <Image source={{uri:user.photoURL}} style={s.avatar} contentFit="cover" transition={200} onError={()=>setImgFailed(true)}/> : <View style={s.avatarFb}><Text style={s.avatarTxt}>{initial}</Text></View>}
             <Text style={s.email}>{user?.email??'Utilisateur'}</Text>
             <View style={s.levelBadge}><Ionicons name="ribbon-outline" size={16} color={theme.colors.reward}/><Text style={s.levelText}> {level}</Text></View>
           </View>
