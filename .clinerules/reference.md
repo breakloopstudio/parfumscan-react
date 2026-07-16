@@ -6,29 +6,31 @@
 
 ### firebase.ts — Init Firebase
 ```typescript
-import { initializeApp, getApps } from '@react-native-firebase/app';
-import auth from '@react-native-firebase/auth';
-import firestore from '@react-native-firebase/firestore';
-import functions from '@react-native-firebase/functions';
+import { initializeApp, getApps, getApp } from '@react-native-firebase/app';
+import { getAuth, connectAuthEmulator } from '@react-native-firebase/auth';
+import { getFirestore, connectFirestoreEmulator } from '@react-native-firebase/firestore';
+import { getFunctions, connectFunctionsEmulator } from '@react-native-firebase/functions';
 export function isFirebaseReady(): boolean;
 ```
 
 ### firestore.ts — CRUD `parfums` + cache Fragella
 ```typescript
+// ⚠️ API modulaire v25+ — utiliser getFirestore(), collection(), doc(), query(), etc.
 // docToParfum() mappe explicitement chaque champ (Timestamp → Date)
-// batchCacheParfums() = batch.set({merge:true}), pas de read préalable
+// batchCacheParfums() = writeBatch.set({merge:true}), pas de read préalable
 // ⚠️ Tous les champs optionnels DOIVENT avoir ?? null — Firestore rejette undefined
+// Types modulaires : DocumentSnapshot, QuerySnapshot, DocumentReference (plus de FirebaseFirestoreTypes)
 
 function onParfums(cb): () => void;                       // real-time, orderBy updatedAt desc
 async function getParfumById(id): Parfum|undefined;        // one-shot
 function onParfumsByMarque(marque, cb): () => void;        // range query + client filter
-async function createParfum(data): Promise<any>;
+async function createParfum(data): Promise<DocumentReference>;
 async function updateParfum(id, data): Promise<void>;
 async function deleteParfum(id): Promise<void>;
 
 // Cache Fragella
-async function cacheParfumFromSearch(p): Promise<string>;          // upsert: get() try/catch, update partiel si existant
-async function batchCacheParfums(parfums): Promise<number>;        // batch set({merge:true}), createdAt défini par cacheParfumFromSearch
+async function cacheParfumFromSearch(p): Promise<string>;          // upsert: getDoc() try/catch, updateDoc() partiel si existant
+async function batchCacheParfums(parfums): Promise<number>;        // writeBatch set({merge:true}), createdAt défini par cacheParfumFromSearch
 async function searchParfumsCached(query): Promise<ParfumSearchResult[]>;
 async function getPopularParfums(limit): Promise<ParfumSearchResult[]>;
 async function getPersonalizedSuggestions(uid, limit?): Promise<ParfumSearchResult[]>;   // v5.7, read-only, client-side scoring
@@ -92,7 +94,7 @@ function buildSearchKeywords(marque, nom): string[];
 
 ### openai-vision.ts — GPT-4o Vision (via Cloud Function)
 ```typescript
-// firebase.app().functions('europe-west1') — région obligatoire
+// getFunctions(getApp(), 'europe-west1') — région obligatoire (API modulaire v25)
 // v5.0 : retry auto detail:'auto' → 'high' si contenu vide, plus de response_format:json_object
 // v5.7 : burst adaptatif — 3 photos, 1ère → si low → cross-ref 2+3 (analyzeMultipleImages)
 async function analyzeImage(base64Image: string): Promise<ScanResult>;

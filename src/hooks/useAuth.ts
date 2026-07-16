@@ -3,8 +3,9 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import { Platform } from 'react-native';
-import auth, { type FirebaseAuthTypes } from '@react-native-firebase/auth';
-import firestore from '@react-native-firebase/firestore';
+import { getAuth, onAuthStateChanged, createUserWithEmailAndPassword, signInWithEmailAndPassword, signOut, signInWithCredential, GoogleAuthProvider } from '@react-native-firebase/auth';
+import type { User } from '@react-native-firebase/auth';
+import { getFirestore, doc, getDoc } from '@react-native-firebase/firestore';
 import { GoogleSignin } from '@react-native-google-signin/google-signin';
 import { isFirebaseReady } from '../services/firebase';
 import { translateFirebaseError } from '../utils/error-translator';
@@ -12,7 +13,7 @@ import { translateFirebaseError } from '../utils/error-translator';
 const AUTH_TIMEOUT_MS = 3000;
 
 export function useAuth() {
-  const [user, setUser] = useState<FirebaseAuthTypes.User | null>(null);
+  const [user, setUser] = useState<User | null>(null);
   const [authReady, setAuthReady] = useState(false);
   const [isAdmin, setIsAdmin] = useState(false);
 
@@ -26,12 +27,13 @@ export function useAuth() {
     const markReady = () => { if (!resolved) { resolved = true; setAuthReady(true); } };
     const timeout = setTimeout(markReady, AUTH_TIMEOUT_MS);
 
-    const unsubscribe = auth().onAuthStateChanged(async (firebaseUser: FirebaseAuthTypes.User | null) => {
+    const a = getAuth();
+    const unsubscribe = onAuthStateChanged(a, async (firebaseUser) => {
       setUser(firebaseUser);
       if (firebaseUser) {
         try {
-          const adminDoc = await firestore().collection('admins').doc(firebaseUser.uid).get();
-          setIsAdmin(adminDoc.exists);
+          const adminSnap = await getDoc(doc(getFirestore(), 'admins', firebaseUser.uid));
+          setIsAdmin(adminSnap.exists);
         } catch { setIsAdmin(false); }
       } else {
         setIsAdmin(false);
@@ -43,12 +45,12 @@ export function useAuth() {
   }, []);
 
   const register = useCallback(async (_email: string, _password: string) => {
-    try { return await auth().createUserWithEmailAndPassword(_email, _password); }
+    try { return await createUserWithEmailAndPassword(getAuth(), _email, _password); }
     catch (e: unknown) { throw new Error(translateFirebaseError(e)); }
   }, []);
 
   const login = useCallback(async (_email: string, _password: string) => {
-    try { return await auth().signInWithEmailAndPassword(_email, _password); }
+    try { return await signInWithEmailAndPassword(getAuth(), _email, _password); }
     catch (e: unknown) { throw new Error(translateFirebaseError(e)); }
   }, []);
 
@@ -60,13 +62,13 @@ export function useAuth() {
       const signInResult = await GoogleSignin.signIn();
       const idToken = signInResult.data?.idToken;
       if (!idToken) throw new Error('Google Sign-In annulé.');
-      const googleCredential = auth.GoogleAuthProvider.credential(idToken);
-      return await auth().signInWithCredential(googleCredential);
+      const googleCredential = GoogleAuthProvider.credential(idToken);
+      return await signInWithCredential(getAuth(), googleCredential);
     } catch (e: unknown) { throw new Error(translateFirebaseError(e)); }
   }, []);
 
   const logout = useCallback(async () => {
-    await auth().signOut().catch(() => {});
+    await signOut(getAuth()).catch(() => {});
     try { await GoogleSignin.signOut(); } catch {}
   }, []);
 

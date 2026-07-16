@@ -1,6 +1,6 @@
 // src/services/storage.ts — Upload d'images vers Firebase Storage
 
-import storage from '@react-native-firebase/storage';
+import { getStorage, ref } from '@react-native-firebase/storage';
 
 export async function uploadParfumImage(
   parfumId: string,
@@ -9,9 +9,12 @@ export async function uploadParfumImage(
 ): Promise<string> {
   const name = filename || `image_${Date.now()}.jpg`;
   const path = `parfums/${parfumId}_${Date.now()}_${name}`;
-  const ref = storage().ref(path);
+  const storageRef = ref(getStorage(), path) as unknown as {
+    putFile: (uri: string) => Promise<void>;
+    getDownloadURL: () => Promise<string>;
+  };
 
-  await ref.putFile(localUri);
-  const downloadUrl: string = await ref.getDownloadURL();
+  await storageRef.putFile(localUri);
+  const downloadUrl: string = await storageRef.getDownloadURL();
   return downloadUrl;
 }

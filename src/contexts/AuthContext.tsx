@@ -1,18 +1,18 @@
 // src/contexts/AuthContext.tsx
-// Provider d'authentification React — remplace la DI Angular AuthService
+// Provider d'authentification React
 
 import React, { createContext, useContext, type ReactNode } from 'react';
-import type { FirebaseAuthTypes } from '@react-native-firebase/auth';
+import type { User, UserCredential } from '@react-native-firebase/auth';
 import { useAuth } from '../hooks/useAuth';
 
 interface AuthContextValue {
-  user: FirebaseAuthTypes.User | null;
+  user: User | null;
   authReady: boolean;
   isAdmin: boolean;
   isAuthenticated: boolean;
-  register: (email: string, password: string) => Promise<FirebaseAuthTypes.UserCredential>;
-  login: (email: string, password: string) => Promise<FirebaseAuthTypes.UserCredential>;
-  loginWithGoogle: () => Promise<FirebaseAuthTypes.UserCredential>;
+  register: (email: string, password: string) => Promise<UserCredential>;
+  login: (email: string, password: string) => Promise<UserCredential>;
+  loginWithGoogle: () => Promise<UserCredential>;
   logout: () => Promise<void>;
 }
 
@@ -20,7 +20,7 @@ const AuthContext = createContext<AuthContextValue | null>(null);
 
 export function AuthProvider({ children }: { children: ReactNode }) {
   const auth = useAuth();
-  return <AuthContext.Provider value={auth}>{children}</AuthContext.Provider>;
+  return <AuthContext.Provider value={auth as AuthContextValue}>{children}</AuthContext.Provider>;
 }
 
 export function useAuthContext(): AuthContextValue {

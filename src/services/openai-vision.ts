@@ -1,11 +1,11 @@
 // src/services/openai-vision.ts — Cloud Function analyzePerfumeImage
 
-import firebase from '@react-native-firebase/app';
-import functions from '@react-native-firebase/functions';
+import { getApp } from '@react-native-firebase/app';
+import { getFunctions, httpsCallable } from '@react-native-firebase/functions';
 import type { ScanResult } from '../models';
 
 function fn() {
-  return firebase.app().functions('europe-west1');
+  return getFunctions(getApp(), 'europe-west1');
 }
 
 export async function analyzeImage(base64Image: string): Promise<ScanResult> {
@@ -19,7 +19,7 @@ export async function analyzeMultipleImages(imagesBase64: string[]): Promise<Sca
 async function callAnalyzeImage(payload: { imageBase64?: string; imagesBase64?: string[] }): Promise<ScanResult> {
   const funcs = fn();
   if (!funcs) throw new Error('Firebase Functions non disponible dans Expo Go.');
-  const callable = funcs.httpsCallable<{ imageBase64?: string; imagesBase64?: string[] }, ScanResult>('analyzePerfumeImage');
+  const callable = httpsCallable<{ imageBase64?: string; imagesBase64?: string[] }, ScanResult>(funcs, 'analyzePerfumeImage');
   try {
     const result = await callable(payload);
     return result.data;

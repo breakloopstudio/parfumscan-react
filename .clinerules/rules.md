@@ -124,7 +124,7 @@ Page `app/catalog/[id].tsx` — auto-suffisante :
 - **Auth optionnelle** : l'app fonctionne sans compte (scan, catalogue, fiche détail). Login proposé uniquement quand nécessaire (ajout favoris/wishlist/collection).
 - AuthGuard dans `_layout.tsx` : onboarding et écrans publics exemptés, redirection login uniquement si action qui nécessite auth
 - Timeout 3s sur authReady
-- isAdmin vérifié via `firestore().collection('admins').doc(uid).get()`
+- isAdmin vérifié via `getDoc(doc(getFirestore(), 'admins', uid))`
 - Google Sign-In : `GoogleSignin.configure()` + `signIn()` + `signInWithCredential()`
 
 ## 9. Design System
@@ -163,26 +163,29 @@ Page `app/catalog/[id].tsx` — auto-suffisante :
 
 ## 11. Patterns
 
-### Service (import ES6 standard)
+### Service (import ES6 standard, API modulaire v25+)
 ```typescript
-import firestore from '@react-native-firebase/firestore';
+import { getFirestore, collection, doc, query, where, getDocs, writeBatch } from '@react-native-firebase/firestore';
 // Pas de require() lazy-loading — on utilise des development builds
+// ⚠️ API modulaire uniquement : getFirestore() au lieu de firestore(), collection() au lieu de .collection(), etc.
+// Types : DocumentSnapshot, QuerySnapshot, DocumentReference (plus de FirebaseFirestoreTypes)
 ```
 
-### Service avec Cloud Functions (⚠️ spécifier la région)
+### Service avec Cloud Functions (⚠️ spécifier la région, API modulaire v25+)
 ```typescript
-import firebase from '@react-native-firebase/app';
+import { getApp } from '@react-native-firebase/app';
+import { getFunctions, httpsCallable } from '@react-native-firebase/functions';
 
-// Toujours spécifier la région ! functions() seul = us-central1 par défaut
+// Toujours spécifier la région ! getFunctions() seul = us-central1 par défaut
 // Les Cloud Functions sont déployées en europe-west1
 function fn() {
-  return firebase.app().functions('europe-west1');
+  return getFunctions(getApp(), 'europe-west1');
 }
 
 export async function monService(param: string) {
   const funcs = fn();
   // NE PAS utiliser le shorthand { nomProp } si la variable a un nom différent
-  const result = await funcs.httpsCallable('nomFonction')({ nomProp: param });
+  const result = await httpsCallable(funcs, 'nomFonction')({ nomProp: param });
   return result.data;
 }
 ```

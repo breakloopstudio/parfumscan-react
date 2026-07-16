@@ -1,33 +1,35 @@
 // src/services/fcm.ts — Notifications push Firebase Cloud Messaging
 
 import { Platform } from 'react-native';
-import messaging, { type FirebaseMessagingTypes } from '@react-native-firebase/messaging';
+import { getMessaging, requestPermission, registerDeviceForRemoteMessages, getToken, deleteToken, onTokenRefresh, onMessage, onNotificationOpenedApp, AuthorizationStatus } from '@react-native-firebase/messaging';
+import type { FirebaseMessagingTypes } from '@react-native-firebase/messaging';
 
 export async function requestFcmPermission(): Promise<boolean> {
-  const status = await messaging().requestPermission();
-  const granted = status === messaging.AuthorizationStatus.AUTHORIZED || status === messaging.AuthorizationStatus.PROVISIONAL;
+  const msg = getMessaging();
+  const status = await requestPermission(msg);
+  const granted = status === AuthorizationStatus.AUTHORIZED || status === AuthorizationStatus.PROVISIONAL;
   if (granted && Platform.OS === 'ios') {
-    await messaging().registerDeviceForRemoteMessages();
+    registerDeviceForRemoteMessages(msg);
   }
   return granted;
 }
 
 export async function getFcmToken(): Promise<string | null> {
-  try { return await messaging().getToken(); } catch { return null; }
+  try { return await getToken(getMessaging()); } catch { return null; }
 }
 
 export function onFcmTokenRefresh(cb: (token: string) => void): () => void {
-  return messaging().onTokenRefresh(cb);
+  return onTokenRefresh(getMessaging(), cb);
 }
 
 export function onFcmMessage(cb: (payload: FirebaseMessagingTypes.RemoteMessage) => void): () => void {
-  return messaging().onMessage(async (msg: FirebaseMessagingTypes.RemoteMessage) => { cb(msg); });
+  return onMessage(getMessaging(), async (msg: FirebaseMessagingTypes.RemoteMessage) => { cb(msg); });
 }
 
 export function onFcmNotificationOpened(cb: (payload: FirebaseMessagingTypes.RemoteMessage) => void): () => void {
-  return messaging().onNotificationOpenedApp((msg: FirebaseMessagingTypes.RemoteMessage) => { cb(msg); });
+  return onNotificationOpenedApp(getMessaging(), (msg: FirebaseMessagingTypes.RemoteMessage) => { cb(msg); });
 }
 
 export async function deleteFcmToken(): Promise<void> {
-  try { await messaging().deleteToken(); } catch {}
+  try { await deleteToken(getMessaging()); } catch {}
 }
