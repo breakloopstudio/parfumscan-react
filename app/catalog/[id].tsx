@@ -6,7 +6,7 @@ import { Image } from 'expo-image';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { Gesture, GestureDetector } from 'react-native-gesture-handler';
-import Animated, { useSharedValue, useAnimatedStyle, withSpring, withTiming, runOnJS } from 'react-native-reanimated';
+import Animated, { useSharedValue, useAnimatedStyle, withSpring, runOnJS } from 'react-native-reanimated';
 import Ionicons from "@react-native-vector-icons/ionicons/static";
 import { useAuthContext } from '../../src/contexts/AuthContext';
 import { getParfumById, cacheParfumFromSearch } from '../../src/services/firestore';
@@ -169,9 +169,8 @@ export default function CatalogDetailPage() {
     .onEnd((e) => {
       const threshold = Math.max((windowWidth || 400) * SWIPE_THRESHOLD_RATIO, MIN_SWIPE_THRESHOLD);
       if (e.translationX > threshold || e.velocityX > 500) {
-        translateX.value = withTiming(windowWidth || 400, { duration: 200 }, () => {
-          runOnJS(router.back)();
-        });
+        translateX.value = withSpring(0, SWIPE_SPRING);
+        runOnJS(router.back)();
       } else {
         translateX.value = withSpring(0, SWIPE_SPRING);
       }
