@@ -307,7 +307,7 @@ L'endpoint search (`/fragrances?search=`) retourne TOUTES les métadonnées (Lon
 
 3. **`Popularity` et `rating` sont des strings** : `"Very high"`, `"4.19"` — pas des nombres. `popScore()` et `rateScore()` convertissent en nombres 0-100.
 
-4. **Pagination change le format** : avec `?page=1` → `{ data: [...], pagination: {...} }` au lieu d'un array. Ne pas utiliser `page`.
+4. **Format de réponse variable** : la plupart des endpoints retournent un array `[...]`, mais certains (`/fragrances/similar`, ou avec `?page=X`) retournent `{ data: [...], pagination: {...} }`. Toujours défendre avec `Array.isArray(raw) ? raw : raw?.data ?? []`. Ne pas utiliser `page`.
 
 5. **`Name` inclut parfois la marque** : ex `"Chanel Bleu De Chanel"` → retrait du préfixe dans `mapFragrance()` via `startsWith(brand + ' ')`.
 
