@@ -1,7 +1,7 @@
 ﻿// app/catalog/[id].tsx — Fiche détail parfum
 
 import { useState, useEffect, useRef } from 'react';
-import { View, Text, ScrollView, Pressable, ActivityIndicator, Linking, StyleSheet, useWindowDimensions } from 'react-native';
+import { View, Text, ScrollView, Pressable, ActivityIndicator, Linking, StyleSheet, useWindowDimensions, Platform } from 'react-native';
 import { Image } from 'expo-image';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useLocalSearchParams, useRouter } from 'expo-router';
@@ -337,16 +337,16 @@ export default function CatalogDetailPage() {
   const occasionData = parfum && parfum.occasionRanking ? [...parfum.occasionRanking].sort(function(a,b){return b.score-a.score}) : null;
   const occasionMax = occasionData && occasionData.length > 0 ? Math.max.apply(null, occasionData.map(function(o){return o.score})) : 0;
   const heroUrl = parfum?.imageUrl ?? parfum?.imageUrlTransparent ?? (parfum?.imageFallbacks?.[0]) ?? null;
-  return (
-    <GestureDetector gesture={backGesture}>
-      <Animated.View style={[{ flex: 1, backgroundColor: theme.colors.background }, swipeStyle]}>
-        {loading ? (
-        <View style={s.center}><ActivityIndicator size="large" color={theme.colors.primary} /></View>
-      ) : !parfum ? (
-        <View style={s.center}><Text style={{color:theme.colors.textMuted}}>Parfum introuvable.</Text></View>
-      ) : (
-        <SafeAreaView style={s.container}>
-      <ScrollView>
+
+  const content = (
+    <>
+      {loading ? (
+      <View style={s.center}><ActivityIndicator size="large" color={theme.colors.primary} /></View>
+    ) : !parfum ? (
+      <View style={s.center}><Text style={{color:theme.colors.textMuted}}>Parfum introuvable.</Text></View>
+    ) : (
+      <SafeAreaView style={s.container}>
+    <ScrollView>
         {heroUrl && !imgFailed && <Image source={{ uri: heroUrl }} style={s.heroImg} contentFit="cover" transition={300} onError={() => setImgFailed(true)} />}
         <View style={s.card}>
           <View style={s.titleRow}>
@@ -443,9 +443,24 @@ export default function CatalogDetailPage() {
         </View>
       </ScrollView>
           </SafeAreaView>
-        )}
-      </Animated.View>
-    </GestureDetector>
+      )}
+    </>
+  );
+
+  if (Platform.OS === 'android') {
+    return (
+      <GestureDetector gesture={backGesture}>
+        <Animated.View style={[{ flex: 1, backgroundColor: theme.colors.background }, swipeStyle]}>
+          {content}
+        </Animated.View>
+      </GestureDetector>
+    );
+  }
+
+  return (
+    <View style={{ flex: 1, backgroundColor: theme.colors.background }}>
+      {content}
+    </View>
   );
 }
 
