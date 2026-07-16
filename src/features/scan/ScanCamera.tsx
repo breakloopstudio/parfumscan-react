@@ -3,7 +3,7 @@
 import { useRef } from 'react';
 import { View, Pressable, Text, StyleSheet } from 'react-native';
 import { CameraView } from 'expo-camera';
-import { Ionicons } from '@expo/vector-icons';
+import Ionicons from "@react-native-vector-icons/ionicons/static";
 import { theme } from '../../theme/theme';
 
 interface Props { onCapture: (base64: string) => void; onCancel: () => void; }

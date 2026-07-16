@@ -2,7 +2,7 @@
 
 import { View, Text, FlatList, Pressable, StyleSheet } from 'react-native';
 import { useRouter } from 'expo-router';
-import { Ionicons } from '@expo/vector-icons';
+import Ionicons from "@react-native-vector-icons/ionicons/static";
 import ParfumCard from '../../components/ParfumCard';
 import { setPendingParfum } from '../../services/catalog-bridge';
 import { theme } from '../../theme/theme';

@@ -6,7 +6,7 @@ import {
   KeyboardAvoidingView, Platform, ScrollView, StyleSheet,
 } from 'react-native';
 import { Link, useRouter } from 'expo-router';
-import { Ionicons } from '@expo/vector-icons';
+import Ionicons from "@react-native-vector-icons/ionicons/static";
 import { useAuthContext } from '../../src/contexts/AuthContext';
 import { theme } from '../../src/theme/theme';
 

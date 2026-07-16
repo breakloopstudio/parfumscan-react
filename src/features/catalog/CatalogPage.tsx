@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react';
 import { View, Text, TextInput, FlatList, ActivityIndicator, StyleSheet } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Link, useLocalSearchParams } from 'expo-router';
-import { Ionicons } from '@expo/vector-icons';
+import Ionicons from "@react-native-vector-icons/ionicons/static";
 import { useAuthContext } from '../../contexts/AuthContext';
 import { useCatalog } from '../../hooks/useCatalog';
 import ParfumCard from '../../components/ParfumCard';

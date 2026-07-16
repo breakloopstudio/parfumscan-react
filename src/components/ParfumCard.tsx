@@ -4,7 +4,7 @@ import { View, Text, Pressable, Linking, StyleSheet } from 'react-native';
 import { Image } from 'expo-image';
 import { useState } from 'react';
 import { useRouter } from 'expo-router';
-import { Ionicons } from '@expo/vector-icons';
+import Ionicons from "@react-native-vector-icons/ionicons/static";
 import { theme } from '../theme/theme';
 import type { Parfum } from '../models';
 import type { ParfumSearchResult } from '../services/fragella';

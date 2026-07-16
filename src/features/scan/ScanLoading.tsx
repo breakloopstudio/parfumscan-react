@@ -1,7 +1,7 @@
 // src/features/scan/ScanLoading.tsx — État scanning : étapes animées
 
 import { View, Text, StyleSheet } from 'react-native';
-import { Ionicons } from '@expo/vector-icons';
+import Ionicons from "@react-native-vector-icons/ionicons/static";
 import { SCAN_STEPS } from '../../hooks/useScanReducer';
 import { theme } from '../../theme/theme';
 
