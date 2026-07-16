@@ -18,7 +18,7 @@
         "NSPhotoLibraryUsageDescription": "Autoriser ParfumScan à accéder à votre photothèque pour télécharger des photos de parfum.",
         "CFBundleURLTypes": [
           {
-            "CFBundleURLSchemes": ["com.googleusercontent.apps.831514606817-xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"]
+            "CFBundleURLSchemes": ["com.googleusercontent.apps.831514606817-tjenh1vpj086jsho19pvmpelihpsr6h3"]
           }
         ],
         "UIBackgroundModes": ["remote-notification"],
