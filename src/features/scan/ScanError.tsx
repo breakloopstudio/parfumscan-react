@@ -25,5 +25,5 @@ const s = StyleSheet.create({
   title: { fontFamily: 'PlayfairDisplay_600SemiBold', fontSize: 20, color: theme.colors.text, marginTop: 16, marginBottom: 8 },
   desc: { fontSize: 14, color: theme.colors.textMuted, textAlign: 'center', lineHeight: 20, marginBottom: 24 },
   btn: { flexDirection: 'row', backgroundColor: theme.colors.primary, borderRadius: theme.radius.base, height: 48, paddingHorizontal: 24, justifyContent: 'center', alignItems: 'center', ...theme.shadow.button },
-  btnText: { color: '#FFF', fontWeight: '600', fontSize: 16 },
+  btnText: { color: '#FFF', fontFamily: 'Inter_600SemiBold', fontSize: 16 },
 });

@@ -43,5 +43,5 @@ const s = StyleSheet.create({
   title: { fontFamily: 'PlayfairDisplay_700Bold', fontSize: 24, color: theme.colors.text, marginTop: 16 },
   desc: { fontSize: 15, color: theme.colors.textMuted, textAlign: 'center', marginTop: 8, lineHeight: 22 },
   btn: { marginTop: 24, backgroundColor: theme.colors.primary, paddingHorizontal: 24, paddingVertical: 12, borderRadius: theme.radius.base, ...theme.shadow.button },
-  btnText: { color: '#FFF', fontWeight: '600', fontSize: 16 },
+  btnText: { color: '#FFF', fontFamily: 'Inter_600SemiBold', fontSize: 16 },
 });

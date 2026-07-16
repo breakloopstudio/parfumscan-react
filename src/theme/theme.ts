@@ -1,58 +1,85 @@
 // src/theme/theme.ts
-// Design tokens ParfumScan — portage des variables CSS --ps-* vers un objet JS
+// Design tokens ParfumScan — Refonte « Luxe malin »
+// Phase A : nouveaux tokens + rétrocompatibilité avec l'existant
 
 export const theme = {
   colors: {
-    // Ionic palette
-    primary: '#7C3AED',
-    primaryShade: '#6D28D9',
-    primaryTint: '#8B5CF6',
-    secondary: '#D4A574',
-    secondaryShade: '#C4955D',
-    secondaryTint: '#E0B989',
-    tertiary: '#F59E0B',
-    success: '#10B981',
-    warning: '#F59E0B',
-    danger: '#EF4444',
-    medium: '#9CA3AF',
-    light: '#F3F4F6',
-
-    // Tokens sémantiques ParfumScan
+    // ── Fondations ──
+    background: '#F8F6F2',
     surface: '#FFFFFF',
-    surface2: '#F3F4F6',
-    border: '#E5E7EB',
-    text: '#1F1A2E',
-    textMuted: '#6B7280',
-    reward: '#D4A574',
-    rewardSoft: '#FDF6EE',
-    deal: '#10B981',
-    dealSoft: '#ECFDF5',
-    violetSoft: '#EDE9FE',
-    violetInk: '#5B21B6',
-    // Pyramide olfactive — 3 couches sémantiques
-    pyramidTop: '#059669',
-    pyramidTopSoft: '#ECFDF5',
-    pyramidTopInk: '#065F46',
-    pyramidHeart: '#D97706',
-    pyramidHeartSoft: '#FFFBEB',
-    pyramidHeartInk: '#92400E',
-    pyramidBase: '#7C3AED',
-    pyramidBaseSoft: '#F5F3FF',
-    pyramidBaseInk: '#5B21B6',
-    background: '#FAF8F5',
+    surface2: '#F3F1ED',
+    border: '#E8E4DE',
 
-    scanBeam: 'rgba(124, 58, 237, 0.85)',
-    glow: 'rgba(124, 58, 237, 0.35)',
+    // ── Texte ──
+    text: '#1A1520',
+    textMuted: '#8B8580',
+    textInverse: '#FFFFFF',
+
+    // ── Accents ──
+    primary: '#6C3ED9',
+    primarySoft: '#F0EBFA',
+    primaryInk: '#4C2A9E',
+    secondary: '#C8945A',
+    secondarySoft: '#FBF5EE',
+
+    // ── Sémantique prix ──
+    deal: '#0D9488',
+    dealSoft: '#E6F7F5',
+    overpriced: '#E04444',
+    overpricedSoft: '#FEF2F2',
+    fair: '#D97706',
+    fairSoft: '#FFF8ED',
+
+    // ── Favoris ──
+    favorite: '#E04444',
+    favoriteSoft: '#FEF2F2',
+
+    // ── Pyramide olfactive ──
+    pyramidTop: '#0D9488',
+    pyramidTopSoft: '#E6F7F5',
+    pyramidHeart: '#C8945A',
+    pyramidHeartSoft: '#FBF5EE',
+    pyramidBase: '#6C3ED9',
+    pyramidBaseSoft: '#F0EBFA',
+
+    // ── Rétrocompatibilité (sera nettoyé progressive phase B/C/D) ──
+    // Anciens noms → nouvelles valeurs
+    danger: '#E04444',
+    success: '#0D9488',
+    warning: '#D97706',
+    medium: '#8B8580',
+    light: '#F3F1ED',
+    primaryShade: '#4C2A9E',
+    primaryTint: '#8B5CF6',
+    secondaryShade: '#B3814A',
+    secondaryTint: '#D4A574',
+    tertiary: '#D97706',
+    violetSoft: '#F0EBFA',
+    violetInk: '#4C2A9E',
+    reward: '#C8945A',
+    rewardSoft: '#FBF5EE',
+    pyramidTopInk: '#0A6E66',
+    pyramidHeartInk: '#B3814A',
+    pyramidBaseInk: '#4C2A9E',
+    scanBeam: 'rgba(108, 62, 217, 0.85)',
+    glow: 'rgba(108, 62, 217, 0.35)',
   },
 
   fonts: {
-    heading: { fontFamily: 'PlayfairDisplay_700Bold' },
-    headingSemiBold: { fontFamily: 'PlayfairDisplay_600SemiBold' },
-    headingMedium: { fontFamily: 'PlayfairDisplay_500Medium' },
+    // ── Nouveaux noms ──
+    display: { fontFamily: 'PlayfairDisplay_700Bold' },
+    displaySemiBold: { fontFamily: 'PlayfairDisplay_600SemiBold' },
+    displayItalic: { fontFamily: 'PlayfairDisplay_700Bold_Italic' },
     body: { fontFamily: 'Inter_400Regular' },
     bodyMedium: { fontFamily: 'Inter_500Medium' },
     bodySemiBold: { fontFamily: 'Inter_600SemiBold' },
     bodyBold: { fontFamily: 'Inter_700Bold' },
+
+    // ── Rétrocompatibilité ──
+    heading: { fontFamily: 'PlayfairDisplay_700Bold' },
+    headingSemiBold: { fontFamily: 'PlayfairDisplay_600SemiBold' },
+    headingMedium: { fontFamily: 'PlayfairDisplay_500Medium' },
+
     size: {
       xs: 10,
       sm: 12,
@@ -60,8 +87,9 @@ export const theme = {
       md: 16,
       lg: 18,
       xl: 22,
-      '2xl': 26,
-      '3xl': 32,
+      '2xl': 28,
+      '3xl': 34,
+      '4xl': 42,
     },
   },
 
@@ -70,26 +98,46 @@ export const theme = {
     base: 12,
     card: 16,
     lg: 20,
+    xl: 24,
     full: 9999,
+  },
+
+  spacing: {
+    xs: 4,
+    sm: 8,
+    base: 12,
+    md: 16,
+    lg: 20,
+    xl: 24,
+    '2xl': 32,
+    '3xl': 48,
   },
 
   shadow: {
     card: {
-      shadowColor: '#000',
+      shadowColor: '#1A1520',
       shadowOffset: { width: 0, height: 2 },
       shadowOpacity: 0.06,
       shadowRadius: 12,
       elevation: 3,
     },
-    button: {
-      shadowColor: '#7C3AED',
+    elevated: {
+      shadowColor: '#1A1520',
       shadowOffset: { width: 0, height: 4 },
-      shadowOpacity: 0.35,
-      shadowRadius: 14,
+      shadowOpacity: 0.08,
+      shadowRadius: 16,
       elevation: 6,
     },
+    button: {
+      shadowColor: '#6C3ED9',
+      shadowOffset: { width: 0, height: 4 },
+      shadowOpacity: 0.3,
+      shadowRadius: 12,
+      elevation: 6,
+    },
+    // ── Rétrocompatibilité ──
     scanCircle: {
-      shadowColor: '#7C3AED',
+      shadowColor: '#6C3ED9',
       shadowOffset: { width: 0, height: 4 },
       shadowOpacity: 0.4,
       shadowRadius: 16,

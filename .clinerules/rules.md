@@ -16,7 +16,7 @@ react-hook-form 7 · zod 4
 
 ```
 app/
-├── _layout.tsx              ← GestureHandler + AuthProvider + AuthGuard + ErrorBoundary
+├── _layout.tsx              ← GestureHandler + AuthProvider + AuthGuard (auth optionnelle) + ErrorBoundary
 ├── index.tsx                ← Splash → redirection
 ├── (tabs)/
 │   ├── _layout.tsx          ← Stack layout (index + scan)
@@ -24,19 +24,21 @@ app/
 │   └── scan.tsx             ← Scanner overlay (push depuis FAB)
 ├── auth/login.tsx           ← Styles inlinés
 ├── auth/register.tsx        ← Styles inlinés
-├── catalog/[id].tsx         ← Détail enrichi
+├── catalog/[id].tsx         ← Fiche détail « Luxe malin » (hub d'actions, PriceDisplay, 3 boutons)
+├── settings.tsx             ← Paramètres (alertes prix, devise, notifs, compte)
+├── onboarding.tsx           ← 3 slides avec PanGesture + AsyncStorage
 └── admin.tsx                ← Seed + upload
 
 src/
 ├── services/   (9)  ← firebase, firestore, user-data, fragella, openai-vision, haptics, fcm, catalog-bridge, storage
-├── hooks/      (6)  ← useAuth, useScanReducer, useFavoris, useScans, useCatalog, useNetwork
+├── hooks/      (8)  ← useAuth, useScanReducer, useFavoris, useScans, useCatalog, useNetwork, useCollection, useWishlist
 ├── contexts/   (1)  ← AuthContext
-├── components/ (3)  ← ParfumCard, AppLoader, ErrorBoundary
+├── components/ (8)  ← ParfumCard, Button, PriceDisplay, SectionHeader, EmptyState, OfflineBanner, AppLoader, ErrorBoundary
 ├── features/scan/ (8)     ← ScanScreen + 7 sous-états (Camera, Idle, Loading, Clarify, Results, NoResult, Error)
 ├── features/catalog/ (2)  ← CatalogPage, OlfactoryPyramid
-├── features/profile/ (1)  ← ProfilePage
-├── models/     (5)  ← Parfum, ParfumSearchResult, UserFavori, UserScan, ScanResult
-├── theme/      (1)  ← theme.ts (63 tokens)
+├── features/profile/ (1)  ← ProfilePage (3 listes : Collection, Wishlist, Favoris + historique + profil olfactif)
+├── models/     (7)  ← Parfum, ParfumSearchResult, UserFavori, UserScan, ScanResult, UserCollectionItem, UserWishlistItem
+├── theme/      (1)  ← theme.ts (63 tokens → 26 couleurs « Luxe malin » + rétrocompatibilité)
 ├── config/     (3)  ← firebase.config, env, barrel
 └── utils/      (2)  ← error-translator, translate-note
 ```
@@ -50,6 +52,8 @@ src/
 | `/(tabs)/scan` | Scanner overlay | Stack (push depuis FAB) |
 | `/catalog/[id]` | Détail parfum enrichi | Stack |
 | `/auth/login`, `/auth/register` | Auth | Stack |
+| `/settings` | Paramètres | Stack (slide_from_right) |
+| `/onboarding` | Onboarding 3 slides | Stack (fade) |
 | `/admin` | Administration | Stack (isAdmin) |
 
 ## 4. Navigation Flow
@@ -117,15 +121,18 @@ Page `app/catalog/[id].tsx` — auto-suffisante :
 
 ## 8. Auth
 
-- AuthGuard dans `_layout.tsx` : redirige login ↔ tabs automatiquement
+- **Auth optionnelle** : l'app fonctionne sans compte (scan, catalogue, fiche détail). Login proposé uniquement quand nécessaire (ajout favoris/wishlist/collection).
+- AuthGuard dans `_layout.tsx` : onboarding et écrans publics exemptés, redirection login uniquement si action qui nécessite auth
 - Timeout 3s sur authReady
 - isAdmin vérifié via `firestore().collection('admins').doc(uid).get()`
 - Google Sign-In : `GoogleSignin.configure()` + `signIn()` + `signInWithCredential()`
 
 ## 9. Design System
 
-- 63 tokens dans `theme.ts` : couleurs, fonts (Playfair Display + Inter), radius, shadows
+- Design system « Luxe malin » : violet profond `#6C3ED9`, doré/ambré `#C8945A`, teal `#0D9488`, fond beige craie `#F8F6F2`
 - **Toujours** `theme.colors.xxx` — pas de couleurs hardcodées
+- **0 `fontWeight`** — tout en `fontFamily` (PlayfairDisplay ou Inter avec variantes de poids)
+- iOS : `fontFamily` sans `fontWeight` (les Google Fonts incluent le poids)
 - Edge-to-edge Android : status/nav bar transparentes, `WindowCompat.setDecorFitsSystemWindows(false)`
 - `edges={['top', 'bottom']}` sur SafeAreaView dans pages d'un pager
 - `GestureHandlerRootView` : `backgroundColor: theme.colors.background` (fond derrière barres transparentes)

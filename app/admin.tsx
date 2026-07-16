@@ -139,21 +139,21 @@ const s = StyleSheet.create({
   center: { flex: 1, justifyContent: 'center', alignItems: 'center', padding: 32 },
   scroll: { padding: 24 },
   title: { fontFamily: 'PlayfairDisplay_700Bold', fontSize: 24, color: theme.colors.text, marginBottom: 24 },
-  sub: { fontSize: 16, fontWeight: '600', color: theme.colors.text, marginBottom: 8 },
+  sub: { fontSize: 16, fontFamily: 'Inter_600SemiBold', color: theme.colors.text, marginBottom: 8 },
   desc: { fontSize: 14, color: theme.colors.textMuted, marginBottom: 16, lineHeight: 20 },
 
   // Upload
   btnUpload: { backgroundColor: theme.colors.primary, borderRadius: theme.radius.base, height: 48, justifyContent: 'center', alignItems: 'center', marginTop: 12, ...theme.shadow.button },
-  btnUploadText: { color: '#FFF', fontWeight: '600', fontSize: 15 },
+  btnUploadText: { color: '#FFF', fontFamily: 'Inter_600SemiBold', fontSize: 15 },
   btnOutline: { borderWidth: 1, borderColor: theme.colors.primary, borderRadius: theme.radius.base, height: 48, justifyContent: 'center', alignItems: 'center', marginTop: 12 },
-  btnOutlineText: { color: theme.colors.primary, fontWeight: '600', fontSize: 15 },
+  btnOutlineText: { color: theme.colors.primary, fontFamily: 'Inter_600SemiBold', fontSize: 15 },
   // Upload — sélecteur parfum
-  fieldLabel: { fontSize: 13, fontWeight: '500', color: theme.colors.text, marginBottom: 8, marginTop: 8 },
+  fieldLabel: { fontSize: 13, fontFamily: 'Inter_500Medium', color: theme.colors.text, marginBottom: 8, marginTop: 8 },
   pickerRow: { marginBottom: 12, maxHeight: 60 },
   pickItem: { paddingHorizontal: 14, paddingVertical: 8, borderRadius: 20, backgroundColor: theme.colors.surface2, marginRight: 8 },
   pickActive: { backgroundColor: theme.colors.violetSoft, borderWidth: 1, borderColor: theme.colors.primary },
   pickText: { fontSize: 13, color: theme.colors.text },
-  pickTextActive: { color: theme.colors.primary, fontWeight: '600' },
+  pickTextActive: { color: theme.colors.primary, fontFamily: 'Inter_600SemiBold' },
 
   // Upload — image
   currentImgWrap: { marginBottom: 12 },

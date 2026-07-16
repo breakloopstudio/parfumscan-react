@@ -29,7 +29,7 @@ export type ScanAction =
   | { type: 'OPEN_MANUAL' }
   | { type: 'RESET' };
 
-export const SCAN_STEPS = ['Capture du flacon', 'Identification IA', 'Recherche en cours'];
+export const SCAN_STEPS = ['Capture du flacon', 'Analyse IA', 'Comparaison des prix'];
 
 // ─── Reducer ───────────────────────────────────────────────
 

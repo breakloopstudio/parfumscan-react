@@ -18,15 +18,19 @@
 
 | Module | Description |
 |---|---|
-| 🎨 **UI/UX** | Edge-to-edge Android, pager Reanimated (opacity+scale crossfade), tab bar floating pill |
+| 🎨 **UI/UX « Luxe malin »** | Design system violet profond + doré/ambré + teal, 0 fontWeight, Inter + Playfair Display |
 | 📸 **Scan intelligent** | Burst 3 photos → GPT-4o Vision (adaptatif : 70% en 1 appel, 30% en cross-ref 2 photos) → API Fragella |
 | 🖼️ **Import galerie** | Photo existante → même pipeline IA, sans permissions supplémentaires |
-| 📚 **Catalogue** | Recherche cache-first (Firestore → Fragella), idle personnalisé (famille×3 + marque×2 + popularité) |
-| ❤️ **Favoris** | Sauvegarde Firestore temps réel, données dénormalisées, switch instantané entre tabs |
-| 👤 **Profil** | Google Sign-In, stats gamifiées, historique de scans, favoris et scans toujours montés |
-| 🔐 **Auth** | Email + Google, role admin, AuthGuard automatique |
-| 🧠 **Fiche détail robuste** | Bridge preview + Firestore always + Fragella by ID fallback, id normalisé |
-| 💾 **Cache intelligent** | Cache Firestore partagé entre utilisateurs, 0 appel API redondant |
+| 📚 **Catalogue** | Recherche cache-first (Firestore → Fragella), navigation par famille olfactive, tri (prix/pertinence), suggestions personnalisées |
+| 🗂️ **Collection** | Parfums possédés, inventaire personnel |
+| ⭐ **Wishlist** | Parfums à acheter, alertes prix |
+| ❤️ **Favoris** | Coups de cœur, sans obligation d'achat |
+| 👤 **Profil** | 3 listes distinctes, profil olfactif, historique de scans, Google Sign-In |
+| 🧠 **Fiche détail** | Hub d'actions (3 boutons), PriceDisplay animé, tendance prix, comparateur magasin vs ligne, pyramide olfactive |
+| ⚙️ **Paramètres** | Alertes prix, devise EUR, notifs push, mentions légales |
+| 🚀 **Onboarding** | 3 slides au premier lancement, swipe navigation, sans auth |
+| 🔐 **Auth optionnelle** | App utilisable sans compte, login demandé uniquement quand nécessaire |
+| 📴 **Mode hors-ligne** | Bannière réseau, contenu dégradé via cache Firestore local |
 
 ---
 
@@ -114,19 +118,21 @@ app/
 ├── auth/
 │   ├── login.tsx             # Connexion email + Google
 │   └── register.tsx          # Inscription
-├── catalog/[id].tsx          # Détail enrichi : type, longévité/sillage, accords, saisonnalité, occasions, pyramide, favori
+├── catalog/[id].tsx          # Détail enrichi : PriceDisplay, 3 boutons, tendance prix, pyramide, accords, saisons, occasions
+├── settings.tsx              # Paramètres : alertes prix, devise, notifs, déconnexion
+├── onboarding.tsx            # 3 slides swipe + AsyncStorage
 └── admin.tsx                 # Administration (seed + reset cache + upload)
 
 src/
-├── services/     (9)         # Firebase, Firestore (upsert intelligent), Fragella, GPT-4o…
-├── hooks/        (7)         # useAuth, useScanReducer, useCatalog (cache-first + score popularité)…
+├── services/     (9)         # Firebase, Firestore (upsert intelligent), Fragella, GPT-4o, user-data (collection/wishlist)…
+├── hooks/        (8)         # useAuth, useScanReducer, useCatalog (cache-first), useCollection, useWishlist…
 ├── contexts/     (1)         # AuthContext (Provider + Hook)
-├── components/   (3)         # ParfumCard (bridge + onPressOverride), AppLoader, ErrorBoundary
+├── components/   (8)         # ParfumCard, Button, PriceDisplay, SectionHeader, EmptyState, OfflineBanner, AppLoader, ErrorBoundary
 ├── features/
 │   ├── scan/     (7)         # ScanScreen + 6 sous-états
-│   ├── catalog/  (1)         # CatalogPage (composant, pas une route !)
-│   └── profile/  (1)         # ProfilePage (favoris dénormalisés, bridge détail)
-├── theme/        (1)         # 45 design tokens (light + dark)
+│   ├── catalog/  (2)         # CatalogPage (navigation par famille + tri), OlfactoryPyramid
+│   └── profile/  (1)         # ProfilePage (3 listes, profil olfactif, historique)
+├── theme/        (1)         # 26 couleurs « Luxe malin » + rétrocompatibilité
 ├── config/       (3)         # Firebase config, env, index
 └── utils/        (2)         # Error translator, translate-note (traduction notes FR)
 

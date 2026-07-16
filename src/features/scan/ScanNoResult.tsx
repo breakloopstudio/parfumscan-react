@@ -38,7 +38,7 @@ const s = StyleSheet.create({
   desc: { fontSize: 14, color: theme.colors.textMuted, textAlign: 'center', lineHeight: 20, marginBottom: 24 },
   actions: { width: '100%', maxWidth: 300, gap: 12 },
   cta: { flexDirection: 'row', backgroundColor: theme.colors.primary, borderRadius: theme.radius.base, height: 48, justifyContent: 'center', alignItems: 'center', ...theme.shadow.button },
-  ctaText: { color: '#FFF', fontWeight: '600', fontSize: 16 },
+  ctaText: { color: '#FFF', fontFamily: 'Inter_600SemiBold', fontSize: 16 },
   resetBtn: { flexDirection: 'row', justifyContent: 'center', alignItems: 'center', paddingVertical: 10 },
   resetText: { fontSize: 14, color: theme.colors.textMuted },
 });

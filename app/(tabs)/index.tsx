@@ -251,12 +251,12 @@ const s = StyleSheet.create({
   },
   tabLbl: {
     fontSize: 11,
-    fontWeight: '500',
+    fontFamily: 'Inter_500Medium',
     color: theme.colors.textMuted,
   },
   tabLblOn: {
     color: theme.colors.primary,
-    fontWeight: '700',
+    fontFamily: 'Inter_700Bold',
   },
   fab: {
     width: 46,

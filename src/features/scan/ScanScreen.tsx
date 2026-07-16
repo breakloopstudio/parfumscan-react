@@ -169,7 +169,7 @@ export function ScanScreen() {
   switch (state.kind) {
     case 'idle':      return <ScanIdle onStartScan={handleOpenCamera} onImportGallery={handleGalleryImport} onOpenManual={() => dispatch({ type: 'OPEN_MANUAL' })} />;
     case 'camera':    return <ScanCamera onCapture={handleCapture} onCancel={() => dispatch({ type: 'CANCEL_CAMERA' })} />;
-    case 'scanning':  return <ScanLoading step={state.step} />;
+    case 'scanning':  return <ScanLoading />;
     case 'clarify':   return <ScanClarify scanResult={state.scanResult} reason={state.reason} onSearch={handleClarify} onReset={reset} />;
     case 'results':   return <ScanResults parfums={state.parfums} onOpenCatalog={() => { setPendingCatalogQuery(state.parfums[0]?.marque ?? ''); router.back(); }} />;
     case 'no-result': return <ScanNoResult marque={state.scanResult.marque} onSearchCatalog={(m) => { reset(); setPendingCatalogQuery(m); router.back(); }} onReset={reset} />;

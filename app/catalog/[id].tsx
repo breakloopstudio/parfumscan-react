@@ -1,13 +1,13 @@
-﻿// app/catalog/[id].tsx — Fiche détail parfum
+﻿// app/catalog/[id].tsx — Fiche détail parfum (refonte Luxe malin)
 
 import { useState, useEffect, useRef } from 'react';
-import { View, Text, ScrollView, Pressable, ActivityIndicator, Linking, StyleSheet, useWindowDimensions, Platform } from 'react-native';
+import { View, Text, ScrollView, Pressable, ActivityIndicator, Linking, TextInput, StyleSheet, useWindowDimensions, Platform, Alert } from 'react-native';
 import { Image } from 'expo-image';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { Gesture, GestureDetector } from 'react-native-gesture-handler';
 import Animated, { useSharedValue, useAnimatedStyle, withSpring, runOnJS } from 'react-native-reanimated';
-import Ionicons from "@react-native-vector-icons/ionicons/static";
+import Ionicons from '@react-native-vector-icons/ionicons/static';
 import { useAuthContext } from '../../src/contexts/AuthContext';
 import { getParfumById, cacheParfumFromSearch } from '../../src/services/firestore';
 import { isParfumFavori, addFavori, removeFavori } from '../../src/services/user-data';
@@ -18,6 +18,8 @@ import { theme } from '../../src/theme/theme';
 import type { Parfum } from '../../src/models';
 import { translateNote } from '../../src/utils/translate-note';
 import OlfactoryPyramid from '../../src/features/catalog/OlfactoryPyramid';
+import PriceDisplay from '../../src/components/PriceDisplay';
+import Button from '../../src/components/Button';
 
 // ─── Mappings FR ─────────────────────────────────────────────
 
@@ -122,7 +124,7 @@ function StatBar({ label, score, maxScore, icon, barColor, barBg }: { label: str
 }
 
 function AccordBar({ name, pct, index, total }: { name: string; pct: number; index: number; total: number }) {
-  const colors = ['#7C3AED', '#8B5CF6', '#A78BFA', '#C4B5FD', '#DDD6FE'];
+  const colors = [theme.colors.primary, theme.colors.primaryTint, '#A78BFA', '#C4B5FD', theme.colors.primarySoft];
   const color = colors[index % colors.length];
   return (
     <View style={s.statBar}>
@@ -187,6 +189,8 @@ export default function CatalogDetailPage() {
   const [favoriId, setFavoriId] = useState<string | null>(null);
   const [pending] = useState<Parfum | ParfumSearchResult | null>(() => consumePendingParfum());
   const [imgFailed, setImgFailed] = useState(false);
+  const [storePrice, setStorePrice] = useState('');
+  const [showStoreInput, setShowStoreInput] = useState(false);
   const loadingRef = useRef(false);
   // Chargement auto-suffisant : bridge (preview) -> Firestore -> Fragella by ID -> Fragella search
   useEffect(() => {
@@ -351,7 +355,7 @@ export default function CatalogDetailPage() {
         <View style={s.card}>
           <View style={s.titleRow}>
             <View style={{flex:1}}><Text style={s.brand}>{parfum.marque}</Text><Text style={s.name}>{parfum.nom}</Text></View>
-            <Pressable onPress={toggleFav} hitSlop={12}><Ionicons name={isFav?'heart':'heart-outline'} size={28} color={isFav?theme.colors.danger:theme.colors.textMuted}/></Pressable>
+            <Pressable onPress={toggleFav} hitSlop={12}><Ionicons name={isFav?'heart':'heart-outline'} size={28} color={isFav?theme.colors.favorite:theme.colors.textMuted}/></Pressable>
             {__DEV__ && <View style={{width:8,height:8,borderRadius:4,backgroundColor:parfum.source==='fragella'?'#10B981':parfum.source==='fragella-cached'?'#3B82F6':parfum.source==='seed'||parfum.source==='manual'?'#8B5CF6':'#EF4444',marginLeft:4}} />}
           </View>
           <View style={s.badges}>
@@ -371,34 +375,87 @@ export default function CatalogDetailPage() {
             </View>
           ) : null}
 
+          {/* ─── Prix (PriceDisplay) ─── */}
           {'bestPrice' in parfum && parfum.bestPrice ? (
-            <View style={s.dealCard}>
-              <View style={s.dealHeader}>
-                <Text style={s.dealLabel}>Meilleur prix</Text>
-                <View style={s.dealPriceRow}>
-                  <Text style={s.dealBestPrice}>{parfum.bestPrice.toFixed(2)} €</Text>
-                  {parfum.referencePrice && (
-                    <Text style={s.dealRefPrice}>{parfum.referencePrice.toFixed(2)} €</Text>
-                  )}
-                  {parfum.referencePrice && parfum.bestPrice < parfum.referencePrice && (
-                    <View style={s.dealDiscount}><Text style={s.dealDiscountText}>-{Math.round((1 - parfum.bestPrice / parfum.referencePrice) * 100)}%</Text></View>
-                  )}
-                </View>
-                {'priceValue' in parfum && parfum.priceValue && (
-                  <Text style={[s.dealValue, parfum.priceValue === 'overpriced' ? s.dealOver : parfum.priceValue === 'fair' ? s.dealFair : s.dealGood]}>
-                    {parfum.priceValue === 'overpriced' ? '💸 Trop cher' : parfum.priceValue === 'fair' ? '⚖️ Prix correct' : '🎯 Bonne affaire'}
-                  </Text>
-                )}
-              </View>
+            <View style={s.dealSection}>
+              <PriceDisplay
+                bestPrice={parfum.bestPrice}
+                referencePrice={parfum.referencePrice}
+                priceValue={'priceValue' in parfum ? parfum.priceValue as 'deal' | 'fair' | 'overpriced' : undefined}
+                large
+              />
               {parfum.purchaseUrl && (
-                <Pressable style={s.dealBtn} onPress={() => Linking.openURL(parfum.purchaseUrl!)}>
-                  <Ionicons name="cart-outline" size={18} color="#FFF" />
-                  <Text style={s.dealBtnText}>Voir l'offre</Text>
-                  <Ionicons name="open-outline" size={14} color="rgba(255,255,255,0.7)" />
+                <Button variant="primary" onPress={() => Linking.openURL(parfum.purchaseUrl!)} icon="cart-outline" style={s.buyBtn}>
+                  Voir l'offre
+                </Button>
+              )}
+
+              {/* ─── Indicateur de tendance ─── */}
+              {'bestPrice' in parfum && parfum.referencePrice ? (
+                <View style={s.trendRow}>
+                  <Ionicons
+                    name={parfum.bestPrice < parfum.referencePrice * 0.9 ? 'trending-down' : parfum.bestPrice > parfum.referencePrice * 1.05 ? 'trending-up' : 'remove'}
+                    size={16}
+                    color={parfum.bestPrice < parfum.referencePrice * 0.9 ? theme.colors.deal : parfum.bestPrice > parfum.referencePrice * 1.05 ? theme.colors.overpriced : theme.colors.textMuted}
+                  />
+                  <Text style={[s.trendText, {
+                    color: parfum.bestPrice < parfum.referencePrice * 0.9 ? theme.colors.deal : parfum.bestPrice > parfum.referencePrice * 1.05 ? theme.colors.overpriced : theme.colors.textMuted
+                  }]}>
+                    {parfum.bestPrice < parfum.referencePrice * 0.9
+                      ? `-${Math.round((1 - parfum.bestPrice / parfum.referencePrice) * 100)}% vs prix de référence`
+                      : parfum.bestPrice > parfum.referencePrice * 1.05
+                      ? `+${Math.round((parfum.bestPrice / parfum.referencePrice - 1) * 100)}% vs prix de référence`
+                      : 'Prix stable'}
+                  </Text>
+                </View>
+              ) : null}
+
+              {/* ─── Prix en magasin ─── */}
+              {!showStoreInput ? (
+                <Pressable onPress={() => setShowStoreInput(true)} style={s.storeToggle}>
+                  <Ionicons name="storefront-outline" size={16} color={theme.colors.textMuted} />
+                  <Text style={s.storeToggleText}>Comparer avec le prix en magasin</Text>
                 </Pressable>
+              ) : (
+                <View style={s.storeRow}>
+                  <View style={s.storeInputWrap}>
+                    <Ionicons name="storefront-outline" size={16} color={theme.colors.textMuted} style={{ marginRight: 6 }} />
+                    <TextInput
+                      style={s.storeInput}
+                      placeholder="Prix en boutique (€)"
+                      placeholderTextColor={theme.colors.textMuted}
+                      value={storePrice}
+                      onChangeText={setStorePrice}
+                      keyboardType="decimal-pad"
+                    />
+                  </View>
+                  {storePrice && !isNaN(Number(storePrice)) && Number(storePrice) > 0 ? (
+                    <Text style={[s.storeDiff, { color: Number(storePrice) > parfum.bestPrice ? theme.colors.deal : theme.colors.overpriced }]}>
+                      {Number(storePrice) > parfum.bestPrice
+                        ? `Tu économises ${(Number(storePrice) - parfum.bestPrice).toFixed(0)} € en ligne`
+                        : `Le prix boutique est plus bas de ${(parfum.bestPrice - Number(storePrice)).toFixed(0)} €`}
+                    </Text>
+                  ) : null}
+                </View>
               )}
             </View>
           ) : null}
+
+          {/* ─── 3 boutons d'action ─── */}
+          <View style={s.actionRow}>
+            <Pressable onPress={toggleFav} style={s.actionBtn}>
+              <Ionicons name={isFav ? 'heart' : 'heart-outline'} size={18} color={isFav ? theme.colors.favorite : theme.colors.textMuted} />
+              <Text style={[s.actionLabel, isFav && { color: theme.colors.favorite }]}>Favori</Text>
+            </Pressable>
+            <Pressable onPress={() => Alert.alert('À venir', 'Ajout à la collection disponible prochainement.')} style={s.actionBtn}>
+              <Ionicons name="flask-outline" size={18} color={theme.colors.textMuted} />
+              <Text style={s.actionLabel}>Collection</Text>
+            </Pressable>
+            <Pressable onPress={() => Alert.alert('À venir', 'Ajout à la wishlist disponible prochainement.')} style={s.actionBtn}>
+              <Ionicons name="bookmark-outline" size={18} color={theme.colors.textMuted} />
+              <Text style={s.actionLabel}>Wishlist</Text>
+            </Pressable>
+          </View>
           <OlfactoryPyramid
             topNotes={parfum.notesTete}
             heartNotes={parfum.notesCoeur}
@@ -470,57 +527,52 @@ const s = StyleSheet.create({
   heroImg: { width: '100%', height: 280, resizeMode: 'cover' },
   card: { backgroundColor: theme.colors.surface, borderRadius: 20, padding: 20, marginTop: -30, position: 'relative', zIndex: 1, ...theme.shadow.card },
   titleRow: { flexDirection: 'row', alignItems: 'flex-start', justifyContent: 'space-between' },
-  brand: { fontSize: 11, textTransform: 'uppercase', letterSpacing: 2, color: theme.colors.textMuted, fontWeight: '600' },
+  brand: { fontSize: 11, textTransform: 'uppercase', letterSpacing: 2, color: theme.colors.textMuted, fontFamily: 'Inter_600SemiBold' },
   name: { fontFamily: 'PlayfairDisplay_700Bold', fontSize: 26, color: theme.colors.text, marginTop: 4, lineHeight: 30 },
   badges: { flexDirection: 'row', gap: 8, flexWrap: 'wrap', marginTop: 12, marginBottom: 24 },
-  tagFamily: { backgroundColor: theme.colors.violetSoft, paddingHorizontal: 12, paddingVertical: 5, borderRadius: 20 },
-  tagFamilyText: { fontSize: 11, fontWeight: '500', color: theme.colors.violetInk },
-  tagYear: { backgroundColor: theme.colors.rewardSoft, paddingHorizontal: 12, paddingVertical: 5, borderRadius: 20 },
-  tagYearText: { fontSize: 11, fontWeight: '500', color: theme.colors.reward },
+  tagFamily: { backgroundColor: theme.colors.primarySoft, paddingHorizontal: 12, paddingVertical: 5, borderRadius: 20 },
+  tagFamilyText: { fontSize: 11, fontFamily: 'Inter_500Medium', color: theme.colors.primaryInk },
+  tagYear: { backgroundColor: theme.colors.secondarySoft, paddingHorizontal: 12, paddingVertical: 5, borderRadius: 20 },
+  tagYearText: { fontSize: 11, fontFamily: 'Inter_500Medium', color: theme.colors.secondary },
   tagGender: { backgroundColor: '#E8F0FE', paddingHorizontal: 12, paddingVertical: 5, borderRadius: 20 },
-  tagGenderText: { fontSize: 11, fontWeight: '500', color: '#1A56DB' },
-  // Deal / Prix
-  dealCard: { backgroundColor: theme.colors.dealSoft, borderRadius: 16, padding: 16, marginBottom: 24, borderWidth: 1, borderColor: '#D1FAE5' },
-  dealHeader: { marginBottom: 12 },
-  dealLabel: { fontSize: 12, textTransform: 'uppercase', letterSpacing: 1.5, color: theme.colors.deal, fontWeight: '600', marginBottom: 8 },
-  dealPriceRow: { flexDirection: 'row', alignItems: 'baseline', gap: 10 },
-  dealBestPrice: { fontSize: 32, fontWeight: '800', color: theme.colors.deal },
-  dealRefPrice: { fontSize: 16, color: theme.colors.textMuted, textDecorationLine: 'line-through' },
-  dealDiscount: { backgroundColor: theme.colors.reward, paddingHorizontal: 8, paddingVertical: 3, borderRadius: 10 },
-  dealDiscountText: { fontSize: 13, fontWeight: '800', color: '#1F1A2E' },
-  dealValue: { fontSize: 13, fontWeight: '600', marginTop: 6 },
-  dealOver: { color: '#DC2626' },
-  dealFair: { color: '#D97706' },
-  dealGood: { color: '#059669' },
-  dealBtn: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8, backgroundColor: theme.colors.primary, paddingVertical: 14, borderRadius: 12, marginTop: 4, ...theme.shadow.button },
-  dealBtnText: { color: '#FFF', fontWeight: '700', fontSize: 16 },
-  pyramidDesc: { fontSize: 13, color: theme.colors.textMuted, marginBottom: 4 },
-  // ─── Nouvelles sections ───
+  tagGenderText: { fontSize: 11, fontFamily: 'Inter_500Medium', color: '#1A56DB' },
   tagType: { backgroundColor: '#FFF7ED', paddingHorizontal: 12, paddingVertical: 5, borderRadius: 20 },
   tagRating: { flexDirection: 'row', alignItems: 'center', backgroundColor: '#FFFBEB', paddingHorizontal: 10, paddingVertical: 5, borderRadius: 20 },
-  tagRatingText: { fontSize: 12, fontWeight: '700', color: '#D97706' },
-  tagPopularity: { backgroundColor: theme.colors.violetSoft },
-  tagPopularityText: { fontSize: 11, fontWeight: '600', color: theme.colors.primary },
-  tagTypeText: { fontSize: 11, fontWeight: '500', color: '#9A3412' },
+  tagRatingText: { fontSize: 12, fontFamily: 'Inter_700Bold', color: '#D97706' },
+  tagTypeText: { fontSize: 11, fontFamily: 'Inter_500Medium', color: '#9A3412' },
+  // ─── Prix & Deal ───
+  dealSection: { marginBottom: 20, gap: 10 },
+  buyBtn: { marginTop: 4 },
+  trendRow: { flexDirection: 'row', alignItems: 'center', gap: 6, paddingVertical: 4 },
+  trendText: { fontFamily: 'Inter_500Medium', fontSize: 13 },
+  storeToggle: { flexDirection: 'row', alignItems: 'center', gap: 6, paddingVertical: 4 },
+  storeToggleText: { fontFamily: 'Inter_500Medium', fontSize: 13, color: theme.colors.textMuted },
+  storeRow: { gap: 8 },
+  storeInputWrap: { flexDirection: 'row', alignItems: 'center', borderRadius: theme.radius.sm, backgroundColor: theme.colors.surface2, paddingHorizontal: 12, height: 40 },
+  storeInput: { flex: 1, fontFamily: 'Inter_400Regular', fontSize: 14, color: theme.colors.text },
+  storeDiff: { fontFamily: 'Inter_600SemiBold', fontSize: 13 },
+  // ─── Boutons d'action (Collection / Wishlist / Favori) ───
+  actionRow: { flexDirection: 'row', marginBottom: 24, gap: 8 },
+  actionBtn: { flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6, paddingVertical: 12, borderRadius: theme.radius.base, borderWidth: 1, borderColor: theme.colors.border, backgroundColor: theme.colors.surface2 },
+  actionLabel: { fontFamily: 'Inter_500Medium', fontSize: 13, color: theme.colors.textMuted },
+  // ─── Sections ───
+  pyramidDesc: { fontSize: 13, color: theme.colors.textMuted, marginBottom: 4 },
   infoZone: { marginTop: 20, marginBottom: 20, gap: 8 },
   sectionTitle: { flexDirection: 'row', alignItems: 'center', gap: 6, marginBottom: 4 },
   sectionIcon: { fontSize: 15 },
   sectionTitleText: { fontFamily: 'PlayfairDisplay_600SemiBold', fontSize: 15, color: theme.colors.text },
-  // Gauge longévité/sillage
   gaugeRow: { flexDirection: 'row', alignItems: 'center', gap: 10, paddingVertical: 4 },
   gaugeIcon: { width: 28, height: 28, borderRadius: 14, justifyContent: 'center', alignItems: 'center' },
   gaugeBody: { flex: 1 },
-  gaugeLabel: { fontSize: 12, fontWeight: '500', color: theme.colors.textMuted, marginBottom: 3 },
+  gaugeLabel: { fontSize: 12, fontFamily: 'Inter_500Medium', color: theme.colors.textMuted, marginBottom: 3 },
   gaugeTrack: { height: 6, borderRadius: 3, backgroundColor: theme.colors.border, overflow: 'hidden' },
   gaugeFill: { height: '100%', borderRadius: 3 },
-  gaugeVal: { fontSize: 12, fontWeight: '600', marginLeft: 8, minWidth: 70, textAlign: 'right' },
-  // Stat bar (saison/occasion)
+  gaugeVal: { fontSize: 12, fontFamily: 'Inter_600SemiBold', marginLeft: 8, minWidth: 70, textAlign: 'right' },
   statBar: { flexDirection: 'row', alignItems: 'center', gap: 8, paddingVertical: 2 },
   statIcon: { fontSize: 13, width: 24, textAlign: 'center' },
-  statLabel: { fontSize: 13, fontWeight: '500', color: theme.colors.text, width: 80 },
+  statLabel: { fontSize: 13, fontFamily: 'Inter_500Medium', color: theme.colors.text, width: 80 },
   statTrack: { flex: 1, height: 6, borderRadius: 3, overflow: 'hidden' },
   statFill: { height: '100%', borderRadius: 3 },
-  statPct: { fontSize: 12, fontWeight: '700', width: 36, textAlign: 'right' },
-  // Accords
+  statPct: { fontSize: 12, fontFamily: 'Inter_700Bold', width: 36, textAlign: 'right' },
   accordDot: { width: 8, height: 8, borderRadius: 4 },
 });

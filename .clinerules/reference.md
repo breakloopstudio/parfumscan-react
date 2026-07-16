@@ -35,15 +35,28 @@ async function getPersonalizedSuggestions(uid, limit?): Promise<ParfumSearchResu
 async function deleteAllCachedParfums(): Promise<number>;          // reset complet (batch paginé)
 ```
 
-### user-data.ts — Favoris + scans
+### user-data.ts — Favoris + scans + collection + wishlist
 ```typescript
+// Favoris
 function onFavoris(uid, cb): () => void;
 async function addFavori(uid, parfumId, nom?, marque?, imageUrl?, familleOlactive?): Promise<string>; // dédup + dénormalisation
 async function removeFavori(uid, favoriId): Promise<void>;
 async function isParfumFavori(uid, parfumId): Promise<{isFavori, favoriId}>;
+
+// Scans
 function onScans(uid, cb): () => void;
 async function saveScan(uid, data): Promise<void>;       // filtre undefined, stocke imageUrl + familleOlactive
 async function removeScan(uid, scanId): Promise<void>;
+
+// Collection
+function onCollection(uid, cb): () => void;
+async function addToCollection(uid, parfumId, nom?, marque?, imageUrl?): Promise<string>;
+async function removeFromCollection(uid, itemId): Promise<void>;
+
+// Wishlist
+function onWishlist(uid, cb): () => void;
+async function addToWishlist(uid, parfumId, nom?, marque?, imageUrl?, familleOlactive?): Promise<string>;
+async function removeFromWishlist(uid, itemId): Promise<void>;
 ```
 
 ### fragella.ts — API Fragella (74K parfums, appels REST directs)
@@ -108,6 +121,8 @@ useAuth()          → { user, authReady, isAdmin, isAuthenticated, login, regis
 useScanReducer()   → { state, dispatch }  // dispatch direct, pas de wrappers
 useFavoris(uid)    → { favoris, loading, addFavori, removeFavori }
 useScans(uid)      → { scans, loading, saveScan, removeScan }
+useCollection(uid) → { items, loading, add, remove }
+useWishlist(uid)   → { items, loading, add, remove }
 useCatalog()       → { results, parfums, searching, search, clear }  // cache-first Firestore
 useNetwork()       → { isOnline }
 ```
@@ -193,6 +208,22 @@ interface UserScan {
 interface ScanResult {
   marque: string|null; nom: string|null; volumeMl: number|null;
   typeParfum: string|null; confidence?: 'high'|'low';
+}
+```
+
+### UserCollectionItem (`src/models/user-collection.interface.ts`) — `users/{uid}/collection`
+```typescript
+interface UserCollectionItem {
+  id: string; parfumId: string; addedAt: Date;
+  nom?: string; marque?: string; imageUrl?: string;
+}
+```
+
+### UserWishlistItem (`src/models/user-wishlist.interface.ts`) — `users/{uid}/wishlist`
+```typescript
+interface UserWishlistItem {
+  id: string; parfumId: string; addedAt: Date;
+  nom?: string; marque?: string; imageUrl?: string; familleOlactive?: string;
 }
 ```
 

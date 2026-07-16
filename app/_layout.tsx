@@ -37,7 +37,8 @@ function AuthGuard({ children }: { children: React.ReactNode }) {
     if (!isFirebaseReady()) return;
     if (!segments[0]) return;
     const inAuth = segments[0] === 'auth';
-    if (!isAuthenticated && !inAuth) router.replace('/auth/login');
+    const isOnboarding = segments[0] === 'onboarding';
+    if (!isAuthenticated && !inAuth && !isOnboarding) router.replace('/auth/login');
     else if (isAuthenticated && inAuth) router.replace('/(tabs)');
   }, [authReady, isAuthenticated, segments]);
 
@@ -58,6 +59,8 @@ export default function RootLayout() {
             <Stack.Screen name="auth/login" options={{ animation: 'fade' }} />
             <Stack.Screen name="auth/register" options={{ animation: 'fade' }} />
             <Stack.Screen name="catalog/[id]" options={{ animation: 'slide_from_right', gestureEnabled: true, fullScreenGestureEnabled: true }} />
+            <Stack.Screen name="settings" options={{ animation: 'slide_from_right' }} />
+            <Stack.Screen name="onboarding" options={{ animation: 'fade' }} />
             <Stack.Screen name="admin" options={{ animation: 'slide_from_bottom' }} />
           </Stack>
           </ErrorBoundary>
