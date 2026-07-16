@@ -10,10 +10,12 @@ web-build/
 .kotlin/
 *.orig.*
 *.jks
+*.keystore
 *.p8
 *.p12
 *.key
 *.mobileprovision
+**/keystore.properties
 
 # ─── Metro ───────────────────────────────────────────────────────
 .metro-health-check*
