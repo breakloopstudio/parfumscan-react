@@ -4,6 +4,7 @@ import { useEffect } from 'react';
 import { Stack, useRouter, useSegments } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
+import { GoogleSignin } from '@react-native-google-signin/google-signin';
 import * as SplashScreen from 'expo-splash-screen';
 import { AuthProvider, useAuthContext } from '../src/contexts/AuthContext';
 import { ErrorBoundary } from '../src/components/ErrorBoundary';
@@ -12,7 +13,6 @@ import { isFirebaseReady } from '../src/services/firebase';
 import '../src/services/firebase';
 
 try {
-  const { GoogleSignin } = require('@react-native-google-signin/google-signin');
   GoogleSignin.configure({ webClientId: '831514606817-xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx.apps.googleusercontent.com' });
 } catch {}
 

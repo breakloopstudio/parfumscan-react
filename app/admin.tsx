@@ -15,7 +15,7 @@ import { uploadParfumImage } from '../src/services/storage';
 
 // Lazy: expo-image-picker optionnel → l'upload est désactivé si non installé
 let ImagePicker: typeof import('expo-image-picker') | null = null;
-try { ImagePicker = require('expo-image-picker'); } catch {}
+import('expo-image-picker').then(m => { ImagePicker = m; }).catch(() => {});
 
 export default function AdminPage() {
   const { isAuthenticated, isAdmin } = useAuthContext();
