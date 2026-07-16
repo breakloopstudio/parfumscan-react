@@ -38,7 +38,7 @@ export interface FragranceResult {
   imageFallbacks?: string[];
 }
 
-/** Résultat de recherche converti — différent d'un Parfum Firestore */
+  /** Résultat de recherche converti — différent d'un Parfum Firestore */
 export interface ParfumSearchResult {
   id: string;
   fragellaId?: string;     // ID original Fragella (pour l'endpoint /:id)
@@ -74,6 +74,7 @@ export interface ParfumSearchResult {
   seasonRanking?: { name: string; score: number }[];
   occasionRanking?: { name: string; score: number }[];
   imageFallbacks?: string[];
+  similarIds?: string[];
 }
 
 // ─── Constantes ────────────────────────────────────────────
@@ -331,8 +332,9 @@ export async function getSimilarFragrances(marque: string, nom: string, limit: n
       console.error('[Fragella] similar error:', response.status);
       return [];
     }
-    const data = await response.json() as Array<Record<string, unknown>>;
-    return data.map(mapFragrance);
+    const raw = await response.json();
+    const data = Array.isArray(raw) ? raw : (raw as { data?: unknown[] })?.data ?? [];
+    return (data as Record<string, unknown>[]).map(mapFragrance);
   } catch (err: unknown) {
     console.error('[Fragella] similar error:', err instanceof Error ? err.message : String(err));
     return [];

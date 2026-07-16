@@ -53,4 +53,5 @@ export interface Parfum {
   seasonRanking?: { name: string; score: number }[];
   occasionRanking?: { name: string; score: number }[];
   imageFallbacks?: string[];
+  similarIds?: string[];
 }

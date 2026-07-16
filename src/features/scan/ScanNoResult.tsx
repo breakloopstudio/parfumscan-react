@@ -1,8 +1,9 @@
 // src/features/scan/ScanNoResult.tsx — Aucun résultat + actions
 
-import { View, Text, Pressable, StyleSheet } from 'react-native';
+import { useMemo } from 'react';
+import { View, Text, Pressable } from 'react-native';
 import Ionicons from "@react-native-vector-icons/ionicons/static";
-import { theme } from '../../theme/theme';
+import { useTheme, type Theme } from '../../theme/ThemeContext';
 
 interface Props {
   marque: string | null;
@@ -11,6 +12,8 @@ interface Props {
 }
 
 export function ScanNoResult({ marque, onSearchCatalog, onReset }: Props) {
+  const { theme } = useTheme();
+  const s = useMemo(() => getStyles(theme), [theme]);
   return (
     <View style={s.container}>
       <Ionicons name="search-outline" size={64} color={theme.colors.primary} style={{ opacity: 0.6 }} />
@@ -32,13 +35,15 @@ export function ScanNoResult({ marque, onSearchCatalog, onReset }: Props) {
   );
 }
 
-const s = StyleSheet.create({
-  container: { flex: 1, justifyContent: 'center', alignItems: 'center', padding: 32 },
-  title: { fontFamily: 'PlayfairDisplay_600SemiBold', fontSize: 20, color: theme.colors.text, marginTop: 16, marginBottom: 8 },
-  desc: { fontSize: 14, color: theme.colors.textMuted, textAlign: 'center', lineHeight: 20, marginBottom: 24 },
-  actions: { width: '100%', maxWidth: 300, gap: 12 },
-  cta: { flexDirection: 'row', backgroundColor: theme.colors.primary, borderRadius: theme.radius.base, height: 48, justifyContent: 'center', alignItems: 'center', ...theme.shadow.button },
-  ctaText: { color: '#FFF', fontFamily: 'Inter_600SemiBold', fontSize: 16 },
-  resetBtn: { flexDirection: 'row', justifyContent: 'center', alignItems: 'center', paddingVertical: 10 },
-  resetText: { fontSize: 14, color: theme.colors.textMuted },
-});
+function getStyles(t: Theme) {
+  return {
+    container: { flex: 1, justifyContent: 'center', alignItems: 'center', padding: 32 },
+    title: { fontFamily: 'PlayfairDisplay_600SemiBold', fontSize: 20, color: t.colors.text, marginTop: 16, marginBottom: 8 },
+    desc: { fontSize: 14, color: t.colors.textMuted, textAlign: 'center', lineHeight: 20, marginBottom: 24 },
+    actions: { width: '100%', maxWidth: 300, gap: 12 },
+    cta: { flexDirection: 'row', backgroundColor: t.colors.primary, borderRadius: t.radius.base, height: 48, justifyContent: 'center', alignItems: 'center', ...t.shadow.button },
+    ctaText: { color: '#FFF', fontFamily: 'Inter_600SemiBold', fontSize: 16 },
+    resetBtn: { flexDirection: 'row', justifyContent: 'center', alignItems: 'center', paddingVertical: 10 },
+    resetText: { fontSize: 14, color: t.colors.textMuted },
+  } as const;
+}

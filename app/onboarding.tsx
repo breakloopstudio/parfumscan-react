@@ -1,7 +1,7 @@
 // app/onboarding.tsx — 3 slides d'onboarding avec swipe + persistance
 
-import { useState, useEffect } from 'react';
-import { View, Text, Pressable, StyleSheet, useWindowDimensions } from 'react-native';
+import { useState, useEffect, useMemo } from 'react';
+import { View, Text, Pressable, useWindowDimensions } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import { Gesture, GestureDetector } from 'react-native-gesture-handler';
@@ -13,7 +13,7 @@ import Animated, {
 } from 'react-native-reanimated';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import Ionicons from '@react-native-vector-icons/ionicons/static';
-import { theme } from '../src/theme/theme';
+import { useTheme, type Theme } from '../src/theme/ThemeContext';
 
 const ONBOARDING_KEY = '@parfumscan_onboarding_done';
 const SPRING = { damping: 28, stiffness: 300, mass: 0.8 };
@@ -37,6 +37,8 @@ const SLIDES = [
 ];
 
 export default function OnboardingPage() {
+  const { theme } = useTheme();
+  const s = useMemo(() => getStyles(theme), [theme]);
   const { width: windowWidth } = useWindowDimensions();
   const router = useRouter();
   const [current, setCurrent] = useState(0);
@@ -126,19 +128,21 @@ export default function OnboardingPage() {
   );
 }
 
-const s = StyleSheet.create({
-  container: { flex: 1, backgroundColor: theme.colors.background },
-  skipRow: { alignItems: 'flex-end', paddingHorizontal: 20, paddingTop: 8 },
-  skipText: { fontFamily: 'Inter_500Medium', fontSize: 15, color: theme.colors.textMuted },
-  slidesWrapper: { flex: 1, flexDirection: 'row', alignItems: 'center' },
-  slide: { alignItems: 'center', paddingHorizontal: 32 },
-  iconCircle: { width: 120, height: 120, borderRadius: 60, backgroundColor: theme.colors.primarySoft, justifyContent: 'center', alignItems: 'center', marginBottom: 32 },
-  slideTitle: { fontFamily: 'PlayfairDisplay_700Bold', fontSize: 28, color: theme.colors.text, textAlign: 'center', marginBottom: 12 },
-  slideDesc: { fontFamily: 'Inter_400Regular', fontSize: 15, color: theme.colors.textMuted, textAlign: 'center', lineHeight: 22, maxWidth: 320 },
-  bottom: { alignItems: 'center', paddingBottom: 24, gap: 20 },
-  dots: { flexDirection: 'row', gap: 8 },
-  dot: { width: 8, height: 8, borderRadius: 4, backgroundColor: theme.colors.border },
-  dotActive: { backgroundColor: theme.colors.primary, width: 24 },
-  cta: { backgroundColor: theme.colors.primary, borderRadius: theme.radius.base, height: 50, width: '80%', maxWidth: 320, justifyContent: 'center', alignItems: 'center', ...theme.shadow.button },
-  ctaText: { color: '#FFFFFF', fontFamily: 'Inter_600SemiBold', fontSize: 17 },
-});
+function getStyles(t: Theme) {
+  return {
+    container: { flex: 1, backgroundColor: t.colors.background },
+    skipRow: { alignItems: 'flex-end', paddingHorizontal: 20, paddingTop: 8 },
+    skipText: { fontFamily: 'Inter_500Medium', fontSize: 15, color: t.colors.textMuted },
+    slidesWrapper: { flex: 1, flexDirection: 'row', alignItems: 'center' },
+    slide: { alignItems: 'center', paddingHorizontal: 32 },
+    iconCircle: { width: 120, height: 120, borderRadius: 60, backgroundColor: t.colors.primarySoft, justifyContent: 'center', alignItems: 'center', marginBottom: 32 },
+    slideTitle: { fontFamily: 'PlayfairDisplay_700Bold', fontSize: 28, color: t.colors.text, textAlign: 'center', marginBottom: 12 },
+    slideDesc: { fontFamily: 'Inter_400Regular', fontSize: 15, color: t.colors.textMuted, textAlign: 'center', lineHeight: 22, maxWidth: 320 },
+    bottom: { alignItems: 'center', paddingBottom: 24, gap: 20 },
+    dots: { flexDirection: 'row', gap: 8 },
+    dot: { width: 8, height: 8, borderRadius: 4, backgroundColor: t.colors.border },
+    dotActive: { backgroundColor: t.colors.primary, width: 24 },
+    cta: { backgroundColor: t.colors.primary, borderRadius: t.radius.base, height: 50, width: '80%', maxWidth: 320, justifyContent: 'center', alignItems: 'center', ...t.shadow.button },
+    ctaText: { color: '#FFFFFF', fontFamily: 'Inter_600SemiBold', fontSize: 17 },
+  } as const;
+}

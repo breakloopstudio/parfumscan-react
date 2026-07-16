@@ -1,9 +1,9 @@
 // src/components/PriceDisplay.tsx — Prix animé avec badge d'économie contextuel
 
-import { useEffect } from 'react';
-import { View, Text, StyleSheet, type ViewStyle } from 'react-native';
+import { useEffect, useMemo } from 'react';
+import { View, Text, type ViewStyle } from 'react-native';
 import Animated, { useSharedValue, useAnimatedStyle, withSpring } from 'react-native-reanimated';
-import { theme } from '../theme/theme';
+import { useTheme, type Theme } from '../theme/ThemeContext';
 
 type PriceValue = 'deal' | 'fair' | 'overpriced' | 'unknown';
 
@@ -13,27 +13,6 @@ function priceValueFromBestAndRef(bestPrice: number, referencePrice?: number): P
   if (ratio < 0.8) return 'deal';
   if (ratio < 1.05) return 'fair';
   return 'overpriced';
-}
-
-function priceColor(v: PriceValue): string {
-  if (v === 'deal') return theme.colors.deal;
-  if (v === 'overpriced') return theme.colors.overpriced;
-  if (v === 'fair') return theme.colors.fair;
-  return theme.colors.text;
-}
-
-function priceBg(v: PriceValue): string {
-  if (v === 'deal') return theme.colors.dealSoft;
-  if (v === 'overpriced') return theme.colors.overpricedSoft;
-  if (v === 'fair') return theme.colors.fairSoft;
-  return theme.colors.surface2;
-}
-
-function valueLabel(v: PriceValue): string | null {
-  if (v === 'deal') return 'Bonne affaire';
-  if (v === 'overpriced') return 'Trop cher';
-  if (v === 'fair') return 'Prix correct';
-  return null;
 }
 
 interface Props {
@@ -53,9 +32,11 @@ export default function PriceDisplay({
   animated = true,
   style,
 }: Props) {
+  const { theme } = useTheme();
+  const s = useMemo(() => getStyles(theme), [theme]);
   const val = priceValue ?? priceValueFromBestAndRef(bestPrice, referencePrice);
-  const color = priceColor(val);
-  const bg = priceBg(val);
+  const color = priceColor(val, theme);
+  const bg = priceBg(val, theme);
   const pct = referencePrice && referencePrice > 0
     ? Math.round((1 - bestPrice / referencePrice) * 100)
     : null;
@@ -96,41 +77,64 @@ export default function PriceDisplay({
   );
 }
 
-const s = StyleSheet.create({
-  container: {
-    borderRadius: theme.radius.card,
-    padding: 16,
-  },
-  priceRow: {
-    flexDirection: 'row',
-    alignItems: 'baseline',
-    gap: 10,
-  },
-  bestPrice: {
-    fontFamily: 'Inter_700Bold',
-    fontSize: 32,
-  },
-  bestPriceLarge: {
-    fontSize: 42,
-  },
-  refPrice: {
-    fontSize: 16,
-    color: theme.colors.textMuted,
-    textDecorationLine: 'line-through',
-  },
-  discountBadge: {
-    paddingHorizontal: 8,
-    paddingVertical: 3,
-    borderRadius: 10,
-  },
-  discountText: {
-    fontSize: 13,
-    fontFamily: 'Inter_700Bold',
-    color: '#FFFFFF',
-  },
-  valueLabel: {
-    fontSize: 13,
-    fontFamily: 'Inter_600SemiBold',
-    marginTop: 6,
-  },
-});
+function priceColor(v: PriceValue, t: Theme): string {
+  if (v === 'deal') return t.colors.deal;
+  if (v === 'overpriced') return t.colors.overpriced;
+  if (v === 'fair') return t.colors.fair;
+  return t.colors.text;
+}
+
+function priceBg(v: PriceValue, t: Theme): string {
+  if (v === 'deal') return t.colors.dealSoft;
+  if (v === 'overpriced') return t.colors.overpricedSoft;
+  if (v === 'fair') return t.colors.fairSoft;
+  return t.colors.surface2;
+}
+
+function valueLabel(v: PriceValue): string | null {
+  if (v === 'deal') return 'Bonne affaire';
+  if (v === 'overpriced') return 'Trop cher';
+  if (v === 'fair') return 'Prix correct';
+  return null;
+}
+
+function getStyles(t: Theme) {
+  return {
+    container: {
+      borderRadius: t.radius.card,
+      padding: 16,
+    },
+    priceRow: {
+      flexDirection: 'row',
+      alignItems: 'baseline',
+      gap: 10,
+    },
+    bestPrice: {
+      fontFamily: 'Inter_700Bold',
+      fontSize: 32,
+    },
+    bestPriceLarge: {
+      fontSize: 42,
+    },
+    refPrice: {
+      fontSize: 16,
+      color: t.colors.textMuted,
+      textDecorationLine: 'line-through',
+    },
+    discountBadge: {
+      paddingHorizontal: 8,
+      paddingVertical: 3,
+      borderRadius: 10,
+    },
+    discountText: {
+      fontSize: 13,
+      fontFamily: 'Inter_700Bold',
+      color: '#FFFFFF',
+    },
+    valueLabel: {
+      fontSize: 13,
+      fontFamily: 'Inter_600SemiBold',
+      marginTop: 6,
+    },
+  } as const;
+}

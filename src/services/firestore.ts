@@ -57,6 +57,7 @@ function docToParfum(d: DocumentSnapshot<DocumentData, DocumentData>): Parfum {
     seasonRanking: data.seasonRanking as { name: string; score: number }[] | undefined,
     occasionRanking: data.occasionRanking as { name: string; score: number }[] | undefined,
     imageFallbacks: data.imageFallbacks as string[] | undefined,
+    similarIds: data.similarIds as string[] | undefined,
     createdAt: (data.createdAt as { toDate?: () => Date })?.toDate?.() ?? (data.createdAt as Date),
     updatedAt: (data.updatedAt as { toDate?: () => Date })?.toDate?.() ?? (data.updatedAt as Date),
   };

@@ -1,9 +1,9 @@
 // src/features/scan/ScanClarify.tsx — Formulaire de correction après low-confidence
 
-import { useState } from 'react';
-import { View, Text, TextInput, Pressable, ScrollView, StyleSheet } from 'react-native';
+import { useState, useMemo } from 'react';
+import { View, Text, TextInput, Pressable, ScrollView } from 'react-native';
 import Ionicons from "@react-native-vector-icons/ionicons/static";
-import { theme } from '../../theme/theme';
+import { useTheme, type Theme } from '../../theme/ThemeContext';
 import type { ScanResult } from '../../models';
 
 const POPULAR_BRANDS = ['Dior', 'Chanel', 'Guerlain', 'Yves Saint Laurent', 'Lancôme', 'Paco Rabanne', 'Jean Paul Gaultier', 'Givenchy', 'Armani', 'Tom Ford', 'Creed', 'Xerjoff'];
@@ -16,6 +16,8 @@ interface Props {
 }
 
 export function ScanClarify({ scanResult, reason, onSearch, onReset }: Props) {
+  const { theme } = useTheme();
+  const s = useMemo(() => getStyles(theme), [theme]);
   const [marque, setMarque] = useState(scanResult.marque ?? '');
   const [nom, setNom] = useState(scanResult.nom ?? '');
   const [typeParfum, setTypeParfum] = useState(scanResult.typeParfum ?? '');
@@ -76,25 +78,27 @@ export function ScanClarify({ scanResult, reason, onSearch, onReset }: Props) {
   );
 }
 
-const s = StyleSheet.create({
-  container: { padding: 24, paddingTop: 40, alignItems: 'center' },
-  iconWrap: { marginBottom: 16 },
-  title: { fontFamily: 'PlayfairDisplay_600SemiBold', fontSize: 20, color: theme.colors.text, marginBottom: 8, textAlign: 'center' },
-  desc: { fontSize: 14, color: theme.colors.textMuted, textAlign: 'center', marginBottom: 24, lineHeight: 20 },
-  fields: { width: '100%', maxWidth: 360, gap: 8, marginBottom: 16 },
-  fieldLabel: { fontSize: 13, fontFamily: 'Inter_500Medium', color: theme.colors.text, marginTop: 4 },
-  input: { borderRadius: theme.radius.base, backgroundColor: '#FFF', borderWidth: 1, borderColor: theme.colors.border, paddingHorizontal: 12, height: 44, fontSize: 15, color: theme.colors.text },
-  picker: { flexDirection: 'row', flexWrap: 'wrap', gap: 6 },
-  pickItem: { paddingHorizontal: 12, paddingVertical: 6, borderRadius: 16, backgroundColor: theme.colors.surface2 },
-  pickActive: { backgroundColor: theme.colors.violetSoft, borderWidth: 1, borderColor: theme.colors.primary },
-  pickText: { fontSize: 13, color: theme.colors.textMuted },
-  pickTextActive: { color: theme.colors.primary, fontFamily: 'Inter_500Medium' },
-  chips: { flexDirection: 'row', flexWrap: 'wrap', gap: 6, justifyContent: 'center', marginBottom: 24 },
-  chip: { paddingHorizontal: 12, paddingVertical: 6, borderRadius: 16, backgroundColor: theme.colors.violetSoft },
-  chipText: { fontSize: 12, fontFamily: 'Inter_500Medium', color: theme.colors.violetInk },
-  cta: { flexDirection: 'row', width: '100%', maxWidth: 360, backgroundColor: theme.colors.primary, borderRadius: theme.radius.base, height: 48, justifyContent: 'center', alignItems: 'center', ...theme.shadow.button },
-  ctaDisabled: { opacity: 0.5 },
-  ctaText: { color: '#FFF', fontFamily: 'Inter_600SemiBold', fontSize: 16 },
-  resetBtn: { flexDirection: 'row', marginTop: 16, alignItems: 'center' },
-  resetText: { fontSize: 14, color: theme.colors.textMuted },
-});
+function getStyles(t: Theme) {
+  return {
+    container: { padding: 24, paddingTop: 40, alignItems: 'center' },
+    iconWrap: { marginBottom: 16 },
+    title: { fontFamily: 'PlayfairDisplay_600SemiBold', fontSize: 20, color: t.colors.text, marginBottom: 8, textAlign: 'center' },
+    desc: { fontSize: 14, color: t.colors.textMuted, textAlign: 'center', marginBottom: 24, lineHeight: 20 },
+    fields: { width: '100%', maxWidth: 360, gap: 8, marginBottom: 16 },
+    fieldLabel: { fontSize: 13, fontFamily: 'Inter_500Medium', color: t.colors.text, marginTop: 4 },
+    input: { borderRadius: t.radius.base, backgroundColor: t.colors.surface, borderWidth: 1, borderColor: t.colors.border, paddingHorizontal: 12, height: 44, fontSize: 15, color: t.colors.text },
+    picker: { flexDirection: 'row', flexWrap: 'wrap', gap: 6 },
+    pickItem: { paddingHorizontal: 12, paddingVertical: 6, borderRadius: 16, backgroundColor: t.colors.surface2 },
+    pickActive: { backgroundColor: t.colors.violetSoft, borderWidth: 1, borderColor: t.colors.primary },
+    pickText: { fontSize: 13, color: t.colors.textMuted },
+    pickTextActive: { color: t.colors.primary, fontFamily: 'Inter_500Medium' },
+    chips: { flexDirection: 'row', flexWrap: 'wrap', gap: 6, justifyContent: 'center', marginBottom: 24 },
+    chip: { paddingHorizontal: 12, paddingVertical: 6, borderRadius: 16, backgroundColor: t.colors.violetSoft },
+    chipText: { fontSize: 12, fontFamily: 'Inter_500Medium', color: t.colors.violetInk },
+    cta: { flexDirection: 'row', width: '100%', maxWidth: 360, backgroundColor: t.colors.primary, borderRadius: t.radius.base, height: 48, justifyContent: 'center', alignItems: 'center', ...t.shadow.button },
+    ctaDisabled: { opacity: 0.5 },
+    ctaText: { color: '#FFF', fontFamily: 'Inter_600SemiBold', fontSize: 16 },
+    resetBtn: { flexDirection: 'row', marginTop: 16, alignItems: 'center' },
+    resetText: { fontSize: 14, color: t.colors.textMuted },
+  } as const;
+}

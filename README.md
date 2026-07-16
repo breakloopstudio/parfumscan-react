@@ -25,12 +25,12 @@
 | 🗂️ **Collection** | Parfums possédés, inventaire personnel |
 | ⭐ **Wishlist** | Parfums à acheter, alertes prix |
 | ❤️ **Favoris** | Coups de cœur, sans obligation d'achat |
-| 👤 **Profil** | 3 listes distinctes, profil olfactif, historique de scans, Google Sign-In |
-| 🧠 **Fiche détail** | Hub d'actions (3 boutons), PriceDisplay animé, tendance prix, comparateur magasin vs ligne, pyramide olfactive |
 | ⚙️ **Paramètres** | Alertes prix, devise EUR, notifs push, mentions légales |
+| 🧠 **Fiche détail** | Hub d'actions (3 boutons), PriceDisplay animé, tendance prix, comparateur magasin vs ligne, pyramide olfactive |
 | 🚀 **Onboarding** | 3 slides au premier lancement, swipe navigation, sans auth |
 | 🔐 **Auth optionnelle** | App utilisable sans compte, login demandé uniquement quand nécessaire |
 | 📴 **Mode hors-ligne** | Bannière réseau, contenu dégradé via cache Firestore local |
+| 🌓 **Dark Mode** | 3 modes (système/clair/sombre), persistance AsyncStorage, accessible sans authentification, palette « Luxe profond » |
 
 ---
 
@@ -105,34 +105,51 @@ build_release.bat
 
 ---
 
+## 🌓 Dark Mode
+
+ParfumScan propose un mode sombre complet disponible **sans authentification**.
+
+- **3 modes** : Système (défaut, suit les réglages du téléphone), Clair, Sombre
+- **Toggle** : dans Paramètres → Apparence (segmented control Clair / Système / Sombre)
+- **Persistance** : la préférence est sauvegardée dans AsyncStorage (`@parfumscan/theme`)
+- **Palette « Luxe profond »** : fond violet-noir `#0B0712`, violet `#8B6CF6`, doré `#D4A960`, teal `#2DD4BF`
+- **Architecture** : `ThemeProvider` → `useTheme()` hook → `getStyles(t: Theme)` + `useMemo` dans chaque composant
+- **StatusBar** : automatiquement adaptée (texte clair en dark, foncé en light)
+- **Ombres** : remplacées par des bordures subtiles en mode sombre (les ombres noires sont invisibles sur fond sombre)
+
+---
+
 ## 📁 Architecture
 
 ```
 app/
-├── _layout.tsx               # Root : GestureHandler + AuthProvider + AuthGuard
+├── _layout.tsx               # Root : ThemeProvider → AuthProvider → AuthGuard
 ├── index.tsx                 # Splash → redirection
 ├── (tabs)/
-│   ├── _layout.tsx           # Stack (index + scan)
-│   ├── index.tsx             # TabPager Reanimated (Catalog ↔ Profil) + pont pending
+│   ├── _layout.tsx           # Stack (pages sur le pager)
+│   ├── index.tsx             # TabPager Reanimated 4 pages + DockBar flottant
+│   ├── favorites.tsx         # Favoris (page standalone)
+│   ├── history.tsx           # Historique des scans
+│   ├── collection.tsx        # Collection + Wishlist (2 sections)
 │   └── scan.tsx              # Scanner overlay (push FAB)
 ├── auth/
 │   ├── login.tsx             # Connexion email + Google
 │   └── register.tsx          # Inscription
 ├── catalog/[id].tsx          # Détail enrichi : PriceDisplay, 3 boutons, tendance prix, pyramide, accords, saisons, occasions
-├── settings.tsx              # Paramètres : alertes prix, devise, notifs, déconnexion
+├── settings.tsx              # Paramètres : alertes prix, devise, apparence, déconnexion
 ├── onboarding.tsx            # 3 slides swipe + AsyncStorage
 └── admin.tsx                 # Administration (seed + reset cache + upload)
 
 src/
-├── services/     (9)         # Firebase, Firestore (upsert intelligent), Fragella, GPT-4o, user-data (collection/wishlist)…
-├── hooks/        (8)         # useAuth, useScanReducer, useCatalog (cache-first), useCollection, useWishlist…
-├── contexts/     (1)         # AuthContext (Provider + Hook)
-├── components/   (8)         # ParfumCard, Button, PriceDisplay, SectionHeader, EmptyState, OfflineBanner, AppLoader, ErrorBoundary
+├── services/     (11)        # Firebase, Firestore (upsert intelligent), Fragella, GPT-4o, user-data, theme-storage…
+├── hooks/        (10)        # useAuth, useScanReducer, useCatalog, useFavoris, useCollection, useWishlist, useScans…
+├── contexts/     (2)         # AuthContext, ThemeContext
+├── components/   (9)         # ParfumCard, Button, PriceDisplay, SectionHeader, EmptyState, OfflineBanner, AlertPriceToggle, AppLoader, ErrorBoundary
+├── theme/        (2)         # theme.ts (double palette light/dark), ThemeContext.tsx
 ├── features/
-│   ├── scan/     (7)         # ScanScreen + 6 sous-états
+│   ├── scan/     (8)         # ScanScreen + 7 sous-états
 │   ├── catalog/  (2)         # CatalogPage (navigation par famille + tri), OlfactoryPyramid
-│   └── profile/  (1)         # ProfilePage (3 listes, profil olfactif, historique)
-├── theme/        (1)         # 26 couleurs « Luxe malin » + rétrocompatibilité
+│   └── navigation/ (1)      # DockBar (barre flottante 5 positions + FAB, indicateur doré)
 ├── config/       (3)         # Firebase config, env, index
 └── utils/        (2)         # Error translator, translate-note (traduction notes FR)
 
@@ -218,6 +235,19 @@ Les documents `UserFavori` et `UserScan` stockent `imageUrl` et `familleOlactive
 dénormalisés → affichage direct sans appel API Firestore ni Fragella.
 
 ---
+## v6.0 — Navigation Rework + Dark Mode (17/07/2026)
+
+- **Dock flottant 5 positions** : barre verre dépoli, indicateur doré animé, FAB scan central avec pulse ring
+- **4 pages** : Pager horizontal (Catalogue, Favoris, Historique, Collection) remplaçant l'ancien Catalog↔Profil
+- **ProfilePage supprimé** — son contenu dispatché dans 3 écrans dédiés avec avatar header → settings
+- **Dark Mode** : 3 modes (système/clair/sombre), palette « Luxe profond », persistance AsyncStorage, accessible sans auth
+- **Design System** : 6 nouveaux composants (Button, PriceDisplay, SectionHeader, EmptyState, OfflineBanner, AlertPriceToggle)
+- **Atomic moves** : menu contextuel "Déplacer vers…" (moveToCollection, moveToWishlist, moveFavori) en batch Firestore
+- **New hooks** : `useFavoris`, `useCollection`, `useWishlist`, `useScans` — Firestore temps réel
+- **0 fontWeight** : migration complète de tout le code vers `fontFamily`
+- **Firebase modular API** : migration namespaced → modular (v25+)
+- **Onboarding** : 3 slides swipe au 1er lancement, AsyncStorage `@parfumscan_onboarding_done`
+
 ## v5.7 — Burst + Galerie + Personnalisation (16/07/2026)
 
 - **Burst adaptatif** : 3 photos en rafale, 70% des scans résolus en 1 appel GPT-4o (~2s), 30% en 2 appels cross-ref (~4s)

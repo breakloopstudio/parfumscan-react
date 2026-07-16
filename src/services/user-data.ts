@@ -174,11 +174,16 @@ export async function isPriceAlertActive(uid: string, parfumId: string): Promise
   } catch { return false; }
 }
 
-export async function setPriceAlert(uid: string, parfumId: string, active: boolean): Promise<void> {
+export async function setPriceAlert(uid: string, parfumId: string, active: boolean, currentPrice?: number): Promise<void> {
   if (active) {
     const existing = await getDocs(query(alertsCol(uid), where('parfumId', '==', parfumId), limit(1)));
     if (!existing.empty) return;
-    await addDoc(alertsCol(uid), { parfumId, addedAt: new Date() });
+    await addDoc(alertsCol(uid), {
+      parfumId,
+      addedAt: new Date(),
+      lastPrice: currentPrice ?? null,
+      lastChecked: new Date(),
+    });
   } else {
     const snap = await getDocs(query(alertsCol(uid), where('parfumId', '==', parfumId), limit(1)));
     const batch = writeBatch(db);

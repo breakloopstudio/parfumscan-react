@@ -1,8 +1,9 @@
 // src/components/EmptyState.tsx — État vide pour les 4 listes du profil
 
-import { View, Text, StyleSheet, type ViewStyle } from 'react-native';
+import { useMemo } from 'react';
+import { View, Text, type ViewStyle } from 'react-native';
 import Ionicons from '@react-native-vector-icons/ionicons/static';
-import { theme } from '../theme/theme';
+import { useTheme, type Theme } from '../theme/ThemeContext';
 import Button from './Button';
 
 type Variant = 'collection' | 'wishlist' | 'favoris' | 'historique';
@@ -41,6 +42,8 @@ interface Props {
 }
 
 export default function EmptyState({ variant, onAction, style }: Props) {
+  const { theme } = useTheme();
+  const s = useMemo(() => getStyles(theme), [theme]);
   const { icon, title, desc, cta } = CONFIG[variant];
 
   return (
@@ -57,38 +60,40 @@ export default function EmptyState({ variant, onAction, style }: Props) {
   );
 }
 
-const s = StyleSheet.create({
-  container: {
-    alignItems: 'center',
-    paddingTop: 40,
-    paddingHorizontal: 24,
-  },
-  iconCircle: {
-    width: 72,
-    height: 72,
-    borderRadius: 36,
-    backgroundColor: theme.colors.primarySoft,
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginBottom: 16,
-  },
-  title: {
-    fontFamily: 'PlayfairDisplay_700Bold',
-    fontSize: 20,
-    color: theme.colors.text,
-    textAlign: 'center',
-    marginBottom: 8,
-  },
-  desc: {
-    fontFamily: 'Inter_400Regular',
-    fontSize: 14,
-    color: theme.colors.textMuted,
-    textAlign: 'center',
-    lineHeight: 21,
-    marginBottom: 24,
-    maxWidth: 300,
-  },
-  cta: {
-    minWidth: 220,
-  },
-});
+function getStyles(t: Theme) {
+  return {
+    container: {
+      alignItems: 'center',
+      paddingTop: 40,
+      paddingHorizontal: 24,
+    },
+    iconCircle: {
+      width: 72,
+      height: 72,
+      borderRadius: 36,
+      backgroundColor: t.colors.primarySoft,
+      justifyContent: 'center',
+      alignItems: 'center',
+      marginBottom: 16,
+    },
+    title: {
+      fontFamily: 'PlayfairDisplay_700Bold',
+      fontSize: 20,
+      color: t.colors.text,
+      textAlign: 'center',
+      marginBottom: 8,
+    },
+    desc: {
+      fontFamily: 'Inter_400Regular',
+      fontSize: 14,
+      color: t.colors.textMuted,
+      textAlign: 'center',
+      lineHeight: 21,
+      marginBottom: 24,
+      maxWidth: 300,
+    },
+    cta: {
+      minWidth: 220,
+    },
+  } as const;
+}

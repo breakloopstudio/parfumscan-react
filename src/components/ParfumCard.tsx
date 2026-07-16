@@ -1,11 +1,11 @@
 // src/components/ParfumCard.tsx — Carte parfum réutilisable
 
+import { useMemo, useState } from 'react';
 import { View, Text, Pressable, Linking, StyleSheet } from 'react-native';
 import { Image } from 'expo-image';
-import { useState } from 'react';
 import { useRouter } from 'expo-router';
 import Ionicons from "@react-native-vector-icons/ionicons/static";
-import { theme } from '../theme/theme';
+import { useTheme, type Theme } from '../theme/ThemeContext';
 import type { Parfum } from '../models';
 import type { ParfumSearchResult } from '../services/fragella';
 import { setPendingParfum } from '../services/catalog-bridge';
@@ -37,6 +37,8 @@ function resolveImageUrl(p: Parfum | ParfumSearchResult): string | null {
 }
 
 export default function ParfumCard({ parfum, showDeal = false, compact = false, onPressOverride }: Props) {
+  const { theme } = useTheme();
+  const s = useMemo(() => getStyles(theme), [theme]);
   const router = useRouter();
   const [imgFailed, setImgFailed] = useState(false);
   const discount = getDiscount(parfum);
@@ -119,61 +121,62 @@ export default function ParfumCard({ parfum, showDeal = false, compact = false, 
     );
 }
 
-const s = StyleSheet.create({
-  card: {
-    marginHorizontal: 16, marginVertical: 6,
-    borderRadius: theme.radius.card, backgroundColor: theme.colors.surface,
-    overflow: 'hidden', ...theme.shadow.card,
-  },
-  imgWrap: { position: 'relative', maxHeight: 180, overflow: 'hidden' },
-  img: { width: '100%', height: 180, resizeMode: 'cover' },
-  imgOverlay: { position: 'absolute', bottom: 0, left: 0, right: 0, height: 60, backgroundColor: 'rgba(0,0,0,0.1)' },
-  dealBadge: {
-    position: 'absolute', top: 12, right: 12,
-    backgroundColor: theme.colors.reward, paddingHorizontal: 10, paddingVertical: 5, borderRadius: 20,
-  },
-  dealBadgeText: { color: '#1F1A2E', fontFamily: 'Inter_800ExtraBold', fontSize: 13 },
-  header: { padding: 16, paddingBottom: 0 },
-  brand: { fontSize: 12, textTransform: 'uppercase', letterSpacing: 1.5, color: theme.colors.textMuted, marginBottom: 2 },
-  title: { fontFamily: 'PlayfairDisplay_600SemiBold', fontSize: 18, color: theme.colors.text },
-  body: { paddingHorizontal: 16, paddingTop: 8, paddingBottom: 8 },
-  tags: { flexDirection: 'row', gap: 8, flexWrap: 'wrap', marginBottom: 6 },
-  tagFamily: { backgroundColor: theme.colors.violetSoft, paddingHorizontal: 10, paddingVertical: 4, borderRadius: 20 },
-  tagFamilyText: { fontSize: 11, fontFamily: 'Inter_500Medium', color: theme.colors.violetInk },
-  tagYear: { backgroundColor: theme.colors.rewardSoft, paddingHorizontal: 10, paddingVertical: 4, borderRadius: 20 },
-  tagYearText: { fontSize: 11, fontFamily: 'Inter_500Medium', color: theme.colors.reward },
-  notes: { flexDirection: 'row', alignItems: 'center', gap: 8, marginTop: 2 },
-  notesLabel: { fontSize: 10, textTransform: 'uppercase', letterSpacing: 1, color: theme.colors.reward, backgroundColor: theme.colors.rewardSoft, paddingHorizontal: 8, paddingVertical: 2, borderRadius: 10 },
-  notesText: { fontSize: 12, color: theme.colors.textMuted, flex: 1 },
-  dealZone: {
-    flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
-    padding: 12, borderTopWidth: 1, borderTopColor: theme.colors.border, backgroundColor: theme.colors.dealSoft,
-  },
-  dealPrice: { flexDirection: 'row', alignItems: 'baseline', gap: 6 },
-  dealFrom: { fontSize: 11, color: theme.colors.textMuted },
-  dealAmount: { fontSize: 18, fontFamily: 'Inter_800ExtraBold', color: theme.colors.deal },
-  dealRef: { fontSize: 12, color: theme.colors.textMuted, textDecorationLine: 'line-through' },
-  dealTeaser: { fontSize: 14, fontFamily: 'Inter_600SemiBold', color: theme.colors.text },
-  dealCta: { flexDirection: 'row', alignItems: 'center', gap: 2 },
-  dealCtaText: { fontSize: 13, fontFamily: 'Inter_700Bold', color: theme.colors.primary },
-  dealCtaGhost: { fontSize: 13, fontFamily: 'Inter_600SemiBold', color: theme.colors.textMuted },
-  // ── Compact ──
-  cardCompact: { margin: 4, borderRadius: theme.radius.card, backgroundColor: theme.colors.surface, overflow: 'hidden', ...theme.shadow.card },
-  imgWrapCompact: { position: 'relative', maxHeight: 130, overflow: 'hidden' },
-  imgCompact: { width: '100%', height: 130, resizeMode: 'cover' },
-  dealBadgeCompact: { position: 'absolute', top: 6, right: 6, backgroundColor: theme.colors.reward, paddingHorizontal: 6, paddingVertical: 3, borderRadius: 20 },
-  dealBadgeTextCompact: { color: '#1F1A2E', fontFamily: 'Inter_800ExtraBold', fontSize: 10 },
-  headerCompact: { padding: 10, paddingBottom: 0 },
-  brandCompact: { fontSize: 10, textTransform: 'uppercase', letterSpacing: 1, color: theme.colors.textMuted, marginBottom: 1 },
-  titleCompact: { fontFamily: 'PlayfairDisplay_600SemiBold', fontSize: 14, color: theme.colors.text, lineHeight: 18 },
-  bodyCompact: { paddingHorizontal: 10, paddingTop: 4, paddingBottom: 8 },
-  tagsCompact: { flexDirection: 'row', gap: 4, flexWrap: 'wrap' },
-  tagFamilyCompact: { backgroundColor: theme.colors.violetSoft, paddingHorizontal: 6, paddingVertical: 2, borderRadius: 20 },
-  tagFamilyTextCompact: { fontSize: 9, fontFamily: 'Inter_500Medium', color: theme.colors.violetInk },
-  tagYearCompact: { backgroundColor: theme.colors.rewardSoft, paddingHorizontal: 6, paddingVertical: 2, borderRadius: 20 },
-  tagYearTextCompact: { fontSize: 9, fontFamily: 'Inter_500Medium', color: theme.colors.reward },
-  imgPlaceholder: { width: '100%', height: 180, justifyContent: 'center', alignItems: 'center' },
-  imgPlaceholderCompact: { width: '100%', height: 130, justifyContent: 'center', alignItems: 'center' },
-  placeholderInit: { fontSize: 72, fontFamily: 'Inter_700Bold', color: '#FFFFFF', opacity: 0.5 },
-  placeholderInitCompact: { fontSize: 48, fontFamily: 'Inter_700Bold', color: '#FFFFFF', opacity: 0.5 },
-});
+function getStyles(t: Theme) {
+  return {
+    card: {
+      marginHorizontal: 16, marginVertical: 6,
+      borderRadius: t.radius.card, backgroundColor: t.colors.surface,
+      overflow: 'hidden', ...t.shadow.card,
+    },
+    imgWrap: { position: 'relative', maxHeight: 180, overflow: 'hidden' },
+    img: { width: '100%', height: 180, resizeMode: 'cover' },
+    imgOverlay: { position: 'absolute', bottom: 0, left: 0, right: 0, height: 60, backgroundColor: 'rgba(0,0,0,0.1)' },
+    dealBadge: {
+      position: 'absolute', top: 12, right: 12,
+      backgroundColor: t.colors.reward, paddingHorizontal: 10, paddingVertical: 5, borderRadius: 20,
+    },
+    dealBadgeText: { color: '#1F1A2E', fontFamily: 'Inter_800ExtraBold', fontSize: 13 },
+    header: { padding: 16, paddingBottom: 0 },
+    brand: { fontSize: 12, textTransform: 'uppercase', letterSpacing: 1.5, color: t.colors.textMuted, marginBottom: 2 },
+    title: { fontFamily: 'PlayfairDisplay_600SemiBold', fontSize: 18, color: t.colors.text },
+    body: { paddingHorizontal: 16, paddingTop: 8, paddingBottom: 8 },
+    tags: { flexDirection: 'row', gap: 8, flexWrap: 'wrap', marginBottom: 6 },
+    tagFamily: { backgroundColor: t.colors.violetSoft, paddingHorizontal: 10, paddingVertical: 4, borderRadius: 20 },
+    tagFamilyText: { fontSize: 11, fontFamily: 'Inter_500Medium', color: t.colors.violetInk },
+    tagYear: { backgroundColor: t.colors.rewardSoft, paddingHorizontal: 10, paddingVertical: 4, borderRadius: 20 },
+    tagYearText: { fontSize: 11, fontFamily: 'Inter_500Medium', color: t.colors.reward },
+    notes: { flexDirection: 'row', alignItems: 'center', gap: 8, marginTop: 2 },
+    notesLabel: { fontSize: 10, textTransform: 'uppercase', letterSpacing: 1, color: t.colors.reward, backgroundColor: t.colors.rewardSoft, paddingHorizontal: 8, paddingVertical: 2, borderRadius: 10 },
+    notesText: { fontSize: 12, color: t.colors.textMuted, flex: 1 },
+    dealZone: {
+      flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
+      padding: 12, borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: t.colors.border, backgroundColor: t.colors.dealSoft,
+    },
+    dealPrice: { flexDirection: 'row', alignItems: 'baseline', gap: 6 },
+    dealFrom: { fontSize: 11, color: t.colors.textMuted },
+    dealAmount: { fontSize: 18, fontFamily: 'Inter_800ExtraBold', color: t.colors.deal },
+    dealRef: { fontSize: 12, color: t.colors.textMuted, textDecorationLine: 'line-through' },
+    dealTeaser: { fontSize: 14, fontFamily: 'Inter_600SemiBold', color: t.colors.text },
+    dealCta: { flexDirection: 'row', alignItems: 'center', gap: 2 },
+    dealCtaText: { fontSize: 13, fontFamily: 'Inter_700Bold', color: t.colors.primary },
+    dealCtaGhost: { fontSize: 13, fontFamily: 'Inter_600SemiBold', color: t.colors.textMuted },
+    cardCompact: { margin: 4, borderRadius: t.radius.card, backgroundColor: t.colors.surface, overflow: 'hidden', ...t.shadow.card },
+    imgWrapCompact: { position: 'relative', maxHeight: 130, overflow: 'hidden' },
+    imgCompact: { width: '100%', height: 130, resizeMode: 'cover' },
+    dealBadgeCompact: { position: 'absolute', top: 6, right: 6, backgroundColor: t.colors.reward, paddingHorizontal: 6, paddingVertical: 3, borderRadius: 20 },
+    dealBadgeTextCompact: { color: '#1F1A2E', fontFamily: 'Inter_800ExtraBold', fontSize: 10 },
+    headerCompact: { padding: 10, paddingBottom: 0 },
+    brandCompact: { fontSize: 10, textTransform: 'uppercase', letterSpacing: 1, color: t.colors.textMuted, marginBottom: 1 },
+    titleCompact: { fontFamily: 'PlayfairDisplay_600SemiBold', fontSize: 14, color: t.colors.text, lineHeight: 18 },
+    bodyCompact: { paddingHorizontal: 10, paddingTop: 4, paddingBottom: 8 },
+    tagsCompact: { flexDirection: 'row', gap: 4, flexWrap: 'wrap' },
+    tagFamilyCompact: { backgroundColor: t.colors.violetSoft, paddingHorizontal: 6, paddingVertical: 2, borderRadius: 20 },
+    tagFamilyTextCompact: { fontSize: 9, fontFamily: 'Inter_500Medium', color: t.colors.violetInk },
+    tagYearCompact: { backgroundColor: t.colors.rewardSoft, paddingHorizontal: 6, paddingVertical: 2, borderRadius: 20 },
+    tagYearTextCompact: { fontSize: 9, fontFamily: 'Inter_500Medium', color: t.colors.reward },
+    imgPlaceholder: { width: '100%', height: 180, justifyContent: 'center', alignItems: 'center' },
+    imgPlaceholderCompact: { width: '100%', height: 130, justifyContent: 'center', alignItems: 'center' },
+    placeholderInit: { fontSize: 72, fontFamily: 'Inter_700Bold', color: '#FFFFFF', opacity: 0.5 },
+    placeholderInitCompact: { fontSize: 48, fontFamily: 'Inter_700Bold', color: '#FFFFFF', opacity: 0.5 },
+  } as const;
+}

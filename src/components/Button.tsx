@@ -1,8 +1,9 @@
 // src/components/Button.tsx — Bouton atomique 4 variantes × 3 états
 
-import { Pressable, Text, ActivityIndicator, StyleSheet, type ViewStyle } from 'react-native';
+import { useMemo } from 'react';
+import { Pressable, Text, ActivityIndicator, type ViewStyle } from 'react-native';
 import Ionicons from '@react-native-vector-icons/ionicons/static';
-import { theme } from '../theme/theme';
+import { useTheme, type Theme } from '../theme/ThemeContext';
 
 type Variant = 'primary' | 'secondary' | 'outline' | 'ghost';
 
@@ -25,6 +26,8 @@ export default function Button({
   children,
   style,
 }: Props) {
+  const { theme } = useTheme();
+  const s = useMemo(() => getStyles(theme), [theme]);
   const isDisabled = disabled || loading;
 
   const bg = variant === 'primary' ? theme.colors.primary
@@ -73,24 +76,26 @@ export default function Button({
   );
 }
 
-const s = StyleSheet.create({
-  base: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    height: 50,
-    borderRadius: theme.radius.base,
-    paddingHorizontal: 24,
-    gap: 8,
-  },
-  label: {
-    fontSize: theme.fonts.size.md,
-    fontFamily: 'Inter_600SemiBold',
-  },
-  loader: {
-    marginRight: 4,
-  },
-  icon: {
-    marginRight: 2,
-  },
-});
+function getStyles(t: Theme) {
+  return {
+    base: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'center',
+      height: 50,
+      borderRadius: t.radius.base,
+      paddingHorizontal: 24,
+      gap: 8,
+    },
+    label: {
+      fontSize: t.fonts.size.md,
+      fontFamily: 'Inter_600SemiBold',
+    },
+    loader: {
+      marginRight: 4,
+    },
+    icon: {
+      marginRight: 2,
+    },
+  } as const;
+}

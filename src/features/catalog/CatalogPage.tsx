@@ -1,7 +1,7 @@
 // app/(tabs)/catalog.tsx — Catalogue avec navigation par famille olfactive
 
-import { useState, useEffect } from 'react';
-import { View, Text, TextInput, FlatList, ActivityIndicator, Pressable, ScrollView, StyleSheet } from 'react-native';
+import { useState, useEffect, useMemo } from 'react';
+import { View, Text, TextInput, FlatList, ActivityIndicator, Pressable, ScrollView } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Link, useLocalSearchParams } from 'expo-router';
 import Ionicons from '@react-native-vector-icons/ionicons/static';
@@ -9,7 +9,7 @@ import { useAuthContext } from '../../contexts/AuthContext';
 import { useCatalog } from '../../hooks/useCatalog';
 import ParfumCard from '../../components/ParfumCard';
 import { getPopularParfums, getPersonalizedSuggestions } from '../../services/firestore';
-import { theme } from '../../theme/theme';
+import { useTheme, type Theme } from '../../theme/ThemeContext';
 import type { ParfumSearchResult } from '../../services/fragella';
 import { consumePendingCatalogQuery } from '../../services/catalog-bridge';
 
@@ -33,6 +33,8 @@ function seededShuffle<T>(arr: T[], seed: number): T[] {
 }
 
 export default function CatalogPage() {
+  const { theme } = useTheme();
+  const s = useMemo(() => getStyles(theme), [theme]);
   const { user, authReady, isAuthenticated } = useAuthContext();
   const { q: routeQuery } = useLocalSearchParams<{ q?: string }>();
   const initialQuery = routeQuery ?? consumePendingCatalogQuery();
@@ -208,37 +210,39 @@ export default function CatalogPage() {
   );
 }
 
-const s = StyleSheet.create({
-  container: { flex: 1, backgroundColor: theme.colors.background },
-  banner: { flexDirection: 'row', alignItems: 'center', backgroundColor: theme.colors.primarySoft, padding: 12, gap: 8 },
-  bannerText: { flex: 1, fontFamily: 'Inter_400Regular', fontSize: 13, color: theme.colors.primaryInk },
-  bannerLink: { backgroundColor: theme.colors.primary, paddingHorizontal: 12, paddingVertical: 6, borderRadius: theme.radius.sm },
-  bannerLinkText: { color: '#FFFFFF', fontFamily: 'Inter_600SemiBold', fontSize: 13 },
-  hero: { alignItems: 'center', paddingTop: 20, paddingBottom: 12 },
-  heroTitle: { fontFamily: 'PlayfairDisplay_700Bold', fontSize: 28, color: theme.colors.text },
-  heroSub: { fontFamily: 'Inter_400Regular', fontSize: 14, color: theme.colors.textMuted, marginTop: 4 },
-  searchWrap: { paddingHorizontal: 16, paddingBottom: 8 },
-  searchInput: { borderRadius: theme.radius.base, backgroundColor: theme.colors.surface, borderWidth: 1, borderColor: theme.colors.border, paddingHorizontal: 14, height: 44, fontFamily: 'Inter_400Regular', fontSize: 15, color: theme.colors.text },
-  familyScroll: { maxHeight: 44, marginBottom: 4 },
-  familyChips: { paddingHorizontal: 16, gap: 8, alignItems: 'center' },
-  chip: { flexDirection: 'row', alignItems: 'center', gap: 4, paddingHorizontal: 14, paddingVertical: 8, borderRadius: 20, backgroundColor: theme.colors.surface2, borderWidth: 1, borderColor: 'transparent' },
-  chipActive: { backgroundColor: theme.colors.primarySoft, borderColor: theme.colors.primary },
-  chipText: { fontFamily: 'Inter_500Medium', fontSize: 13, color: theme.colors.textMuted },
-  chipTextActive: { color: theme.colors.primaryInk },
-  sortRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingHorizontal: 16, paddingTop: 4, paddingBottom: 4 },
-  sortBtns: { flexDirection: 'row', gap: 4 },
-  sortBtn: { paddingHorizontal: 10, paddingVertical: 4, borderRadius: 6, backgroundColor: theme.colors.surface2 },
-  sortBtnActive: { backgroundColor: theme.colors.primarySoft },
-  sortBtnText: { fontFamily: 'Inter_500Medium', fontSize: 12, color: theme.colors.textMuted },
-  sortBtnTextActive: { color: theme.colors.primary },
-  resultsCount: { fontFamily: 'Inter_400Regular', fontSize: 13, color: theme.colors.textMuted },
-  ghostSection: { padding: 16 },
-  ghostLabel: { fontFamily: 'Inter_600SemiBold', fontSize: 13, textTransform: 'uppercase', letterSpacing: 1.5, color: theme.colors.textMuted, marginBottom: 12 },
-  empty: { alignItems: 'center', paddingTop: 48 },
-  emptyTitle: { fontFamily: 'PlayfairDisplay_600SemiBold', fontSize: 20, color: theme.colors.text, marginTop: 12 },
-  emptyDesc: { fontFamily: 'Inter_400Regular', fontSize: 14, color: theme.colors.textMuted, textAlign: 'center', lineHeight: 20, marginTop: 8 },
-  emptyScanBtn: { marginTop: 20, backgroundColor: theme.colors.primary, paddingHorizontal: 20, paddingVertical: 12, borderRadius: theme.radius.base, ...theme.shadow.button },
-  emptyScanText: { color: '#FFFFFF', fontFamily: 'Inter_600SemiBold', fontSize: 16 },
-  popularRow: { gap: 8, marginBottom: 8 },
-  popularCardWrap: { flex: 1, maxWidth: '50%' },
-});
+function getStyles(t: Theme) {
+  return {
+    container: { flex: 1, backgroundColor: t.colors.background },
+    banner: { flexDirection: 'row', alignItems: 'center', backgroundColor: t.colors.primarySoft, padding: 12, gap: 8 },
+    bannerText: { flex: 1, fontFamily: 'Inter_400Regular', fontSize: 13, color: t.colors.primaryInk },
+    bannerLink: { backgroundColor: t.colors.primary, paddingHorizontal: 12, paddingVertical: 6, borderRadius: t.radius.sm },
+    bannerLinkText: { color: '#FFFFFF', fontFamily: 'Inter_600SemiBold', fontSize: 13 },
+    hero: { alignItems: 'center', paddingTop: 20, paddingBottom: 12 },
+    heroTitle: { fontFamily: 'PlayfairDisplay_700Bold', fontSize: 28, color: t.colors.text },
+    heroSub: { fontFamily: 'Inter_400Regular', fontSize: 14, color: t.colors.textMuted, marginTop: 4 },
+    searchWrap: { paddingHorizontal: 16, paddingBottom: 8 },
+    searchInput: { borderRadius: t.radius.base, backgroundColor: t.colors.surface, borderWidth: 1, borderColor: t.colors.border, paddingHorizontal: 14, height: 44, fontFamily: 'Inter_400Regular', fontSize: 15, color: t.colors.text },
+    familyScroll: { maxHeight: 44, marginBottom: 4 },
+    familyChips: { paddingHorizontal: 16, gap: 8, alignItems: 'center' },
+    chip: { flexDirection: 'row', alignItems: 'center', gap: 4, paddingHorizontal: 14, paddingVertical: 8, borderRadius: 20, backgroundColor: t.colors.surface2, borderWidth: 1, borderColor: 'transparent' },
+    chipActive: { backgroundColor: t.colors.primarySoft, borderColor: t.colors.primary },
+    chipText: { fontFamily: 'Inter_500Medium', fontSize: 13, color: t.colors.textMuted },
+    chipTextActive: { color: t.colors.primaryInk },
+    sortRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingHorizontal: 16, paddingTop: 4, paddingBottom: 4 },
+    sortBtns: { flexDirection: 'row', gap: 4 },
+    sortBtn: { paddingHorizontal: 10, paddingVertical: 4, borderRadius: 6, backgroundColor: t.colors.surface2 },
+    sortBtnActive: { backgroundColor: t.colors.primarySoft },
+    sortBtnText: { fontFamily: 'Inter_500Medium', fontSize: 12, color: t.colors.textMuted },
+    sortBtnTextActive: { color: t.colors.primary },
+    resultsCount: { fontFamily: 'Inter_400Regular', fontSize: 13, color: t.colors.textMuted },
+    ghostSection: { padding: 16 },
+    ghostLabel: { fontFamily: 'Inter_600SemiBold', fontSize: 13, textTransform: 'uppercase', letterSpacing: 1.5, color: t.colors.textMuted, marginBottom: 12 },
+    empty: { alignItems: 'center', paddingTop: 48 },
+    emptyTitle: { fontFamily: 'PlayfairDisplay_600SemiBold', fontSize: 20, color: t.colors.text, marginTop: 12 },
+    emptyDesc: { fontFamily: 'Inter_400Regular', fontSize: 14, color: t.colors.textMuted, textAlign: 'center', lineHeight: 20, marginTop: 8 },
+    emptyScanBtn: { marginTop: 20, backgroundColor: t.colors.primary, paddingHorizontal: 20, paddingVertical: 12, borderRadius: t.radius.base, ...t.shadow.button },
+    emptyScanText: { color: '#FFFFFF', fontFamily: 'Inter_600SemiBold', fontSize: 16 },
+    popularRow: { gap: 8, marginBottom: 8 },
+    popularCardWrap: { flex: 1, maxWidth: '50%' },
+  } as const;
+}

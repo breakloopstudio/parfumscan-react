@@ -1,7 +1,7 @@
 // src/features/scan/ScanLoading.tsx — Animation signature : particules + texte poétique
 
 import { useEffect, useState, useRef, useMemo } from 'react';
-import { View, Text, StyleSheet } from 'react-native';
+import { View, Text } from 'react-native';
 import Animated, {
   useSharedValue,
   useAnimatedStyle,
@@ -11,7 +11,7 @@ import Animated, {
   Easing,
   cancelAnimation,
 } from 'react-native-reanimated';
-import { theme } from '../../theme/theme';
+import { useTheme, type Theme } from '../../theme/ThemeContext';
 
 const PARTICLES = 8;
 const TEXTS = [
@@ -22,7 +22,7 @@ const TEXTS = [
   'Presque...',
 ];
 
-function Particle({ index }: { index: number }) {
+function Particle({ index, t }: { index: number; t: Theme }) {
   const translateY = useSharedValue(0);
   const opacity = useSharedValue(0.6);
 
@@ -70,6 +70,7 @@ function Particle({ index }: { index: number }) {
           height: size,
           borderRadius: size / 2,
           left: `${left}%`,
+          backgroundColor: t.colors.primary,
         },
         style,
       ]}
@@ -77,7 +78,7 @@ function Particle({ index }: { index: number }) {
   );
 }
 
-function HaloRing() {
+function HaloRing({ t }: { t: Theme }) {
   const rotation = useSharedValue(0);
 
   useEffect(() => {
@@ -95,7 +96,7 @@ function HaloRing() {
 
   return (
     <Animated.View style={[s.haloContainer, style]}>
-      <View style={s.haloArc} />
+      <View style={[s.haloArc, { borderColor: t.colors.glow }]} />
     </Animated.View>
   );
 }
@@ -103,6 +104,8 @@ function HaloRing() {
 interface Props {}
 
 export function ScanLoading(_props: Props) {
+  const { theme } = useTheme();
+  const m = useMemo(() => getStyles(theme), [theme]);
   const [textIndex, setTextIndex] = useState(0);
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
@@ -116,40 +119,30 @@ export function ScanLoading(_props: Props) {
   }, []);
 
   return (
-    <View style={s.container}>
-      <View style={s.animZone}>
-        <HaloRing />
-        <View style={s.particlesBox}>
+    <View style={m.container}>
+      <View style={m.animZone}>
+        <HaloRing t={theme} />
+        <View style={m.particlesBox}>
           {Array.from({ length: PARTICLES }, (_, i) => (
-            <Particle key={i} index={i} />
+            <Particle key={i} index={i} t={theme} />
           ))}
         </View>
-        <View style={s.centerIcon}>
-          <View style={s.iconCircle}>
-            <View style={s.iconDot} />
+        <View style={m.centerIcon}>
+          <View style={[m.iconCircle, { backgroundColor: theme.colors.primarySoft }]}>
+            <View style={[m.iconDot, { backgroundColor: theme.colors.primary }]} />
           </View>
         </View>
       </View>
 
-      <Text style={s.text}>{TEXTS[textIndex]}</Text>
+      <Text style={m.text}>{TEXTS[textIndex]}</Text>
     </View>
   );
 }
 
-const s = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: theme.colors.background,
-    justifyContent: 'center',
-    alignItems: 'center',
-    paddingHorizontal: 32,
-  },
-  animZone: {
-    width: 180,
-    height: 180,
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginBottom: 40,
+const s = {
+  particle: {
+    position: 'absolute',
+    bottom: '50%',
   },
   haloContainer: {
     position: 'absolute',
@@ -161,46 +154,57 @@ const s = StyleSheet.create({
     height: 160,
     borderRadius: 80,
     borderWidth: 2,
-    borderColor: theme.colors.glow,
     borderStyle: 'solid',
     opacity: 0.6,
   },
-  particlesBox: {
-    position: 'absolute',
-    width: 180,
-    height: 180,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  particle: {
-    position: 'absolute',
-    bottom: '50%',
-    backgroundColor: theme.colors.primary,
-  },
-  centerIcon: {
-    width: 60,
-    height: 60,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  iconCircle: {
-    width: 48,
-    height: 48,
-    borderRadius: 24,
-    backgroundColor: theme.colors.primarySoft,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  iconDot: {
-    width: 12,
-    height: 12,
-    borderRadius: 6,
-    backgroundColor: theme.colors.primary,
-  },
-  text: {
-    fontFamily: 'PlayfairDisplay_600SemiBold',
-    fontSize: 18,
-    color: theme.colors.text,
-    textAlign: 'center',
-  },
-});
+} as const;
+
+function getStyles(t: Theme) {
+  return {
+    container: {
+      flex: 1,
+      backgroundColor: t.colors.background,
+      justifyContent: 'center',
+      alignItems: 'center',
+      paddingHorizontal: 32,
+    },
+    animZone: {
+      width: 180,
+      height: 180,
+      justifyContent: 'center',
+      alignItems: 'center',
+      marginBottom: 40,
+    },
+    particlesBox: {
+      position: 'absolute',
+      width: 180,
+      height: 180,
+      justifyContent: 'center',
+      alignItems: 'center',
+    },
+    centerIcon: {
+      width: 60,
+      height: 60,
+      justifyContent: 'center',
+      alignItems: 'center',
+    },
+    iconCircle: {
+      width: 48,
+      height: 48,
+      borderRadius: 24,
+      justifyContent: 'center',
+      alignItems: 'center',
+    },
+    iconDot: {
+      width: 12,
+      height: 12,
+      borderRadius: 6,
+    },
+    text: {
+      fontFamily: 'PlayfairDisplay_600SemiBold',
+      fontSize: 18,
+      color: t.colors.text,
+      textAlign: 'center',
+    },
+  } as const;
+}

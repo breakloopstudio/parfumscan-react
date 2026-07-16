@@ -4,6 +4,7 @@
 **Polices** : Playfair Display (display) + Inter (body)  
 **Dates** : Juillet 2026  
 **Total** : ~35 fichiers modifiés/créés, 0 `fontWeight` résiduels
+**Dark Mode** : +31 fichiers (3 nouveaux + 28 modifiés), 6 phases, palette « Luxe profond »
 
 ---
 
@@ -67,6 +68,33 @@
 | `app/admin.tsx` | **Poli** | 5 `fontWeight`→`fontFamily` | — |
 | `app/(tabs)/index.tsx` | **Poli** | 2 `fontWeight`→`fontFamily` dans la tab bar | — |
 | `package.json` | **Modifié** | Ajout de `@react-native-async-storage/async-storage` | — |
+
+---
+
+## Phase E — Dark Mode « Luxe profond »
+
+| Fichier | Action | Détail |
+|---|---|---|
+| `src/theme/theme.ts` | **Modifié** | Double palette `lightTheme` + `darkTheme`, 26 tokens couleur ×2, ombres → bordures en dark |
+| `src/theme/ThemeContext.tsx` | **Nouveau** | `ThemeProvider` + `useTheme()` hook + StatusBar dynamique |
+| `src/services/theme-storage.ts` | **Nouveau** | Persistance AsyncStorage, 3 modes `system`/`light`/`dark` |
+| `app/_layout.tsx` | **Modifié** | Wrapper `ThemeProvider` au-dessus de `AuthProvider`, fond dynamique |
+| `app/settings.tsx` | **Modifié** | Section « Apparence », segmented control 3 modes |
+| `src/components/*` (8) | **Migrés** | `Button`, `ParfumCard`, `EmptyState`, `PriceDisplay`, `SectionHeader`, `AlertPriceToggle`, `AppLoader`, `OfflineBanner` |
+| `src/features/scan/*` (8) | **Migrés** | `ScanScreen`, `ScanCamera`, `ScanIdle`, `ScanLoading`, `ScanResults`, `ScanClarify`, `ScanError`, `ScanNoResult` |
+| `src/features/catalog/*` (2) | **Migrés** | `CatalogPage`, `OlfactoryPyramid` |
+| `app/catalog/[id].tsx` | **Migré** | 746 lignes — inner components `StatBar`/`AccordBar`/`SectionTitle` reçoivent `s` + `t` |
+| `src/features/profile/ProfilePage.tsx` | **Migré** | `ListItemImage` reçoit `t` en prop |
+| `app/(tabs)/index.tsx` | **Migré** | TabPager hybride : styles layout statiques + `getStyles(t)` pour les couleurs |
+| `app/auth/*` (2) | **Migrés** | `login.tsx`, `register.tsx` |
+| `app/onboarding.tsx` | **Migré** | 3 slides swipe |
+| `app/admin.tsx` | **Migré** | Styles inline migrés vers `getStyles(t)` |
+
+**Architecture** : `ThemeContext` séparé d'`AuthContext` → thème disponible sans authentification. Pattern `getStyles(t: Theme)` + `useMemo` dans tous les composants. `useColorScheme()` natif pour détecter le mode système. Persistance AsyncStorage (`@parfumscan/theme`).
+
+**Palette dark** : fond `#0B0712` (violet-noir profond), surfaces `#15101E`/`#1D1728`, texte `#EDE8F5`, violet `#8B6CF6`, doré `#D4A960`, teal `#2DD4BF`. Ombres remplacées par bordures subtiles `rgba(255,255,255,0.06–0.08)`.
+
+**Exception** : `ErrorBoundary.tsx` (class component) garde `lightTheme` en import direct — pas de hooks possible.
 
 ---
 

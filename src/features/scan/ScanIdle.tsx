@@ -1,7 +1,7 @@
 // src/features/scan/ScanIdle.tsx — État idle : viseur animé + halo respirant
 
-import { useEffect } from 'react';
-import { View, Text, Pressable, StyleSheet } from 'react-native';
+import { useEffect, useMemo } from 'react';
+import { View, Text, Pressable } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Animated, {
   useSharedValue,
@@ -12,7 +12,7 @@ import Animated, {
   cancelAnimation,
 } from 'react-native-reanimated';
 import Ionicons from '@react-native-vector-icons/ionicons/static';
-import { theme } from '../../theme/theme';
+import { useTheme, type Theme } from '../../theme/ThemeContext';
 
 interface Props {
   onStartScan: () => void;
@@ -20,7 +20,12 @@ interface Props {
   onOpenManual: () => void;
 }
 
+const VF = 220;
+const CORNER = 28;
+
 export function ScanIdle({ onStartScan, onImportGallery, onOpenManual }: Props) {
+  const { theme } = useTheme();
+  const s = useMemo(() => getStyles(theme), [theme]);
   const insets = useSafeAreaInsets();
   const haloOpacity = useSharedValue(0.3);
   const haloScale = useSharedValue(1);
@@ -87,108 +92,107 @@ export function ScanIdle({ onStartScan, onImportGallery, onOpenManual }: Props) 
   );
 }
 
-const VF = 220;
-const CORNER = 28;
-
-const s = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: theme.colors.background,
-    justifyContent: 'center',
-    alignItems: 'center',
-    paddingHorizontal: 32,
-  },
-  viewfinder: {
-    width: VF,
-    height: VF,
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginBottom: 32,
-  },
-  halo: {
-    position: 'absolute',
-    width: VF - 20,
-    height: VF - 20,
-    borderRadius: (VF - 20) / 2,
-    borderWidth: 3,
-    borderColor: theme.colors.primary,
-  },
-  corner: {
-    position: 'absolute',
-    width: CORNER,
-    height: CORNER,
-    borderColor: theme.colors.primary,
-  },
-  tl: { top: 0, left: 0, borderTopWidth: 3, borderLeftWidth: 3, borderTopLeftRadius: 8 },
-  tr: { top: 0, right: 0, borderTopWidth: 3, borderRightWidth: 3, borderTopRightRadius: 8 },
-  bl: { bottom: 0, left: 0, borderBottomWidth: 3, borderLeftWidth: 3, borderBottomLeftRadius: 8 },
-  br: { bottom: 0, right: 0, borderBottomWidth: 3, borderRightWidth: 3, borderBottomRightRadius: 8 },
-  title: {
-    fontFamily: 'PlayfairDisplay_700Bold',
-    fontSize: 28,
-    color: theme.colors.text,
-    marginBottom: 8,
-  },
-  desc: {
-    fontFamily: 'Inter_400Regular',
-    fontSize: 15,
-    color: theme.colors.textMuted,
-    textAlign: 'center',
-    lineHeight: 22,
-    marginBottom: 36,
-  },
-  actions: {
-    width: '100%',
-    maxWidth: 320,
-  },
-  cta: {
-    flexDirection: 'row',
-    backgroundColor: theme.colors.primary,
-    borderRadius: theme.radius.base,
-    height: 54,
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginBottom: 12,
-    ...theme.shadow.button,
-  },
-  ctaText: {
-    color: '#FFFFFF',
-    fontFamily: 'Inter_600SemiBold',
-    fontSize: 17,
-  },
-  outline: {
-    flexDirection: 'row',
-    borderRadius: theme.radius.base,
-    height: 48,
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginBottom: 14,
-    borderWidth: 1.5,
-    borderColor: theme.colors.primary,
-  },
-  outlineText: {
-    color: theme.colors.primary,
-    fontFamily: 'Inter_600SemiBold',
-    fontSize: 15,
-  },
-  link: {
-    flexDirection: 'row',
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginBottom: 24,
-  },
-  linkText: {
-    fontFamily: 'Inter_500Medium',
-    fontSize: 14,
-    color: theme.colors.textMuted,
-  },
-  tip: {
-    position: 'absolute',
-    bottom: 24,
-    fontFamily: 'Inter_400Regular',
-    fontSize: 12,
-    color: theme.colors.textMuted,
-    textAlign: 'center',
-    paddingHorizontal: 32,
-  },
-});
+function getStyles(t: Theme) {
+  return {
+    container: {
+      flex: 1,
+      backgroundColor: t.colors.background,
+      justifyContent: 'center',
+      alignItems: 'center',
+      paddingHorizontal: 32,
+    },
+    viewfinder: {
+      width: VF,
+      height: VF,
+      justifyContent: 'center',
+      alignItems: 'center',
+      marginBottom: 32,
+    },
+    halo: {
+      position: 'absolute',
+      width: VF - 20,
+      height: VF - 20,
+      borderRadius: (VF - 20) / 2,
+      borderWidth: 3,
+      borderColor: t.colors.primary,
+    },
+    corner: {
+      position: 'absolute',
+      width: CORNER,
+      height: CORNER,
+      borderColor: t.colors.primary,
+    },
+    tl: { top: 0, left: 0, borderTopWidth: 3, borderLeftWidth: 3, borderTopLeftRadius: 8 },
+    tr: { top: 0, right: 0, borderTopWidth: 3, borderRightWidth: 3, borderTopRightRadius: 8 },
+    bl: { bottom: 0, left: 0, borderBottomWidth: 3, borderLeftWidth: 3, borderBottomLeftRadius: 8 },
+    br: { bottom: 0, right: 0, borderBottomWidth: 3, borderRightWidth: 3, borderBottomRightRadius: 8 },
+    title: {
+      fontFamily: 'PlayfairDisplay_700Bold',
+      fontSize: 28,
+      color: t.colors.text,
+      marginBottom: 8,
+    },
+    desc: {
+      fontFamily: 'Inter_400Regular',
+      fontSize: 15,
+      color: t.colors.textMuted,
+      textAlign: 'center',
+      lineHeight: 22,
+      marginBottom: 36,
+    },
+    actions: {
+      width: '100%',
+      maxWidth: 320,
+    },
+    cta: {
+      flexDirection: 'row',
+      backgroundColor: t.colors.primary,
+      borderRadius: t.radius.base,
+      height: 54,
+      justifyContent: 'center',
+      alignItems: 'center',
+      marginBottom: 12,
+      ...t.shadow.button,
+    },
+    ctaText: {
+      color: '#FFFFFF',
+      fontFamily: 'Inter_600SemiBold',
+      fontSize: 17,
+    },
+    outline: {
+      flexDirection: 'row',
+      borderRadius: t.radius.base,
+      height: 48,
+      justifyContent: 'center',
+      alignItems: 'center',
+      marginBottom: 14,
+      borderWidth: 1.5,
+      borderColor: t.colors.primary,
+    },
+    outlineText: {
+      color: t.colors.primary,
+      fontFamily: 'Inter_600SemiBold',
+      fontSize: 15,
+    },
+    link: {
+      flexDirection: 'row',
+      justifyContent: 'center',
+      alignItems: 'center',
+      marginBottom: 24,
+    },
+    linkText: {
+      fontFamily: 'Inter_500Medium',
+      fontSize: 14,
+      color: t.colors.textMuted,
+    },
+    tip: {
+      position: 'absolute',
+      bottom: 24,
+      fontFamily: 'Inter_400Regular',
+      fontSize: 12,
+      color: t.colors.textMuted,
+      textAlign: 'center',
+      paddingHorizontal: 32,
+    },
+  } as const;
+}

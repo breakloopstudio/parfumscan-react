@@ -1,10 +1,183 @@
 import * as functions from 'firebase-functions';
 import * as admin from 'firebase-admin';
+import { onSchedule } from 'firebase-functions/v2/scheduler';
 import OpenAI from 'openai';
 
 admin.initializeApp();
 
+const db = admin.firestore();
 
+
+
+/**
+ * Cloud Function : checkPriceAlerts
+ * Scheduled every 6 hours — checks all active price alerts for drops.
+ */
+export const checkPriceAlerts = onSchedule('every 6 hours', async () => {
+  const apiKey = process.env.FRAGELLA_API_KEY;
+  if (!apiKey) {
+    console.error('[checkPriceAlerts] FRAGELLA_API_KEY not configured');
+    return;
+  }
+
+  const usersSnap = await db.collection('users').get();
+  let alertsChecked = 0;
+  let notificationsSent = 0;
+  const now = Date.now();
+  const STALE_MS = 24 * 60 * 60 * 1000; // 24 hours
+
+  for (const userDoc of usersSnap.docs) {
+    const uid = userDoc.id;
+
+    // Check user settings: must have priceAlerts + pushNotifs enabled
+    let settings: { priceAlerts?: boolean; pushNotifs?: boolean } = {};
+    try {
+      const settingsDoc = await db.doc(`users/${uid}/settings/preferences`).get();
+      settings = settingsDoc.data() ?? {};
+    } catch {
+      continue;
+    }
+    if (settings.priceAlerts !== true || settings.pushNotifs !== true) continue;
+
+    // Get user's active price alerts
+    let alertsSnap: FirebaseFirestore.QuerySnapshot<FirebaseFirestore.DocumentData>;
+    try {
+      alertsSnap = await db.collection(`users/${uid}/priceAlerts`).get();
+    } catch {
+      continue;
+    }
+    if (alertsSnap.empty) continue;
+
+    // Get user's FCM tokens
+    let tokens: string[] = [];
+    try {
+      const tokensSnap = await db.collection(`users/${uid}/fcmTokens`).get();
+      tokens = tokensSnap.docs.map(d => d.data().token).filter(Boolean) as string[];
+    } catch {
+      continue;
+    }
+    if (tokens.length === 0) continue;
+
+    for (const alertDoc of alertsSnap.docs) {
+      const alert = alertDoc.data();
+      const parfumId = alert.parfumId as string;
+      const lastPrice = typeof alert.lastPrice === 'number' ? alert.lastPrice : null;
+      if (!parfumId) continue;
+
+      alertsChecked++;
+
+      // Get cached parfum from Firestore
+      let currentPrice: number | null = null;
+      let parfumNom = '';
+      let parfumMarque = '';
+
+      try {
+        const parfumDoc = await db.doc(`parfums/${parfumId}`).get();
+        if (parfumDoc.exists) {
+          const p = parfumDoc.data()!;
+          const cachedAt = p.cachedAt ? new Date(p.cachedAt as string | Date).getTime() : 0;
+          const isFresh = (now - cachedAt) < STALE_MS;
+
+          if (isFresh) {
+            currentPrice = typeof p.bestPrice === 'number' ? p.bestPrice : null;
+            parfumNom = (p.nom as string) ?? '';
+            parfumMarque = (p.marque as string) ?? '';
+          } else {
+            // Stale cache — call Fragella to refresh
+            const fragellaId = p.fragellaId as string | undefined;
+            if (fragellaId) {
+              const fragResponse = await fetch(
+                `https://api.fragella.com/api/v1/fragrances/${encodeURIComponent(fragellaId)}`,
+                { headers: { 'x-api-key': apiKey } }
+              );
+              if (fragResponse.ok) {
+                const fragData = await fragResponse.json() as Record<string, unknown>;
+                const newPrice = fragData['Price'] ? parseFloat(String(fragData['Price'])) : null;
+                currentPrice = newPrice ?? null;
+                parfumNom = (fragData['Name'] as string) ?? (p.nom as string);
+                parfumMarque = (fragData['Brand'] as string) ?? (p.marque as string);
+
+                // Update cache
+                await db.doc(`parfums/${parfumId}`).set({
+                  bestPrice: currentPrice,
+                  cachedAt: new Date().toISOString(),
+                }, { merge: true });
+              } else {
+                // API failed, use cached regardless of staleness
+                currentPrice = typeof p.bestPrice === 'number' ? p.bestPrice : null;
+                parfumNom = (p.nom as string) ?? '';
+                parfumMarque = (p.marque as string) ?? '';
+              }
+            } else {
+              // No fragellaId, use cached regardless
+              currentPrice = typeof p.bestPrice === 'number' ? p.bestPrice : null;
+              parfumNom = (p.nom as string) ?? '';
+              parfumMarque = (p.marque as string) ?? '';
+            }
+          }
+        }
+      } catch (err: unknown) {
+        const msg = err instanceof Error ? err.message : String(err);
+        console.warn(`[checkPriceAlerts] Failed to fetch parfum ${parfumId}:`, msg);
+        continue;
+      }
+
+      // Compare prices and trigger notification if drop detected
+      if (lastPrice !== null && currentPrice !== null && currentPrice > 0) {
+        const dropPct = (lastPrice - currentPrice) / lastPrice;
+        const dropAbs = lastPrice - currentPrice;
+        const significantDrop = dropPct >= 0.10 || dropAbs >= 5;
+
+        if (significantDrop) {
+          const displayName = parfumMarque && parfumNom
+            ? `${parfumMarque} ${parfumNom}`
+            : parfumId;
+
+          const message: admin.messaging.MulticastMessage = {
+            tokens,
+            notification: {
+              title: '💰 Baisse de prix !',
+              body: `${displayName} est passé à ${currentPrice.toFixed(0)} € (-${Math.round(dropPct * 100)}%)`,
+            },
+            data: {
+              type: 'price_alert',
+              parfumId,
+              newPrice: String(currentPrice),
+            },
+            android: {
+              notification: {
+                channelId: 'price_alerts',
+                priority: 'high',
+              },
+            },
+          };
+
+          try {
+            const response = await admin.messaging().sendEachForMulticast(message);
+            notificationsSent += response.successCount;
+            console.log(`[checkPriceAlerts] Sent to ${uid}: ${displayName} ${lastPrice.toFixed(0)}€ → ${currentPrice.toFixed(0)}€`);
+          } catch (err: unknown) {
+            const msg = err instanceof Error ? err.message : String(err);
+            console.warn(`[checkPriceAlerts] Failed to notify ${uid}:`, msg);
+          }
+        }
+      }
+
+      // Update lastPrice and lastChecked on the alert doc
+      try {
+        await alertDoc.ref.set({
+          lastPrice: currentPrice,
+          lastChecked: new Date().toISOString(),
+        }, { merge: true });
+      } catch (err: unknown) {
+        const msg = err instanceof Error ? err.message : String(err);
+        console.warn(`[checkPriceAlerts] Failed to update alert doc:`, msg);
+      }
+    }
+  }
+
+  console.log(`[checkPriceAlerts] Done — ${alertsChecked} alerts checked, ${notificationsSent} notifications sent`);
+});
 
 /**
  * Cloud Function : sendNotification

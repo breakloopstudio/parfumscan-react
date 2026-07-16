@@ -1,11 +1,12 @@
 // src/features/scan/ScanResults.tsx — Résultats triés par prix croissant
 
-import { View, Text, FlatList, Pressable, StyleSheet } from 'react-native';
+import { useMemo } from 'react';
+import { View, Text, FlatList, Pressable } from 'react-native';
 import { useRouter } from 'expo-router';
 import Ionicons from '@react-native-vector-icons/ionicons/static';
 import ParfumCard from '../../components/ParfumCard';
 import { setPendingParfum } from '../../services/catalog-bridge';
-import { theme } from '../../theme/theme';
+import { useTheme, type Theme } from '../../theme/ThemeContext';
 import type { Parfum } from '../../models';
 import type { ParfumSearchResult } from '../../services/fragella';
 
@@ -15,6 +16,8 @@ interface Props {
 }
 
 export function ScanResults({ parfums, onOpenCatalog }: Props) {
+  const { theme } = useTheme();
+  const s = useMemo(() => getStyles(theme), [theme]);
   const router = useRouter();
 
   const sorted = [...parfums].sort((a, b) => {
@@ -52,20 +55,22 @@ export function ScanResults({ parfums, onOpenCatalog }: Props) {
   );
 }
 
-const s = StyleSheet.create({
-  container: { flex: 1 },
-  header: { alignItems: 'center', paddingTop: 24, paddingBottom: 8 },
-  title: {
-    fontFamily: 'PlayfairDisplay_600SemiBold',
-    fontSize: 20,
-    color: theme.colors.text,
-    marginTop: 8,
-  },
-  list: { paddingBottom: 16 },
-  catalogBtn: { alignSelf: 'center', marginVertical: 16, paddingVertical: 10, paddingHorizontal: 20 },
-  catalogText: {
-    fontFamily: 'Inter_600SemiBold',
-    fontSize: 15,
-    color: theme.colors.primary,
-  },
-});
+function getStyles(t: Theme) {
+  return {
+    container: { flex: 1 },
+    header: { alignItems: 'center', paddingTop: 24, paddingBottom: 8 },
+    title: {
+      fontFamily: 'PlayfairDisplay_600SemiBold',
+      fontSize: 20,
+      color: t.colors.text,
+      marginTop: 8,
+    },
+    list: { paddingBottom: 16 },
+    catalogBtn: { alignSelf: 'center', marginVertical: 16, paddingVertical: 10, paddingHorizontal: 20 },
+    catalogText: {
+      fontFamily: 'Inter_600SemiBold',
+      fontSize: 15,
+      color: t.colors.primary,
+    },
+  } as const;
+}

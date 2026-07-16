@@ -2,13 +2,12 @@
 
 import { useEffect } from 'react';
 import { Stack, useRouter, useSegments } from 'expo-router';
-import { StatusBar } from 'expo-status-bar';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { GoogleSignin } from '@react-native-google-signin/google-signin';
 import * as SplashScreen from 'expo-splash-screen';
 import { AuthProvider, useAuthContext } from '../src/contexts/AuthContext';
+import { ThemeProvider, useTheme } from '../src/theme/ThemeContext';
 import { ErrorBoundary } from '../src/components/ErrorBoundary';
-import { theme } from '../src/theme/theme';
 import { isFirebaseReady } from '../src/services/firebase';
 import '../src/services/firebase';
 
@@ -46,12 +45,11 @@ function AuthGuard({ children }: { children: React.ReactNode }) {
   return <>{children}</>;
 }
 
-export default function RootLayout() {
-  const colors = theme.colors;
+function RootLayoutInner() {
+  const { theme } = useTheme();
   return (
-    <GestureHandlerRootView style={{ flex: 1, backgroundColor: colors.background }}>
+    <GestureHandlerRootView style={{ flex: 1, backgroundColor: theme.colors.background }}>
       <AuthProvider>
-        <StatusBar style="dark" />
         <AuthGuard>
           <ErrorBoundary>
           <Stack screenOptions={{ headerShown: false }}>
@@ -67,5 +65,13 @@ export default function RootLayout() {
         </AuthGuard>
       </AuthProvider>
     </GestureHandlerRootView>
+  );
+}
+
+export default function RootLayout() {
+  return (
+    <ThemeProvider>
+      <RootLayoutInner />
+    </ThemeProvider>
   );
 }

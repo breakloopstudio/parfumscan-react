@@ -1,20 +1,32 @@
 // app/settings.tsx — Page de paramètres
 
-import { useState, useEffect } from 'react';
-import { View, Text, ScrollView, Switch, Pressable, Alert, StyleSheet } from 'react-native';
+import { useState, useEffect, useMemo } from 'react';
+import { View, Text, ScrollView, Switch, Pressable, Alert, StyleSheet, LayoutAnimation, Platform, UIManager } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import Ionicons from '@react-native-vector-icons/ionicons/static';
 import { useAuthContext } from '../src/contexts/AuthContext';
 import { getUserSettings, updateUserSetting } from '../src/services/user-data';
 import { requestFcmPermission, deleteFcmToken } from '../src/services/fcm';
-import { theme } from '../src/theme/theme';
+import { useTheme, type Theme } from '../src/theme/ThemeContext';
+import type { ThemeMode } from '../src/services/theme-storage';
+
+if (Platform.OS === 'android' && UIManager.setLayoutAnimationEnabledExperimental) {
+  UIManager.setLayoutAnimationEnabledExperimental(true);
+}
 
 export default function SettingsPage() {
   const { user, logout } = useAuthContext();
   const router = useRouter();
+  const { theme, mode, setMode } = useTheme();
+  const s = useMemo(() => getStyles(theme), [theme]);
   const [priceAlerts, setPriceAlerts] = useState(false);
   const [pushNotifs, setPushNotifs] = useState(true);
+
+  const handleThemeChange = (m: ThemeMode) => {
+    LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
+    setMode(m);
+  };
 
   useEffect(() => {
     if (user?.uid) {
@@ -93,6 +105,28 @@ export default function SettingsPage() {
         </View>
 
         <View style={s.section}>
+          <Text style={s.sectionTitle}>Apparence</Text>
+
+          <View style={s.segmentedControl}>
+            {(['light', 'system', 'dark'] as ThemeMode[]).map(m => {
+              const active = mode === m;
+              const icons: Record<ThemeMode, string> = { light: 'sunny', system: 'invert-mode', dark: 'moon' };
+              const labels: Record<ThemeMode, string> = { light: 'Clair', system: 'Système', dark: 'Sombre' };
+              return (
+                <Pressable
+                  key={m}
+                  style={[s.segment, active && s.segmentActive]}
+                  onPress={() => handleThemeChange(m)}
+                >
+                  <Ionicons name={icons[m] as never} size={16} color={active ? theme.colors.primary : theme.colors.textMuted} />
+                  <Text style={[s.segmentLabel, active && s.segmentLabelActive]}>{labels[m]}</Text>
+                </Pressable>
+              );
+            })}
+          </View>
+        </View>
+
+        <View style={s.section}>
           <Text style={s.sectionTitle}>Compte</Text>
 
           <Pressable style={s.row} onPress={() => { logout(); router.replace('/auth/login'); }}>
@@ -136,17 +170,24 @@ export default function SettingsPage() {
   );
 }
 
-const s = StyleSheet.create({
-  container: { flex: 1, backgroundColor: theme.colors.background },
-  scroll: { paddingBottom: 40 },
-  header: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 16, paddingVertical: 12, marginBottom: 8 },
-  backBtn: { width: 32, height: 32, justifyContent: 'center', alignItems: 'center' },
-  title: { fontFamily: 'PlayfairDisplay_700Bold', fontSize: 22, color: theme.colors.text },
-  section: { marginBottom: 24, paddingHorizontal: 16 },
-  sectionTitle: { fontFamily: 'Inter_700Bold', fontSize: 11, textTransform: 'uppercase', letterSpacing: 1.5, color: theme.colors.textMuted, marginBottom: 12 },
-  row: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingVertical: 12, borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: theme.colors.border },
-  rowLeft: { flexDirection: 'row', alignItems: 'center', gap: 12, flex: 1 },
-  rowLabel: { fontFamily: 'Inter_500Medium', fontSize: 15, color: theme.colors.text },
-  rowDesc: { fontFamily: 'Inter_400Regular', fontSize: 12, color: theme.colors.textMuted, marginTop: 2 },
-  version: { textAlign: 'center', fontFamily: 'Inter_400Regular', fontSize: 12, color: theme.colors.textMuted, marginTop: 16 },
-});
+function getStyles(t: Theme) {
+  return {
+    container: { flex: 1, backgroundColor: t.colors.background },
+    scroll: { paddingBottom: 40 },
+    header: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 16, paddingVertical: 12, marginBottom: 8 },
+    backBtn: { width: 32, height: 32, justifyContent: 'center', alignItems: 'center' },
+    title: { fontFamily: 'PlayfairDisplay_700Bold', fontSize: 22, color: t.colors.text },
+    section: { marginBottom: 24, paddingHorizontal: 16 },
+    sectionTitle: { fontFamily: 'Inter_700Bold', fontSize: 11, textTransform: 'uppercase', letterSpacing: 1.5, color: t.colors.textMuted, marginBottom: 12 },
+    row: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingVertical: 12, borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: t.colors.border },
+    rowLeft: { flexDirection: 'row', alignItems: 'center', gap: 12, flex: 1 },
+    rowLabel: { fontFamily: 'Inter_500Medium', fontSize: 15, color: t.colors.text },
+    rowDesc: { fontFamily: 'Inter_400Regular', fontSize: 12, color: t.colors.textMuted, marginTop: 2 },
+    version: { textAlign: 'center', fontFamily: 'Inter_400Regular', fontSize: 12, color: t.colors.textMuted, marginTop: 16 },
+    segmentedControl: { flexDirection: 'row', backgroundColor: t.colors.surface2, borderRadius: t.radius.base, padding: 4 },
+    segment: { flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6, paddingVertical: 10, borderRadius: t.radius.sm },
+    segmentActive: { backgroundColor: t.colors.primarySoft },
+    segmentLabel: { fontFamily: 'Inter_500Medium', fontSize: 13, color: t.colors.textMuted },
+    segmentLabelActive: { color: t.colors.primary, fontFamily: 'Inter_700Bold' },
+  } as const;
+}

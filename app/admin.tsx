@@ -1,27 +1,27 @@
 // app/admin.tsx — Administration (upload images parfum)
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import {
   View, Text, ScrollView, Pressable, ActivityIndicator,
-  StyleSheet, Alert,
+  Alert,
 } from 'react-native';
 import { Image } from 'expo-image';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useAuthContext } from '../src/contexts/AuthContext';
 import { onParfums, updateParfum } from '../src/services/firestore';
-import { theme } from '../src/theme/theme';
+import { useTheme, type Theme } from '../src/theme/ThemeContext';
 import type { Parfum } from '../src/models';
 import { uploadParfumImage } from '../src/services/storage';
 
-// Lazy: expo-image-picker optionnel → l'upload est désactivé si non installé
 let ImagePicker: typeof import('expo-image-picker') | null = null;
 import('expo-image-picker').then(m => { ImagePicker = m; }).catch(() => {});
 
 export default function AdminPage() {
+  const { theme } = useTheme();
+  const s = useMemo(() => getStyles(theme), [theme]);
   const { isAuthenticated, isAdmin } = useAuthContext();
   const [parfums, setParfums] = useState<Parfum[]>([]);
 
-  // ─── Upload state ────────────────────────────────────────
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [selectedUri, setSelectedUri] = useState<string | null>(null);
   const [uploading, setUploading] = useState(false);
@@ -35,7 +35,6 @@ export default function AdminPage() {
   if (!isAuthenticated) return <View style={s.center}><Text style={{color:theme.colors.textMuted}}>Connectez-vous en tant qu'admin.</Text></View>;
   if (!isAdmin) return <View style={s.center}><Text style={{color:theme.colors.textMuted}}>Accès réservé aux administrateurs.</Text></View>;
 
-  // ─── Pick image ──────────────────────────────────────────
   const pickImage = async () => {
     if (!ImagePicker) { Alert.alert('Non disponible', 'Installe expo-image-picker pour uploader des images.'); return; }
     const result = await ImagePicker.launchImageLibraryAsync({
@@ -49,7 +48,6 @@ export default function AdminPage() {
     }
   };
 
-  // ─── Upload ──────────────────────────────────────────────
   const doUpload = async () => {
     if (!selectedId || !selectedUri) return;
     setUploading(true); setUploadMsg(null); setUploadErr(false);
@@ -72,13 +70,11 @@ export default function AdminPage() {
       <ScrollView contentContainerStyle={s.scroll}>
         <Text style={s.title}>Administration</Text>
 
-        {/* ── Upload ────────────────────────────── */}
         <Text style={s.sub}>Upload image parfum</Text>
         <Text style={s.desc}>
           Attribue une photo à un parfum existant. Sélectionne d'abord un parfum, puis choisis une image.
         </Text>
 
-        {/* Sélecteur de parfum */}
         <Text style={s.fieldLabel}>Parfum cible</Text>
         <ScrollView horizontal showsHorizontalScrollIndicator={false} style={s.pickerRow}>
           {parfums.length === 0 && <Text style={{color:theme.colors.textMuted,fontSize:13}}>Aucun parfum dans la base.</Text>}
@@ -102,7 +98,6 @@ export default function AdminPage() {
           </View>
         )}
 
-        {/* Sélecteur image */}
         <Pressable style={s.btnOutline} onPress={pickImage} disabled={uploading}>
           <Text style={s.btnOutlineText}>{selectedUri ? "📸 Changer l'image" : '📸 Choisir une image'}</Text>
         </Pressable>
@@ -116,7 +111,6 @@ export default function AdminPage() {
           </View>
         )}
 
-        {/* Bouton upload */}
         {selectedUri && selectedId && (
           <Pressable style={[s.btnUpload, uploading && { opacity: 0.5 }]} onPress={doUpload} disabled={uploading}>
             {uploading
@@ -133,32 +127,28 @@ export default function AdminPage() {
   );
 }
 
-
-const s = StyleSheet.create({
-  container: { flex: 1, backgroundColor: theme.colors.background },
-  center: { flex: 1, justifyContent: 'center', alignItems: 'center', padding: 32 },
-  scroll: { padding: 24 },
-  title: { fontFamily: 'PlayfairDisplay_700Bold', fontSize: 24, color: theme.colors.text, marginBottom: 24 },
-  sub: { fontSize: 16, fontFamily: 'Inter_600SemiBold', color: theme.colors.text, marginBottom: 8 },
-  desc: { fontSize: 14, color: theme.colors.textMuted, marginBottom: 16, lineHeight: 20 },
-
-  // Upload
-  btnUpload: { backgroundColor: theme.colors.primary, borderRadius: theme.radius.base, height: 48, justifyContent: 'center', alignItems: 'center', marginTop: 12, ...theme.shadow.button },
-  btnUploadText: { color: '#FFF', fontFamily: 'Inter_600SemiBold', fontSize: 15 },
-  btnOutline: { borderWidth: 1, borderColor: theme.colors.primary, borderRadius: theme.radius.base, height: 48, justifyContent: 'center', alignItems: 'center', marginTop: 12 },
-  btnOutlineText: { color: theme.colors.primary, fontFamily: 'Inter_600SemiBold', fontSize: 15 },
-  // Upload — sélecteur parfum
-  fieldLabel: { fontSize: 13, fontFamily: 'Inter_500Medium', color: theme.colors.text, marginBottom: 8, marginTop: 8 },
-  pickerRow: { marginBottom: 12, maxHeight: 60 },
-  pickItem: { paddingHorizontal: 14, paddingVertical: 8, borderRadius: 20, backgroundColor: theme.colors.surface2, marginRight: 8 },
-  pickActive: { backgroundColor: theme.colors.violetSoft, borderWidth: 1, borderColor: theme.colors.primary },
-  pickText: { fontSize: 13, color: theme.colors.text },
-  pickTextActive: { color: theme.colors.primary, fontFamily: 'Inter_600SemiBold' },
-
-  // Upload — image
-  currentImgWrap: { marginBottom: 12 },
-  currentImg: { width: '100%', height: 160, borderRadius: 12, resizeMode: 'cover' },
-  previewWrap: { alignItems: 'center', marginTop: 12 },
-  preview: { width: 200, height: 200, borderRadius: 12, resizeMode: 'cover' },
-  clearPreview: { marginTop: 6 },
-});
+function getStyles(t: Theme) {
+  return {
+    container: { flex: 1, backgroundColor: t.colors.background },
+    center: { flex: 1, justifyContent: 'center', alignItems: 'center', padding: 32 },
+    scroll: { padding: 24 },
+    title: { fontFamily: 'PlayfairDisplay_700Bold', fontSize: 24, color: t.colors.text, marginBottom: 24 },
+    sub: { fontSize: 16, fontFamily: 'Inter_600SemiBold', color: t.colors.text, marginBottom: 8 },
+    desc: { fontSize: 14, color: t.colors.textMuted, marginBottom: 16, lineHeight: 20 },
+    btnUpload: { backgroundColor: t.colors.primary, borderRadius: t.radius.base, height: 48, justifyContent: 'center', alignItems: 'center', marginTop: 12, ...t.shadow.button },
+    btnUploadText: { color: '#FFF', fontFamily: 'Inter_600SemiBold', fontSize: 15 },
+    btnOutline: { borderWidth: 1, borderColor: t.colors.primary, borderRadius: t.radius.base, height: 48, justifyContent: 'center', alignItems: 'center', marginTop: 12 },
+    btnOutlineText: { color: t.colors.primary, fontFamily: 'Inter_600SemiBold', fontSize: 15 },
+    fieldLabel: { fontSize: 13, fontFamily: 'Inter_500Medium', color: t.colors.text, marginBottom: 8, marginTop: 8 },
+    pickerRow: { marginBottom: 12, maxHeight: 60 },
+    pickItem: { paddingHorizontal: 14, paddingVertical: 8, borderRadius: 20, backgroundColor: t.colors.surface2, marginRight: 8 },
+    pickActive: { backgroundColor: t.colors.violetSoft, borderWidth: 1, borderColor: t.colors.primary },
+    pickText: { fontSize: 13, color: t.colors.text },
+    pickTextActive: { color: t.colors.primary, fontFamily: 'Inter_600SemiBold' },
+    currentImgWrap: { marginBottom: 12 },
+    currentImg: { width: '100%', height: 160, borderRadius: 12, resizeMode: 'cover' },
+    previewWrap: { alignItems: 'center', marginTop: 12 },
+    preview: { width: 200, height: 200, borderRadius: 12, resizeMode: 'cover' },
+    clearPreview: { marginTop: 6 },
+  } as const;
+}
