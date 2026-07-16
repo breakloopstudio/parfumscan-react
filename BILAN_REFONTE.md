@@ -86,16 +86,16 @@
 
 | # | Feature | Statut UI | Statut backend | Action |
 |---|---|---|---|---|
-| 1 | Boutons Collection/Wishlist sur fiche détail | UI prête (3 boutons) | Hooks + Firestore prêts | Remplacer `Alert.alert('À venir')` par `addToCollection`/`addToWishlist` |
-| 2 | Menu "Déplacer vers..." dans le profil | UI prête (context menu) | Ajout fonctionnel, suppression trop agressive | Implémenter `moveToCollection`/`moveToWishlist` (atomique : remove source + add dest) |
-| 3 | Onboarding auto au 1er lancement | UI prête (3 slides + AsyncStorage) | — | Ajouter la redirection dans `_layout.tsx` |
-| 4 | Bannière hors-ligne | Composant `OfflineBanner` créé | Hook `useNetwork` existant | Intégrer dans `_layout.tsx` |
-| 5 | Alertes prix (Settings) | UI prête (switch) | FCM intégré (`fcm.ts`), Cloud Function à créer | Créer la Cloud Function de surveillance des prix |
-| 6 | Navigation par famille olfactive (catalogue) | UI prête (chips) | Endpoint de recherche manquant | Ajouter la recherche filtrée par famille dans Fragella ou Firestore |
-| 7 | Parfums similaires (fiche détail) | Non implémenté | Endpoint Fragella existant (`getFragranceById`) | Créer le carrousel horizontal + appel API |
-| 8 | Pyramide olfactive v2 (cercles concentriques) | Version actuelle conservée | — | Refonte design du composant `OlfactoryPyramid` |
-| 9 | Vue "Toutes les offres" multi-marchands | Non implémenté | API Fragella retourne plusieurs offres | Ajouter la liste expansible sous la deal card |
-| 10 | Alertes prix (toggle sur fiche détail) | Composant `AlertPriceToggle` non créé | — | Créer le composant + l'intégrer |
+| 1 | Boutons Collection/Wishlist sur fiche détail | ✅ Intégré (`catalog/[id].tsx`) | Hooks + Firestore prêts | — |
+| 2 | Menu "Déplacer vers..." dans le profil | ✅ Context menu migré | ✅ `moveToCollection`/`moveToWishlist`/`moveFavori` atomiques (batch Firestore) | — |
+| 3 | Onboarding auto au 1er lancement | ✅ `app/index.tsx` vérifie AsyncStorage | — | — |
+| 4 | Bannière hors-ligne | ✅ Intégré dans `_layout.tsx` | `useNetwork` actif | — |
+| 5 | Alertes prix (Settings) | ✅ Switches connectés | ✅ `getUserSettings`/`updateUserSetting` dans Firestore + FCM | Cloud Function de surveillance des prix (V2) |
+| 6 | Navigation par famille olfactive (catalogue) | ✅ Chips déclenchent `search()` | ✅ Via `searchFragranceByQuery` + cache Firestore | — |
+| 7 | Parfums similaires (fiche détail) | ✅ Carrousel horizontal | ✅ `getSimilarFragrances` → `/fragrances/similar` | Cache Firestore pour les similaires (V2) |
+| 8 | Pyramide olfactive v2 (cercles concentriques) | ✅ 3 cercles concentriques Reanimated | — | — |
+| 9 | Vue "Toutes les offres" multi-marchands | ✅ Liste expansible (`parfum.offers`) | API Fragella — `offers[]` déjà présent dans le modèle | — |
+| 10 | Alertes prix (toggle sur fiche détail) | ✅ `AlertPriceToggle` créé + intégré | ✅ `isPriceAlertActive`/`setPriceAlert` dans `users/{uid}/priceAlerts` | Cloud Function pour l'envoi (V2) |
 
 ---
 

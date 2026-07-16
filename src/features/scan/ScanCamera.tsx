@@ -145,7 +145,7 @@ const s = StyleSheet.create({
   captureInner: { width: 56, height: 56, borderRadius: 28, backgroundColor: '#FFF' },
   captureInnerDisabled: { backgroundColor: 'rgba(255,255,255,0.4)' },
   flashOverlay: {
-    ...StyleSheet.absoluteFillObject,
+    ...StyleSheet.absoluteFill,
     backgroundColor: '#FFFFFF',
   },
 });

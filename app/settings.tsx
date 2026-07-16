@@ -1,18 +1,44 @@
 // app/settings.tsx — Page de paramètres
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { View, Text, ScrollView, Switch, Pressable, Alert, StyleSheet } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import Ionicons from '@react-native-vector-icons/ionicons/static';
 import { useAuthContext } from '../src/contexts/AuthContext';
+import { getUserSettings, updateUserSetting } from '../src/services/user-data';
+import { requestFcmPermission, deleteFcmToken } from '../src/services/fcm';
 import { theme } from '../src/theme/theme';
 
 export default function SettingsPage() {
-  const { logout } = useAuthContext();
+  const { user, logout } = useAuthContext();
   const router = useRouter();
   const [priceAlerts, setPriceAlerts] = useState(false);
   const [pushNotifs, setPushNotifs] = useState(true);
+
+  useEffect(() => {
+    if (user?.uid) {
+      getUserSettings(user.uid).then(s => {
+        setPriceAlerts(s.priceAlerts);
+        setPushNotifs(s.pushNotifs);
+      });
+    }
+  }, [user?.uid]);
+
+  const handlePushNotifs = async (val: boolean) => {
+    setPushNotifs(val);
+    if (user?.uid) await updateUserSetting(user.uid, 'pushNotifs', val);
+    if (val) {
+      requestFcmPermission().catch(() => {});
+    } else {
+      deleteFcmToken().catch(() => {});
+    }
+  };
+
+  const handlePriceAlerts = async (val: boolean) => {
+    setPriceAlerts(val);
+    if (user?.uid) await updateUserSetting(user.uid, 'priceAlerts', val);
+  };
 
   return (
     <SafeAreaView edges={['top', 'bottom']} style={s.container}>
@@ -36,7 +62,7 @@ export default function SettingsPage() {
                 <Text style={s.rowDesc}>Recevoir une notification quand un parfum de ta wishlist baisse de prix</Text>
               </View>
             </View>
-            <Switch value={priceAlerts} onValueChange={setPriceAlerts} trackColor={{ false: theme.colors.border, true: theme.colors.primarySoft }} thumbColor={priceAlerts ? theme.colors.primary : theme.colors.textMuted} />
+            <Switch value={priceAlerts} onValueChange={handlePriceAlerts} trackColor={{ false: theme.colors.border, true: theme.colors.primarySoft }} thumbColor={priceAlerts ? theme.colors.primary : theme.colors.textMuted} />
           </View>
 
           <View style={s.row}>
@@ -47,7 +73,7 @@ export default function SettingsPage() {
                 <Text style={s.rowDesc}>Autoriser les notifications sur cet appareil</Text>
               </View>
             </View>
-            <Switch value={pushNotifs} onValueChange={setPushNotifs} trackColor={{ false: theme.colors.border, true: theme.colors.primarySoft }} thumbColor={pushNotifs ? theme.colors.primary : theme.colors.textMuted} />
+            <Switch value={pushNotifs} onValueChange={handlePushNotifs} trackColor={{ false: theme.colors.border, true: theme.colors.primarySoft }} thumbColor={pushNotifs ? theme.colors.primary : theme.colors.textMuted} />
           </View>
         </View>
 

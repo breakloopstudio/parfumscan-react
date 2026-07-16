@@ -12,6 +12,7 @@ import { useScans } from '../../hooks/useScans';
 import { useCollection } from '../../hooks/useCollection';
 import { useWishlist } from '../../hooks/useWishlist';
 import { getParfumById } from '../../services/firestore';
+import { moveToCollection, moveToWishlist, moveFavori } from '../../services/user-data';
 import { setPendingParfum } from '../../services/catalog-bridge';
 import { theme } from '../../theme/theme';
 import EmptyState from '../../components/EmptyState';
@@ -43,10 +44,10 @@ export default function ProfilePage({ onGoToCatalog }: Props) {
   const [showHistory, setShowHistory] = useState(false);
   const uid = user?.uid ?? null;
 
-  const { favoris, loading: favLoading, removeFavori, addFavori } = useFavoris(uid);
+  const { favoris, loading: favLoading, removeFavori } = useFavoris(uid);
   const { scans, loading: scanLoading, removeScan } = useScans(uid);
-  const { items: collection, loading: collLoading, remove: removeCollection, add: addToCollection } = useCollection(uid);
-  const { items: wishlist, loading: wishLoading, remove: removeWishlist, add: addToWishlist } = useWishlist(uid);
+  const { items: collection, loading: collLoading, remove: removeCollection } = useCollection(uid);
+  const { items: wishlist, loading: wishLoading, remove: removeWishlist } = useWishlist(uid);
   const [imgFailed, setImgFailed] = useState(false);
 
   const goToDetail = async (parfumId: string) => {
@@ -70,9 +71,9 @@ export default function ProfilePage({ onGoToCatalog }: Props) {
       ...otherTabs.map(t => ({
         text: `Déplacer vers ${t.label}`,
         onPress: () => {
-          if (t.tab === 'collection') addToCollection(parfumId, nom ?? undefined, marque ?? undefined, imageUrl ?? undefined);
-          if (t.tab === 'wishlist') addToWishlist(parfumId, nom ?? undefined, marque ?? undefined, imageUrl ?? undefined, familleOlactive ?? undefined);
-          if (t.tab === 'favoris') addFavori(parfumId, nom ?? undefined, marque ?? undefined, imageUrl ?? undefined);
+          if (t.tab === 'collection') moveToCollection(uid!, currentTab, itemId, parfumId, nom, marque, imageUrl);
+          else if (t.tab === 'wishlist') moveToWishlist(uid!, currentTab, itemId, parfumId, nom, marque, imageUrl, familleOlactive);
+          else if (t.tab === 'favoris') moveFavori(uid!, currentTab, itemId, parfumId, nom, marque, imageUrl, familleOlactive);
         },
       })),
       { text: 'Retirer', style: 'destructive' as const, onPress: () => {
@@ -165,7 +166,7 @@ export default function ProfilePage({ onGoToCatalog }: Props) {
 
         {/* Onglets */}
         <View style={s.tabs}>
-          {(['collection', 'wishlist', 'favoris'] as Tab[]).map(t => {
+          {(['collection', 'wishlist', 'favoris'] as const).map(t => {
             const count = t === 'collection' ? collection.length : t === 'wishlist' ? wishlist.length : favoris.length;
             const icons = { collection: 'flask-outline', wishlist: 'bookmark-outline', favoris: 'heart-outline' };
             const labels = { collection: 'Collection', wishlist: 'Wishlist', favoris: 'Favoris' };
@@ -198,7 +199,7 @@ export default function ProfilePage({ onGoToCatalog }: Props) {
           collection.map(c => (
             <Pressable key={c.id} style={s.listItem} onPress={() => goToDetail(c.parfumId)}>
               <View style={s.itemLeft}><ListItemImage imageUrl={c.imageUrl ?? undefined} /><View><Text style={s.itemName}>{c.nom ?? c.parfumId.replace(/_/g, ' ')}</Text>{c.marque ? <Text style={s.itemBrand}>{c.marque}</Text> : null}</View></View>
-              <Pressable onPress={() => showContextMenu(c.id, 'collection', c.nom, c.marque, c.imageUrl, c.parfumId)} hitSlop={12}><Ionicons name="ellipsis-horizontal" size={20} color={theme.colors.textMuted} /></Pressable>
+              <Pressable onPress={() => showContextMenu(c.id, 'collection', c.nom ?? null, c.marque ?? null, c.imageUrl ?? null, c.parfumId)} hitSlop={12}><Ionicons name="ellipsis-horizontal" size={20} color={theme.colors.textMuted} /></Pressable>
             </Pressable>
           ))
         )}
@@ -209,7 +210,7 @@ export default function ProfilePage({ onGoToCatalog }: Props) {
           wishlist.map(w => (
             <Pressable key={w.id} style={s.listItem} onPress={() => goToDetail(w.parfumId)}>
               <View style={s.itemLeft}><ListItemImage imageUrl={w.imageUrl ?? undefined} /><View><Text style={s.itemName}>{w.nom ?? w.parfumId.replace(/_/g, ' ')}</Text>{w.marque ? <Text style={s.itemBrand}>{w.marque}</Text> : null}</View></View>
-              <Pressable onPress={() => showContextMenu(w.id, 'wishlist', w.nom, w.marque, w.imageUrl, w.parfumId, w.familleOlactive)} hitSlop={12}><Ionicons name="ellipsis-horizontal" size={20} color={theme.colors.textMuted} /></Pressable>
+              <Pressable onPress={() => showContextMenu(w.id, 'wishlist', w.nom ?? null, w.marque ?? null, w.imageUrl ?? null, w.parfumId, w.familleOlactive ?? null)} hitSlop={12}><Ionicons name="ellipsis-horizontal" size={20} color={theme.colors.textMuted} /></Pressable>
             </Pressable>
           ))
         )}
@@ -220,7 +221,7 @@ export default function ProfilePage({ onGoToCatalog }: Props) {
           favoris.map(f => (
             <Pressable key={f.id} style={s.listItem} onPress={() => goToDetail(f.parfumId)}>
               <View style={s.itemLeft}><ListItemImage imageUrl={f.imageUrl ?? undefined} /><View><Text style={s.itemName}>{f.nom ?? f.parfumId.replace(/_/g, ' ')}</Text>{f.marque ? <Text style={s.itemBrand}>{f.marque}</Text> : null}</View></View>
-              <Pressable onPress={() => showContextMenu(f.id, 'favoris', f.nom, f.marque, f.imageUrl, f.parfumId, f.familleOlactive)} hitSlop={12}><Ionicons name="ellipsis-horizontal" size={20} color={theme.colors.textMuted} /></Pressable>
+              <Pressable onPress={() => showContextMenu(f.id, 'favoris', f.nom ?? null, f.marque ?? null, f.imageUrl ?? null, f.parfumId, f.familleOlactive ?? null)} hitSlop={12}><Ionicons name="ellipsis-horizontal" size={20} color={theme.colors.textMuted} /></Pressable>
             </Pressable>
           ))
         )}

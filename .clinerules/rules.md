@@ -33,7 +33,7 @@ src/
 ├── services/   (9)  ← firebase, firestore, user-data, fragella, openai-vision, haptics, fcm, catalog-bridge, storage
 ├── hooks/      (8)  ← useAuth, useScanReducer, useFavoris, useScans, useCatalog, useNetwork, useCollection, useWishlist
 ├── contexts/   (1)  ← AuthContext
-├── components/ (8)  ← ParfumCard, Button, PriceDisplay, SectionHeader, EmptyState, OfflineBanner, AppLoader, ErrorBoundary
+├── components/ (9)  ← ParfumCard, Button, PriceDisplay, SectionHeader, EmptyState, OfflineBanner, AppLoader, ErrorBoundary, AlertPriceToggle
 ├── features/scan/ (8)     ← ScanScreen + 7 sous-états (Camera, Idle, Loading, Clarify, Results, NoResult, Error)
 ├── features/catalog/ (2)  ← CatalogPage, OlfactoryPyramid
 ├── features/profile/ (1)  ← ProfilePage (3 listes : Collection, Wishlist, Favoris + historique + profil olfactif)

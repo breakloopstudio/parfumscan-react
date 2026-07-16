@@ -1,7 +1,7 @@
 ﻿// app/catalog/[id].tsx — Fiche détail parfum (refonte Luxe malin)
 
 import { useState, useEffect, useRef } from 'react';
-import { View, Text, ScrollView, Pressable, ActivityIndicator, Linking, TextInput, StyleSheet, useWindowDimensions, Platform, Alert } from 'react-native';
+import { View, Text, ScrollView, Pressable, ActivityIndicator, Linking, TextInput, StyleSheet, useWindowDimensions, Platform } from 'react-native';
 import { Image } from 'expo-image';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useLocalSearchParams, useRouter } from 'expo-router';
@@ -10,9 +10,9 @@ import Animated, { useSharedValue, useAnimatedStyle, withSpring, runOnJS } from 
 import Ionicons from '@react-native-vector-icons/ionicons/static';
 import { useAuthContext } from '../../src/contexts/AuthContext';
 import { getParfumById, cacheParfumFromSearch } from '../../src/services/firestore';
-import { isParfumFavori, addFavori, removeFavori } from '../../src/services/user-data';
-import { consumePendingParfum } from '../../src/services/catalog-bridge';
-import { searchFragrance, searchFragranceByQuery, getFragranceById, fragellaToParfum } from '../../src/services/fragella';
+import { isParfumFavori, addFavori, removeFavori, addToCollection, removeFromCollection, addToWishlist, removeFromWishlist, isInCollection, isInWishlist } from '../../src/services/user-data';
+import { consumePendingParfum, setPendingParfum } from '../../src/services/catalog-bridge';
+import { searchFragrance, searchFragranceByQuery, getFragranceById, fragellaToParfum, getSimilarFragrances } from '../../src/services/fragella';
 import type { ParfumSearchResult } from '../../src/services/fragella';
 import { theme } from '../../src/theme/theme';
 import type { Parfum } from '../../src/models';
@@ -20,6 +20,7 @@ import { translateNote } from '../../src/utils/translate-note';
 import OlfactoryPyramid from '../../src/features/catalog/OlfactoryPyramid';
 import PriceDisplay from '../../src/components/PriceDisplay';
 import Button from '../../src/components/Button';
+import AlertPriceToggle from '../../src/components/AlertPriceToggle';
 
 // ─── Mappings FR ─────────────────────────────────────────────
 
@@ -187,10 +188,16 @@ export default function CatalogDetailPage() {
   const [loading, setLoading] = useState(true);
   const [isFav, setIsFav] = useState(false);
   const [favoriId, setFavoriId] = useState<string | null>(null);
+  const [isInColl, setIsInColl] = useState(false);
+  const [collItemId, setCollItemId] = useState<string | null>(null);
+  const [isInWish, setIsInWish] = useState(false);
+  const [wishItemId, setWishItemId] = useState<string | null>(null);
   const [pending] = useState<Parfum | ParfumSearchResult | null>(() => consumePendingParfum());
   const [imgFailed, setImgFailed] = useState(false);
   const [storePrice, setStorePrice] = useState('');
   const [showStoreInput, setShowStoreInput] = useState(false);
+  const [similars, setSimilars] = useState<ParfumSearchResult[]>([]);
+  const [similarsLoading, setSimilarsLoading] = useState(false);
   const loadingRef = useRef(false);
   // Chargement auto-suffisant : bridge (preview) -> Firestore -> Fragella by ID -> Fragella search
   useEffect(() => {
@@ -253,10 +260,12 @@ export default function CatalogDetailPage() {
 
     return () => { loadingRef.current = false; };
   }, [id]);
-  // Statut favori
+  // Statut favori + collection + wishlist
   useEffect(() => {
     if (user?.uid && id) {
       isParfumFavori(user.uid, id).then(r => { setIsFav(r.isFavori); setFavoriId(r.favoriId); });
+      isInCollection(user.uid, id).then(r => { setIsInColl(r.isInCollection); setCollItemId(r.itemId); });
+      isInWishlist(user.uid, id).then(r => { setIsInWish(r.isInWishlist); setWishItemId(r.itemId); });
     }
   }, [user?.uid, id]);
 
@@ -312,6 +321,19 @@ export default function CatalogDetailPage() {
     enrich().catch(() => {});
   }, [parfum, id]);
 
+  // Parfums similaires
+  useEffect(() => {
+    if (!parfum?.marque || !parfum?.nom) return;
+    setSimilarsLoading(true);
+    getSimilarFragrances(parfum.marque, parfum.nom, 6)
+      .then(r => {
+        const mapped = r.filter(f => f.id !== parfum.id).map(fragellaToParfum);
+        setSimilars(mapped);
+      })
+      .catch(() => {})
+      .finally(() => setSimilarsLoading(false));
+  }, [parfum?.id]);
+
   const toggleFav = async () => {
     if (!isAuthenticated) { router.push('/auth/login'); return; }
     if (!user?.uid || !id || !parfum) {
@@ -334,6 +356,44 @@ export default function CatalogDetailPage() {
         console.warn('[fav] Failed:', (e as Error)?.message);
         setIsFav(false);
       }
+    }
+  };
+
+  const toggleCollection = async () => {
+    if (!isAuthenticated) { router.push('/auth/login'); return; }
+    if (!user?.uid || !id || !parfum) return;
+    if (isInColl && collItemId) {
+      const cid = collItemId;
+      setIsInColl(false); setCollItemId(null);
+      try { await removeFromCollection(user.uid, cid); } catch { setIsInColl(true); setCollItemId(cid); }
+    } else {
+      setIsInColl(true);
+      try {
+        if (!('createdAt' in parfum)) {
+          await cacheParfumFromSearch(parfum as ParfumSearchResult);
+        }
+        const itemId = await addToCollection(user.uid, id, parfum.nom, parfum.marque, parfum.imageUrl);
+        setCollItemId(itemId);
+      } catch { setIsInColl(false); }
+    }
+  };
+
+  const toggleWishlist = async () => {
+    if (!isAuthenticated) { router.push('/auth/login'); return; }
+    if (!user?.uid || !id || !parfum) return;
+    if (isInWish && wishItemId) {
+      const wid = wishItemId;
+      setIsInWish(false); setWishItemId(null);
+      try { await removeFromWishlist(user.uid, wid); } catch { setIsInWish(true); setWishItemId(wid); }
+    } else {
+      setIsInWish(true);
+      try {
+        if (!('createdAt' in parfum)) {
+          await cacheParfumFromSearch(parfum as ParfumSearchResult);
+        }
+        const itemId = await addToWishlist(user.uid, id, parfum.nom, parfum.marque, parfum.imageUrl, parfum.familleOlactive);
+        setWishItemId(itemId);
+      } catch { setIsInWish(false); }
     }
   };
   const seasonData = parfum && parfum.seasonRanking ? [...parfum.seasonRanking].sort(function(a,b){return b.score-a.score}) : null;
@@ -447,15 +507,45 @@ export default function CatalogDetailPage() {
               <Ionicons name={isFav ? 'heart' : 'heart-outline'} size={18} color={isFav ? theme.colors.favorite : theme.colors.textMuted} />
               <Text style={[s.actionLabel, isFav && { color: theme.colors.favorite }]}>Favori</Text>
             </Pressable>
-            <Pressable onPress={() => Alert.alert('À venir', 'Ajout à la collection disponible prochainement.')} style={s.actionBtn}>
-              <Ionicons name="flask-outline" size={18} color={theme.colors.textMuted} />
-              <Text style={s.actionLabel}>Collection</Text>
+            <Pressable onPress={toggleCollection} style={s.actionBtn}>
+              <Ionicons name={isInColl ? 'flask' : 'flask-outline'} size={18} color={isInColl ? theme.colors.primary : theme.colors.textMuted} />
+              <Text style={[s.actionLabel, isInColl && { color: theme.colors.primary }]}>Collection</Text>
             </Pressable>
-            <Pressable onPress={() => Alert.alert('À venir', 'Ajout à la wishlist disponible prochainement.')} style={s.actionBtn}>
-              <Ionicons name="bookmark-outline" size={18} color={theme.colors.textMuted} />
-              <Text style={s.actionLabel}>Wishlist</Text>
+            <Pressable onPress={toggleWishlist} style={s.actionBtn}>
+              <Ionicons name={isInWish ? 'bookmark' : 'bookmark-outline'} size={18} color={isInWish ? theme.colors.secondary : theme.colors.textMuted} />
+              <Text style={[s.actionLabel, isInWish && { color: theme.colors.secondary }]}>Wishlist</Text>
             </Pressable>
           </View>
+
+          {/* ─── Alerte prix ─── */}
+          {isAuthenticated && user?.uid && id && (
+            <AlertPriceToggle parfumId={id} uid={user.uid} />
+          )}
+
+          {/* ─── Toutes les offres (multi-marchands) ─── */}
+          {'offers' in parfum && parfum.offers && parfum.offers.length > 1 ? (
+            <View style={s.infoZone}>
+              <SectionTitle icon="🛍️" title="Toutes les offres" />
+              {parfum.offers.map((offer, i) => (
+                <Pressable
+                  key={`${offer.marchand}-${i}`}
+                  style={s.offerRow}
+                  onPress={() => offer.url && Linking.openURL(offer.url)}
+                >
+                  <View style={s.offerLeft}>
+                    <Text style={s.offerMerchant}>{offer.marchand}</Text>
+                    {offer.volumeMl && <Text style={s.offerVolume}>{offer.volumeMl} ml</Text>}
+                  </View>
+                  <View style={s.offerRight}>
+                    <Text style={s.offerPrice}>{offer.prix.toFixed(0)} €</Text>
+                    {parfum.bestPrice && offer.prix > parfum.bestPrice && (
+                      <Text style={s.offerDiff}>+{(offer.prix - parfum.bestPrice).toFixed(0)} €</Text>
+                    )}
+                  </View>
+                </Pressable>
+              ))}
+            </View>
+          ) : null}
           <OlfactoryPyramid
             topNotes={parfum.notesTete}
             heartNotes={parfum.notesCoeur}
@@ -497,6 +587,34 @@ export default function CatalogDetailPage() {
                 })}
               </View>
             ) : null}
+          {/* ─── Parfums similaires ─── */}
+          {similars.length > 0 && (
+            <View style={s.infoZone}>
+              <SectionTitle icon="🔄" title="Parfums similaires" />
+              <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={s.similarRow}>
+                {similars.map(sim => (
+                  <Pressable
+                    key={sim.id}
+                    style={s.similarCard}
+                    onPress={() => {
+                      setPendingParfum(sim);
+                      router.push(`/catalog/${sim.id}`);
+                    }}
+                  >
+                    <View style={s.similarImgWrap}>
+                      <Ionicons name="flask-outline" size={24} color={theme.colors.textMuted} />
+                    </View>
+                    <Text style={s.similarBrand} numberOfLines={1}>{sim.marque}</Text>
+                    <Text style={s.similarName} numberOfLines={2}>{sim.nom}</Text>
+                    {sim.bestPrice && (
+                      <Text style={s.similarPrice}>{sim.bestPrice.toFixed(0)} €</Text>
+                    )}
+                  </Pressable>
+                ))}
+              </ScrollView>
+            </View>
+          )}
+          {similarsLoading && <ActivityIndicator style={{ marginTop: 12 }} color={theme.colors.primary} />}
         </View>
       </ScrollView>
           </SafeAreaView>
@@ -575,4 +693,19 @@ const s = StyleSheet.create({
   statFill: { height: '100%', borderRadius: 3 },
   statPct: { fontSize: 12, fontFamily: 'Inter_700Bold', width: 36, textAlign: 'right' },
   accordDot: { width: 8, height: 8, borderRadius: 4 },
+  // ─── Similaires ───
+  similarRow: { gap: 12, paddingTop: 4 },
+  similarCard: { width: 130, backgroundColor: theme.colors.surface2, borderRadius: theme.radius.card, padding: 12, alignItems: 'center', borderWidth: 1, borderColor: theme.colors.border },
+  similarImgWrap: { width: 56, height: 56, borderRadius: 28, backgroundColor: theme.colors.border, justifyContent: 'center', alignItems: 'center', marginBottom: 8 },
+  similarBrand: { fontFamily: 'Inter_600SemiBold', fontSize: 11, color: theme.colors.textMuted, textAlign: 'center' },
+  similarName: { fontFamily: 'Inter_500Medium', fontSize: 12, color: theme.colors.text, textAlign: 'center', marginTop: 2 },
+  similarPrice: { fontFamily: 'Inter_700Bold', fontSize: 14, color: theme.colors.primary, marginTop: 6 },
+  // ─── Multi-offres ───
+  offerRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingVertical: 10, borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: theme.colors.border },
+  offerLeft: { flexDirection: 'row', alignItems: 'center', gap: 8 },
+  offerMerchant: { fontFamily: 'Inter_500Medium', fontSize: 13, color: theme.colors.text },
+  offerVolume: { fontFamily: 'Inter_400Regular', fontSize: 11, color: theme.colors.textMuted, backgroundColor: theme.colors.surface2, paddingHorizontal: 6, paddingVertical: 2, borderRadius: 4 },
+  offerRight: { alignItems: 'flex-end' },
+  offerPrice: { fontFamily: 'Inter_700Bold', fontSize: 15, color: theme.colors.primary },
+  offerDiff: { fontFamily: 'Inter_500Medium', fontSize: 11, color: theme.colors.overpriced },
 });

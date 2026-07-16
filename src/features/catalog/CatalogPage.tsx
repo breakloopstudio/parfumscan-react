@@ -121,11 +121,15 @@ export default function CatalogPage() {
       {!searchText && (
         <ScrollView horizontal showsHorizontalScrollIndicator={false} style={s.familyScroll} contentContainerStyle={s.familyChips}>
           {FAMILIES.map(f => (
-            <Pressable
-              key={f.label}
-              style={[s.chip, activeFamily === f.query && s.chipActive]}
-              onPress={() => setActiveFamily(f.query)}
-            >
+              <Pressable
+                key={f.label}
+                style={[s.chip, activeFamily === f.query && s.chipActive]}
+                onPress={() => {
+                  setActiveFamily(f.query);
+                  if (f.query) handleSearch(f.query);
+                  else { setSearchText(''); clear(); }
+                }}
+              >
               <Ionicons
                 name={f.icon as never}
                 size={14}
@@ -143,14 +147,14 @@ export default function CatalogPage() {
         <View style={s.sortRow}>
           <Text style={s.resultsCount}>{parfums.length} parfum(s)</Text>
           <View style={s.sortBtns}>
-            {(['relevant', 'price-asc', 'price-desc'] as const).map(s => (
+            {(['relevant', 'price-asc', 'price-desc'] as const).map(sort => (
               <Pressable
-                key={s}
-                style={[s.sortBtn, sortBy === s && s.sortBtnActive]}
-                onPress={() => setSortBy(s)}
+                key={sort}
+                style={[s.sortBtn, sortBy === sort && s.sortBtnActive]}
+                onPress={() => setSortBy(sort)}
               >
-                <Text style={[s.sortBtnText, sortBy === s && s.sortBtnTextActive]}>
-                  {s === 'relevant' ? 'Pertinence' : s === 'price-asc' ? 'Prix ↑' : 'Prix ↓'}
+                <Text style={[s.sortBtnText, sortBy === sort && s.sortBtnTextActive]}>
+                  {sort === 'relevant' ? 'Pertinence' : sort === 'price-asc' ? 'Prix ↑' : 'Prix ↓'}
                 </Text>
               </Pressable>
             ))}

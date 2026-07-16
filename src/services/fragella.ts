@@ -316,3 +316,25 @@ export async function searchFragranceByQuery(query: string): Promise<FragranceRe
     return [];
   }
 }
+
+export async function getSimilarFragrances(marque: string, nom: string, limit: number = 6): Promise<FragranceResult[]> {
+  if (!apiKey()) {
+    console.warn('[Fragella] Clé API non configurée.');
+    return [];
+  }
+  const query = `${marque} ${nom}`.trim();
+  if (!query) return [];
+
+  try {
+    const response = await fragellaGet(`/fragrances/similar?name=${encodeURIComponent(query)}&limit=${limit}`);
+    if (!response.ok) {
+      console.error('[Fragella] similar error:', response.status);
+      return [];
+    }
+    const data = await response.json() as Array<Record<string, unknown>>;
+    return data.map(mapFragrance);
+  } catch (err: unknown) {
+    console.error('[Fragella] similar error:', err instanceof Error ? err.message : String(err));
+    return [];
+  }
+}

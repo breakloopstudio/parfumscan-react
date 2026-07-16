@@ -62,7 +62,7 @@ function docToParfum(doc: FirebaseFirestoreTypes.DocumentSnapshot): Parfum {
 
 export function onParfums(cb: (parfums: Parfum[]) => void): () => void {
   const q = col().orderBy('updatedAt', 'desc');
-  return q.onSnapshot((snap: FirebaseFirestoreTypes.QuerySnapshot) => cb(snap.docs.map(docToParfum)));
+  return q.onSnapshot((snap: FirebaseFirestoreTypes.QuerySnapshot) => { if (!snap) { cb([]); return; } cb(snap.docs.map(docToParfum)); });
 }
 
 export async function getParfumById(id: string): Promise<Parfum | undefined> {
@@ -188,7 +188,7 @@ export async function cacheParfumFromSearch(p: ParfumSearchResult): Promise<stri
       'purchaseUrl',
     ];
     for (const field of enrichFields) {
-      const newVal = (p as Record<string, unknown>)[field];
+      const newVal = (p as unknown as Record<string, unknown>)[field];
       const existingVal = existingData[field];
       if (newVal !== undefined && newVal !== null && (existingVal === undefined || existingVal === null)) {
         updateData[field] = newVal;
@@ -285,7 +285,7 @@ export async function searchParfumsCached(query: string): Promise<ParfumSearchRe
       .filter((d: ScoredDoc) => d._score > 0)
       .sort((a: ScoredDoc, b: ScoredDoc) => b._score - a._score)
       .slice(0, 15)
-      .map(({ _score, ...rest }: ScoredDoc) => rest as ParfumSearchResult);
+      .map(({ _score, ...rest }: ScoredDoc) => rest as unknown as ParfumSearchResult);
   } catch {
     return [];
   }

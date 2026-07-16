@@ -52,11 +52,26 @@ async function removeScan(uid, scanId): Promise<void>;
 function onCollection(uid, cb): () => void;
 async function addToCollection(uid, parfumId, nom?, marque?, imageUrl?): Promise<string>;
 async function removeFromCollection(uid, itemId): Promise<void>;
+async function isInCollection(uid, parfumId): Promise<{isInCollection, itemId}>;
 
 // Wishlist
 function onWishlist(uid, cb): () => void;
 async function addToWishlist(uid, parfumId, nom?, marque?, imageUrl?, familleOlactive?): Promise<string>;
 async function removeFromWishlist(uid, itemId): Promise<void>;
+async function isInWishlist(uid, parfumId): Promise<{isInWishlist, itemId}>;
+
+// Déplacement atomique (batch Firestore)
+async function moveToCollection(uid, fromTab, fromItemId, parfumId, nom?, marque?, imageUrl?): Promise<void>;
+async function moveToWishlist(uid, fromTab, fromItemId, parfumId, nom?, marque?, imageUrl?, familleOlactive?): Promise<void>;
+async function moveFavori(uid, fromTab, fromItemId, parfumId, nom?, marque?, imageUrl?, familleOlactive?): Promise<void>;
+
+// Settings
+async function getUserSettings(uid): Promise<{priceAlerts, pushNotifs}>;
+async function updateUserSetting(uid, key, value): Promise<void>;
+
+// Alertes prix par parfum
+async function isPriceAlertActive(uid, parfumId): Promise<boolean>;
+async function setPriceAlert(uid, parfumId, active): Promise<void>;
 ```
 
 ### fragella.ts — API Fragella (74K parfums, appels REST directs)
@@ -68,6 +83,7 @@ interface ParfumSearchResult { id, fragellaId?, nom, marque, ..., source: 'frage
 async function searchFragrance(marque, nom, typeParfum?): Promise<FragranceResult[]>;
 async function searchFragranceByQuery(query): Promise<FragranceResult[]>;
 async function getFragranceById(id): Promise<FragranceResult | null>;
+async function getSimilarFragrances(marque, nom, limit?): Promise<FragranceResult[]>;  // /fragrances/similar
 function fragellaToParfum(frag: FragranceResult): ParfumSearchResult;
 function mapFragrance(raw): FragranceResult;  // _id (underscore) → fragellaId
 function normalize(s: string): string;        // NFD + strip accents + lowercase + [^a-z0-9]+ → _
@@ -241,7 +257,7 @@ interface UserWishlistItem {
 | `GET /fragrances?search={q}&limit={n}` | Recherche (scan + catalogue) | `searchFragrance()`, `searchFragranceByQuery()` |
 | `GET /fragrances/:id` | Détail complet | `getFragranceById()` (enrichissement) |
 | `GET /brands/:brandName?limit={n}` | Tous les parfums d'une marque | Cloud Function uniquement |
-| `GET /fragrances/similar?name={q}&limit={n}` | Parfums similaires | Non utilisé |
+| `GET /fragrances/similar?name={q}&limit={n}` | Parfums similaires | `getSimilarFragrances()` (carrousel fiche détail) |
 | `GET /fragrances/match?accords=...&top=...&base=...` | Match accords/notes | Non utilisé |
 
 Paramètres : `search` (min 2 caractères), `limit` (défaut ~10), `page` (pagination → wrap `{ data, pagination }` au lieu d'un array).
