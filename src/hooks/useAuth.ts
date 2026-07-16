@@ -2,6 +2,7 @@
 // Hook d'authentification
 
 import { useState, useEffect, useCallback } from 'react';
+import { Platform } from 'react-native';
 import auth, { type FirebaseAuthTypes } from '@react-native-firebase/auth';
 import firestore from '@react-native-firebase/firestore';
 import { GoogleSignin } from '@react-native-google-signin/google-signin';
@@ -53,7 +54,9 @@ export function useAuth() {
 
   const loginWithGoogle = useCallback(async () => {
     try {
-      await GoogleSignin.hasPlayServices({ showPlayServicesUpdateDialog: true });
+      if (Platform.OS === 'android') {
+        await GoogleSignin.hasPlayServices({ showPlayServicesUpdateDialog: true });
+      }
       const signInResult = await GoogleSignin.signIn();
       const idToken = signInResult.data?.idToken;
       if (!idToken) throw new Error('Google Sign-In annulé.');

@@ -309,11 +309,14 @@ Pas de `as Parfum` sur des objets incomplets → toujours utiliser `docToParfum(
 
 ### Développement
 ```bash
-# Script tout-en-un (recommandé)
+# Android : script tout-en-un (recommandé)
 start.bat
 
-# Manuel
+# Android : manuel
 npx expo run:android
+
+# iOS : manuel (macOS + Xcode requis)
+npx expo run:ios
 ```
 
 ### Expo Go (mode dégradé — Firebase OFF)
@@ -323,7 +326,12 @@ npx expo start
 
 ### Build Release
 ```bash
+# Android : build local
 .\build_release.bat
+# → APK : android/app/build/outputs/apk/release/app-release.apk
+
+# iOS : build nécessite macOS + Xcode ou EAS Build cloud
+npx expo run:ios --configuration Release
 ```
 → APK : `android/app/build/outputs/apk/release/app-release.apk`
 
@@ -353,7 +361,50 @@ adb shell getprop sys.boot_completed  # doit = "1"
 
 ⚠️ **Worklets bundle mode** : activé dans `react-native.config.js` pour contourner la régression mémoire Reanimated + Hermes V1 (+25-30%). Ne pas supprimer ce fichier. Voir https://docs.swmansion.com/react-native-worklets/docs/bundleMode/
 
-## 16. Tests (si applicable)
+## 16. Cross-Platform (iOS / Android)
+
+### Code unique, comportement adapté
+- **Tout le code est dans `app/` et `src/`** — pas de dossiers séparés par plateforme
+- Pas de fichiers `*.ios.*` / `*.android.*` sauf cas extrême
+- `Platform.OS` / `Platform.select()` au cas par cas (actuellement 4 usages)
+
+### Différences clés par plateforme
+
+| Fonctionnalité | iOS | Android |
+|---|---|---|
+| **Swipe-back détail** | Natif `UINavigationController` (bord gauche, reveal parfait) | Custom `Gesture.Pan()` full-screen via Reanimated |
+| **TabPager swipe** | Identique (Reanimated custom) | Identique (Reanimated custom) |
+| **Google Sign-In** | `iosClientId` + URL scheme callback | `hasPlayServices()` + `webClientId` |
+| **Notifications** | APNs obligatoire (`registerDeviceForRemoteMessages`) | FCM direct |
+| **SafeArea** | Notch / Dynamic Island via `useSafeAreaInsets()` | Status bar via `useSafeAreaInsets()` |
+| **Polices** | `fontFamily` uniquement (pas de `fontWeight`) | Tolère `fontWeight` |
+| **Ombres** | `shadowColor/Offset/Opacity/Radius` uniquement | `elevation` + `shadow*` |
+| **KeyboardAvoidingView** | `behavior="padding"` | `behavior="height"` |
+
+### Règles cross-platform
+- **`useSafeAreaInsets()` partout** — jamais de `paddingTop: 60` en dur
+- **`fontFamily` sans `fontWeight`** — les variantes Google Fonts incluent déjà le poids
+- **Ombres : toujours les 4 props iOS** (`shadowColor`, `shadowOffset`, `shadowOpacity`, `shadowRadius`), `elevation` en bonus Android
+- **APIs Android-only** (ex: `hasPlayServices`) → wrapper dans `if (Platform.OS === 'android')`
+
+### Configuration iOS requise (app.json)
+```json
+"ios": {
+  "googleServicesFile": "./GoogleService-Info.plist",
+  "infoPlist": {
+    "CFBundleURLTypes": [{ "CFBundleURLSchemes": ["com.googleusercontent.apps.XXX"] }],
+    "UIBackgroundModes": ["remote-notification"],
+    "NSCameraUsageDescription": "...",
+    "NSPhotoLibraryUsageDescription": "..."
+  }
+}
+```
+
+### Variables d'environnement
+- `EXPO_PUBLIC_FRAGELLA_API_KEY` — les deux plateformes
+- `EXPO_PUBLIC_GOOGLE_IOS_CLIENT_ID` — iOS uniquement (Google Sign-In)
+
+## 17. Tests (si applicable)
 
 - **Unitaires** : `scanReducer`, `fragellaToParfum`, `translateNote`, `normalize`, `translateFirebaseError`
 - **Composants** : React Native Testing Library

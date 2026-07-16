@@ -13,7 +13,10 @@ import { isFirebaseReady } from '../src/services/firebase';
 import '../src/services/firebase';
 
 try {
-  GoogleSignin.configure({ webClientId: '831514606817-xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx.apps.googleusercontent.com' });
+  GoogleSignin.configure({
+    webClientId: '831514606817-xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx.apps.googleusercontent.com',
+    iosClientId: process.env.EXPO_PUBLIC_GOOGLE_IOS_CLIENT_ID,
+  });
 } catch {}
 
 SplashScreen.preventAutoHideAsync().catch(() => {});

@@ -46,13 +46,13 @@ export const theme = {
   },
 
   fonts: {
-    heading: { fontFamily: 'PlayfairDisplay_700Bold', fontWeight: '700' as const },
-    headingSemiBold: { fontFamily: 'PlayfairDisplay_600SemiBold', fontWeight: '600' as const },
-    headingMedium: { fontFamily: 'PlayfairDisplay_500Medium', fontWeight: '500' as const },
-    body: { fontFamily: 'Inter_400Regular', fontWeight: '400' as const },
-    bodyMedium: { fontFamily: 'Inter_500Medium', fontWeight: '500' as const },
-    bodySemiBold: { fontFamily: 'Inter_600SemiBold', fontWeight: '600' as const },
-    bodyBold: { fontFamily: 'Inter_700Bold', fontWeight: '700' as const },
+    heading: { fontFamily: 'PlayfairDisplay_700Bold' },
+    headingSemiBold: { fontFamily: 'PlayfairDisplay_600SemiBold' },
+    headingMedium: { fontFamily: 'PlayfairDisplay_500Medium' },
+    body: { fontFamily: 'Inter_400Regular' },
+    bodyMedium: { fontFamily: 'Inter_500Medium' },
+    bodySemiBold: { fontFamily: 'Inter_600SemiBold' },
+    bodyBold: { fontFamily: 'Inter_700Bold' },
     size: {
       xs: 10,
       sm: 12,

@@ -1,10 +1,15 @@
 // src/services/fcm.ts — Notifications push Firebase Cloud Messaging
 
+import { Platform } from 'react-native';
 import messaging, { type FirebaseMessagingTypes } from '@react-native-firebase/messaging';
 
 export async function requestFcmPermission(): Promise<boolean> {
   const status = await messaging().requestPermission();
-  return status === messaging.AuthorizationStatus.AUTHORIZED || status === messaging.AuthorizationStatus.PROVISIONAL;
+  const granted = status === messaging.AuthorizationStatus.AUTHORIZED || status === messaging.AuthorizationStatus.PROVISIONAL;
+  if (granted && Platform.OS === 'ios') {
+    await messaging().registerDeviceForRemoteMessages();
+  }
+  return granted;
 }
 
 export async function getFcmToken(): Promise<string | null> {

@@ -81,6 +81,8 @@ function hapticsError(): void;
 
 ### fcm.ts — Notifications push
 ```typescript
+// iOS: registerDeviceForRemoteMessages() pour le token APNs
+// Android: pas d'étape supplémentaire
 async function requestFcmPermission(): Promise<boolean>;
 async function getFcmToken(): Promise<string|null>;
 function onFcmTokenRefresh(cb): () => void;
