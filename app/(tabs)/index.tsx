@@ -21,7 +21,8 @@ import CatalogPage from '../../src/features/catalog/CatalogPage';
 import ProfilePage from '../../src/features/profile/ProfilePage';
 
 const SPRING = { damping: 28, stiffness: 300, mass: 0.8 };
-const THRESHOLD = 60;
+const MIN_THRESHOLD = 40;
+const THRESHOLD_RATIO = 0.5;
 const PAGES = 2;
 const INDICATOR_W = 32;
 const FAB_SPACE = 58; // 46 (fab width) + 12 (margins)
@@ -101,7 +102,8 @@ export default function TabPager() {
     })
     .onEnd((e) => {
       const swipedRight = e.translationX > 0;
-      if (Math.abs(e.translationX) > THRESHOLD || Math.abs(e.velocityX) > 500) {
+      const threshold = Math.max(pageWidth.value * THRESHOLD_RATIO, MIN_THRESHOLD);
+      if (Math.abs(e.translationX) > threshold || Math.abs(e.velocityX) > 500) {
         let target = currentPage.value;
         if (swipedRight && currentPage.value > 0) target = currentPage.value - 1;
         else if (!swipedRight && currentPage.value < PAGES - 1) target = currentPage.value + 1;
