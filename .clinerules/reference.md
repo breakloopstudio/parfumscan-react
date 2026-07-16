@@ -31,6 +31,7 @@ async function cacheParfumFromSearch(p): Promise<string>;          // upsert: ge
 async function batchCacheParfums(parfums): Promise<number>;        // batch set({merge:true}), createdAt défini par cacheParfumFromSearch
 async function searchParfumsCached(query): Promise<ParfumSearchResult[]>;
 async function getPopularParfums(limit): Promise<ParfumSearchResult[]>;
+async function getPersonalizedSuggestions(uid, limit?): Promise<ParfumSearchResult[]>;   // v5.7, read-only, client-side scoring
 async function deleteAllCachedParfums(): Promise<number>;          // reset complet (batch paginé)
 ```
 
@@ -64,7 +65,9 @@ function buildSearchKeywords(marque, nom): string[];
 ```typescript
 // firebase.app().functions('europe-west1') — région obligatoire
 // v5.0 : retry auto detail:'auto' → 'high' si contenu vide, plus de response_format:json_object
+// v5.7 : burst adaptatif — 3 photos, 1ère → si low → cross-ref 2+3 (analyzeMultipleImages)
 async function analyzeImage(base64Image: string): Promise<ScanResult>;
+async function analyzeMultipleImages(imagesBase64: string[]): Promise<ScanResult>;
 ```
 
 ### storage.ts — Upload images

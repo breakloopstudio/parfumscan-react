@@ -1,29 +1,44 @@
 // src/features/scan/ScanCamera.tsx — Vue caméra plein écran
 
-import { useRef } from 'react';
+import { useRef, useState } from 'react';
 import { View, Pressable, Text, StyleSheet } from 'react-native';
 import { CameraView } from 'expo-camera';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Ionicons from "@react-native-vector-icons/ionicons/static";
 import { theme } from '../../theme/theme';
+import { hapticsLight } from '../../services/haptics';
 
-interface Props { onCapture: (base64: string) => void; onCancel: () => void; }
+interface Props { onCapture: (burstBase64: string[]) => void; onCancel: () => void; }
 
 export function ScanCamera({ onCapture, onCancel }: Props) {
   const cameraRef = useRef<CameraView>(null);
   const insets = useSafeAreaInsets();
+  const [capturing, setCapturing] = useState(false);
 
-  const takePhoto = async () => {
-    if (!cameraRef.current) return;
+  const takeBurst = async () => {
+    if (!cameraRef.current || capturing) return;
+    setCapturing(true);
     try {
-      const photo = await cameraRef.current.takePictureAsync({ base64: true, quality: 0.8 });
-      if (photo?.base64) onCapture(`data:image/jpeg;base64,${photo.base64}`);
-    } catch { /* silencieux */ }
+      const burst: string[] = [];
+      const BURST_COUNT = 3;
+
+      for (let i = 0; i < BURST_COUNT; i++) {
+        hapticsLight();
+        const photo = await cameraRef.current.takePictureAsync({ base64: true, quality: 0.6 });
+        if (photo?.base64) {
+          burst.push(`data:image/jpeg;base64,${photo.base64}`);
+        }
+      }
+
+      if (burst.length > 0) onCapture(burst);
+    } catch { /* silencieux */ } finally {
+      setCapturing(false);
+    }
   };
 
   return (
     <View style={s.container}>
-      <CameraView ref={cameraRef} style={s.camera} facing="back">
+      <CameraView ref={cameraRef} style={s.camera} facing="back" animateShutter={false}>
         <View style={s.overlay}>
           <View style={[s.topBar, { paddingTop: insets.top + 16 }]}>
             <Pressable onPress={onCancel} style={s.closeBtn} hitSlop={16}>
@@ -36,8 +51,8 @@ export function ScanCamera({ onCapture, onCancel }: Props) {
           </View>
           <Text style={s.hint}>Cadre le flacon et appuie sur le déclencheur</Text>
           <View style={[s.bottomBar, { paddingBottom: insets.bottom + 16 }]}>
-            <Pressable onPress={takePhoto} style={s.captureBtn}>
-              <View style={s.captureInner} />
+            <Pressable onPress={takeBurst} style={[s.captureBtn, capturing && s.captureBtnDisabled]} disabled={capturing}>
+              <View style={[s.captureInner, capturing && s.captureInnerCapturing]} />
             </Pressable>
           </View>
         </View>
@@ -60,5 +75,7 @@ const s = StyleSheet.create({
   hint: { color: '#FFF', textAlign: 'center', fontSize: 14, paddingHorizontal: 40, opacity: 0.8 },
   bottomBar: { alignItems: 'center' },
   captureBtn: { width: 72, height: 72, borderRadius: 36, borderWidth: 4, borderColor: '#FFF', justifyContent: 'center', alignItems: 'center' },
+  captureBtnDisabled: { borderColor: 'rgba(255,255,255,0.4)' },
   captureInner: { width: 56, height: 56, borderRadius: 28, backgroundColor: '#FFF' },
+  captureInnerCapturing: { backgroundColor: 'rgba(255,255,255,0.4)' },
 });

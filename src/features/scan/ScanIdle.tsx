@@ -6,10 +6,11 @@ import { theme } from '../../theme/theme';
 
 interface Props {
   onStartScan: () => void;
+  onImportGallery: () => void;
   onOpenManual: () => void;
 }
 
-export function ScanIdle({ onStartScan, onOpenManual }: Props) {
+export function ScanIdle({ onStartScan, onImportGallery, onOpenManual }: Props) {
   return (
     <View style={s.container}>
       <View style={s.viewfinder}>
@@ -24,6 +25,10 @@ export function ScanIdle({ onStartScan, onOpenManual }: Props) {
         <Pressable style={s.cta} onPress={onStartScan}>
           <Ionicons name="camera-outline" size={20} color="#FFF" style={{ marginRight: 8 }} />
           <Text style={s.ctaText}>Scanner un flacon</Text>
+        </Pressable>
+        <Pressable style={s.galleryBtn} onPress={onImportGallery}>
+          <Ionicons name="images-outline" size={20} color={theme.colors.primary} style={{ marginRight: 8 }} />
+          <Text style={s.galleryText}>Importer de la galerie</Text>
         </Pressable>
         <Pressable style={s.manualLink} onPress={onOpenManual}>
           <Ionicons name="search-outline" size={18} color={theme.colors.textMuted} style={{ marginRight: 6 }} />
@@ -51,8 +56,10 @@ const s = StyleSheet.create({
   title: { fontFamily: 'PlayfairDisplay_700Bold', fontSize: 24, color: theme.colors.text, marginBottom: 8 },
   desc: { fontSize: 15, color: theme.colors.textMuted, textAlign: 'center', lineHeight: 22, marginBottom: 32 },
   actions: { width: '100%', maxWidth: 320 },
-  cta: { flexDirection: 'row', backgroundColor: theme.colors.primary, borderRadius: theme.radius.base, height: 54, justifyContent: 'center', alignItems: 'center', marginBottom: 16, ...theme.shadow.button },
+  cta: { flexDirection: 'row', backgroundColor: theme.colors.primary, borderRadius: theme.radius.base, height: 54, justifyContent: 'center', alignItems: 'center', marginBottom: 12, ...theme.shadow.button },
   ctaText: { color: '#FFF', fontWeight: '600', fontSize: 17 },
+  galleryBtn: { flexDirection: 'row', borderRadius: theme.radius.base, height: 48, justifyContent: 'center', alignItems: 'center', marginBottom: 14, borderWidth: 1.5, borderColor: theme.colors.primary },
+  galleryText: { color: theme.colors.primary, fontWeight: '600', fontSize: 15 },
   manualLink: { flexDirection: 'row', justifyContent: 'center', alignItems: 'center', marginBottom: 16 },
   manualText: { color: theme.colors.textMuted, fontSize: 14, fontWeight: '500' },
   trust: { flexDirection: 'row', justifyContent: 'center', alignItems: 'center' },

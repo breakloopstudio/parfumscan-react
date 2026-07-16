@@ -75,8 +75,9 @@ Pager Catalog ↔ Profil  ← swipe horizontal Reanimated (opacity + scale cross
 ## 5. Scan Flow (useScanReducer)
 
 ```
-idle → [tap Scanner] → camera (CameraView) → [capture] → scanning (step 0→1→2)
-  → analyzeImage (GPT-4o, detail:auto → retry high si vide)
+idle → [tap Scanner] → camera (CameraView) → [capture] → burst 3 photos (~1s, haptics×3)
+  → analyzeImage (photo 1, GPT-4o, detail:auto → retry high si vide)
+  → si low-confidence → analyzeMultipleImages (photos 2+3, cross-ref)
   → clarify (si low-confidence) | searchAndShow (Fragella)
   → results → [Tap parfum] → setPendingParfum() + dismissTo tabs → push /catalog/:id
   → results → [Voir catalogue] → setPendingCatalogQuery() + router.back()
@@ -84,7 +85,9 @@ idle → [tap Scanner] → camera (CameraView) → [capture] → scanning (step 
   | error → [Réessayer] → reset
 ```
 
+Burst adaptatif : 70% des scans résolus en 1 appel GPT-4o (~2s), 30% en 2 appels (~4s).
 Reducer via `useScanReducer() → { state, dispatch }` — dispatch direct, pas de wrappers.
+Import depuis galerie : `expo-image-picker` → 1 photo → pipeline burst (single-photo path).
 
 ## 6. Catalog Flow (cache-first)
 
@@ -93,7 +96,7 @@ Saisie ≥ 3 caractères → `useCatalog()` → debounce 800ms →
   2. Si < 5 résultats → `searchFragranceByQuery()` → API payante
   3. `batchCacheParfums(results)` → Firestore (pour la prochaine fois)
 
-Idle : `getPopularParfums(30)` → shuffle journalier déterministe (Lehmer RNG), slice(0,8) → grille 2 colonnes ParfumCard compact.
+Idle : si authentifié → `getPersonalizedSuggestions(uid)` → Firestore (scoring : famille×3 + marque×2 + popularité/20, exclut déjà vus). Fallback `getPopularParfums(30)` → shuffle journalier déterministe (Lehmer RNG), slice(0,8) → grille 2 colonnes ParfumCard compact.
 Depuis le scan : `consumePendingCatalogQuery()` → recherche automatique.
 
 ## 7. Fiche détail parfum

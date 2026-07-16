@@ -8,7 +8,7 @@ import Ionicons from "@react-native-vector-icons/ionicons/static";
 import { useAuthContext } from '../../contexts/AuthContext';
 import { useCatalog } from '../../hooks/useCatalog';
 import ParfumCard from '../../components/ParfumCard';
-import { getPopularParfums } from '../../services/firestore';
+import { getPopularParfums, getPersonalizedSuggestions } from '../../services/firestore';
 import { theme } from '../../theme/theme';
 import type { ParfumSearchResult } from '../../services/fragella';
 
@@ -26,22 +26,51 @@ function seededShuffle<T>(arr: T[], seed: number): T[] {
 }
 
 export default function CatalogPage() {
-  const { authReady, isAuthenticated } = useAuthContext();
+  const { user, authReady, isAuthenticated } = useAuthContext();
   const { q: routeQuery } = useLocalSearchParams<{ q?: string }>();
   const initialQuery = routeQuery ?? consumePendingCatalogQuery();
   const [searchText, setSearchText] = useState(initialQuery ?? '');
   const { parfums, searching, search, clear } = useCatalog();
-  const [popularParfums, setPopularParfums] = useState<ParfumSearchResult[]>([]);
-  const [popularLoading, setPopularLoading] = useState(true);
+  const [suggestionParfums, setSuggestionParfums] = useState<ParfumSearchResult[]>([]);
+  const [suggestionLabel, setSuggestionLabel] = useState('Parfums populaires');
+  const [suggestionLoading, setSuggestionLoading] = useState(true);
   const handleSearch = (t: string) => { setSearchText(t); t.trim().length >= 3 ? search(t) : clear(); };
 
   useEffect(() => {
+    let cancelled = false;
     const today = Math.floor(Date.now() / 86400000);
-    getPopularParfums(30).then(p => {
-      setPopularParfums(seededShuffle(p, today).slice(0, 8));
-      setPopularLoading(false);
-    });
-  }, []);
+
+    async function load() {
+      if (isAuthenticated && user) {
+        try {
+          const personalized = await getPersonalizedSuggestions(user.uid, 16);
+          if (!cancelled && personalized.length > 0) {
+            setSuggestionParfums(seededShuffle(personalized, today).slice(0, 8));
+            setSuggestionLabel('Pour vous');
+            setSuggestionLoading(false);
+            return;
+          }
+        } catch {}
+      }
+
+      try {
+        const popular = await getPopularParfums(30);
+        if (!cancelled) {
+          setSuggestionParfums(seededShuffle(popular, today).slice(0, 8));
+          setSuggestionLabel('Parfums populaires');
+          setSuggestionLoading(false);
+        }
+      } catch {
+        if (!cancelled) {
+          setSuggestionParfums([]);
+          setSuggestionLoading(false);
+        }
+      }
+    }
+
+    load();
+    return () => { cancelled = true; };
+  }, [authReady, isAuthenticated, user?.uid]);
 
   // Recherche auto quand on arrive depuis le scan avec ?q=...
   useEffect(() => {
@@ -60,11 +89,11 @@ export default function CatalogPage() {
       <View style={s.searchWrap}><TextInput style={s.searchInput} placeholder="Rechercher un parfum..." placeholderTextColor={theme.colors.textMuted} value={searchText} onChangeText={handleSearch} autoCapitalize="none" autoCorrect={false}/></View>
       {!searchText ? (
         <>
-          {popularLoading ? (
-            <View style={s.ghostSection}><Text style={s.ghostLabel}>Parfums populaires</Text><ActivityIndicator style={{ marginTop: 20 }} color={theme.colors.primary} /></View>
+          {suggestionLoading ? (
+            <View style={s.ghostSection}><Text style={s.ghostLabel}>{suggestionLabel}</Text><ActivityIndicator style={{ marginTop: 20 }} color={theme.colors.primary} /></View>
           ) : (
             <FlatList
-              data={popularParfums}
+              data={suggestionParfums}
               numColumns={2}
               keyExtractor={p => p.id}
               renderItem={({ item }) => (
@@ -73,7 +102,7 @@ export default function CatalogPage() {
                 </View>
               )}
               columnWrapperStyle={s.popularRow}
-              ListHeaderComponent={<Text style={s.ghostLabel}>Parfums populaires</Text>}
+              ListHeaderComponent={<Text style={s.ghostLabel}>{suggestionLabel}</Text>}
               contentContainerStyle={{ paddingHorizontal: 16, paddingBottom: 16 }}
               style={{ flex: 1 }}
               showsVerticalScrollIndicator={false}

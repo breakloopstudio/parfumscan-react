@@ -169,7 +169,7 @@ export default function TabPager() {
             <CatalogPage />
           </Animated.View>
           <Animated.View style={[s.page, proStyle]}>
-            <ProfilePage onGoToCatalog={() => goTo(0)} isActive={activePage === 1} />
+            <ProfilePage onGoToCatalog={() => goTo(0)} />
           </Animated.View>
         </View>
       </GestureDetector>

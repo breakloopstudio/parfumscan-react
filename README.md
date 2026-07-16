@@ -4,9 +4,9 @@
 
 **Scanner de parfums intelligent — Reconnais n'importe quel flacon en une photo**
 
-[![Expo SDK 54](https://img.shields.io/badge/Expo-SDK%2054-4630EB?logo=expo)](https://expo.dev)
-[![React Native 0.81](https://img.shields.io/badge/React%20Native-0.81-61DAFB?logo=react)](https://reactnative.dev)
-[![TypeScript](https://img.shields.io/badge/TypeScript-5.7-3178C6?logo=typescript)](https://www.typescriptlang.org)
+[![Expo SDK 57](https://img.shields.io/badge/Expo-SDK%2057-4630EB?logo=expo)](https://expo.dev)
+[![React Native 0.86](https://img.shields.io/badge/React%20Native-0.86-61DAFB?logo=react)](https://reactnative.dev)
+[![TypeScript](https://img.shields.io/badge/TypeScript-6.0-3178C6?logo=typescript)](https://www.typescriptlang.org)
 [![Firebase](https://img.shields.io/badge/Firebase-BaaS-FFCA28?logo=firebase)](https://firebase.google.com)
 [![License MIT](https://img.shields.io/badge/License-MIT-green)](./LICENSE)
 
@@ -18,11 +18,12 @@
 
 | Module | Description |
 |---|---|
-| | **UI/UX** | Edge-to-edge Android (barres transparentes, fond derrière les barres système) |
-| 📸 **Scan intelligent** | Photo → GPT-4o Vision → API Fragella (74K parfums) |
-| 📚 **Catalogue** | Recherche cache-first (Firestore → Fragella), ghost cards, fiche détail enrichie |
-| ❤️ **Favoris** | Sauvegarde Firestore temps réel, données dénormalisées |
-| 👤 **Profil** | Google Sign-In, stats gamifiées, historique de scans |
+| 🎨 **UI/UX** | Edge-to-edge Android, pager Reanimated (opacity+scale crossfade), tab bar floating pill |
+| 📸 **Scan intelligent** | Burst 3 photos → GPT-4o Vision (adaptatif : 70% en 1 appel, 30% en cross-ref 2 photos) → API Fragella |
+| 🖼️ **Import galerie** | Photo existante → même pipeline IA, sans permissions supplémentaires |
+| 📚 **Catalogue** | Recherche cache-first (Firestore → Fragella), idle personnalisé (famille×3 + marque×2 + popularité) |
+| ❤️ **Favoris** | Sauvegarde Firestore temps réel, données dénormalisées, switch instantané entre tabs |
+| 👤 **Profil** | Google Sign-In, stats gamifiées, historique de scans, favoris et scans toujours montés |
 | 🔐 **Auth** | Email + Google, role admin, AuthGuard automatique |
 | 🧠 **Fiche détail robuste** | Bridge preview + Firestore always + Fragella by ID fallback, id normalisé |
 | 💾 **Cache intelligent** | Cache Firestore partagé entre utilisateurs, 0 appel API redondant |
@@ -33,8 +34,8 @@
 
 | Catégorie | Technologies |
 |---|---|
-| **Frontend** | React Native 0.81, Expo SDK 54, Expo Router 6 |
-| **Langage** | TypeScript 5.7 (strict) |
+| **Frontend** | React Native 0.86, Expo SDK 57, Expo Router 57 |
+| **Langage** | TypeScript 6.0 (strict) |
 | **Navigation** | Expo Router (file-based) + Reanimated pager |
 | **Animations** | React Native Reanimated 4, Gesture Handler 2 |
 | **Backend** | Firebase Auth, Firestore, Storage, Cloud Functions (europe-west1) |
@@ -136,17 +137,19 @@ functions/                    # Cloud Functions Firebase
 
 ---
 
-## 📱 Flux de scan (v5.0)
+## 📱 Flux de scan (v5.7 — burst adaptatif)
 
 ```
 Idle → [Tap Scanner] → CameraView → [Capture]
-  → Scanning (step 0→1→2) → GPT-4o Vision (detail:auto → retry high si vide)
-  → Confidence haute ? → Fragella → await batchCacheParfums() → Résultats
-  → Confidence basse ? → Clarification manuelle → Fragella
+  → Burst 3 photos (~1s, haptics×3) → GPT-4o Vision (photo 1, detail:auto → retry high si vide)
+  → Confidence haute ? → Fragella → batchCacheParfums() → Résultats (~2s)
+  → Confidence basse ? → analyzeMultipleImages (photos 2+3, cross-ref) → Fragella → Résultats (~4s)
   → Résultat → Tap parfum → setPendingParfum() → dismissTo tabs
       → TabPager consume + re-set → push /catalog/:id
       → Fiche détail consumePendingParfum() → données enrichies affichées
   → Résultat → Voir catalogue → setPendingCatalogQuery() + router.back()
+
+Import galerie : expo-image-picker → 1 photo → pipeline burst (single-photo path)
 ```
 
 > **Pont inter-écrans** : `setPendingParfum()` stocke les données en mémoire,
@@ -191,11 +194,12 @@ tous utilisateurs confondus. Le score intègre la popularité
   → Si `fragellaId` absent → skip enrichissement.
 ```
 
-### Catalogue idle
+### Catalogue idle (v5.7)
 
-À l''ouverture (sans recherche) : `getPopularParfums(30)` → Firestore (triés par popularityScore desc),
-shuffle journalier déterministe (Lehmer RNG), puis affichés en grille 2 colonnes avec `ParfumCard compact` (image 130px, sans notes ni zone deal).
-Plus de ghost cards Chanel/Dior — 100% données réelles du cache.
+À l'ouverture (sans recherche) :
+- Si authentifié → `getPersonalizedSuggestions(uid)` : scoring client-side basé sur l'historique de scans/favoris (familleOlactive×3 + marque×2 + popularityScore/20), exclut les parfums déjà vus. Section "Pour vous".
+- Fallback → `getPopularParfums(30)` → Firestore (triés par popularityScore desc), shuffle journalier déterministe (Lehmer RNG). Section "Parfums populaires".
+- Affichage en grille 2 colonnes avec `ParfumCard compact`.
 
 Les miniatures flacon (44×44) sont affichées dans les deux onglets via le CDN Fragella
 (gratuit, pas d'appel API). Fallback automatique sur icône scan/cœur si l'image échoue.
@@ -208,6 +212,15 @@ Les documents `UserFavori` et `UserScan` stockent `imageUrl` et `familleOlactive
 dénormalisés → affichage direct sans appel API Firestore ni Fragella.
 
 ---
+## v5.7 — Burst + Galerie + Personnalisation (16/07/2026)
+
+- **Burst adaptatif** : 3 photos en rafale, 70% des scans résolus en 1 appel GPT-4o (~2s), 30% en 2 appels cross-ref (~4s)
+- **Import galerie** : `expo-image-picker` → même pipeline IA, sans permissions supplémentaires
+- **Catalogue personnalisé** : scoring client-side (famille×3 + marque×2 + popularité/20), exclut déjà vus, section "Pour vous"
+- **Profil** : favoris/historique toujours montés (display:none au lieu de conditionnel), switch instantané sans rechargement d'images
+- **UI** : animateShutter désactivé sur CameraView (plus de flash à la capture), galerie en bouton outline sous le CTA
+- **Cloud Function** : `analyzePerfumeImage` supporte `imagesBase64[]` pour le cross-referencing multi-photo
+
 ## v5.5 — Bugfixes (16/07/2026)
 
 - **C4** `app/catalog/[id].tsx` — `consumePendingParfum()` sorti du render (`useRef(fn())` → `useState(() => fn())`)

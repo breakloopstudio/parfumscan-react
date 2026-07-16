@@ -9,11 +9,19 @@ function fn() {
 }
 
 export async function analyzeImage(base64Image: string): Promise<ScanResult> {
+  return callAnalyzeImage({ imageBase64: base64Image });
+}
+
+export async function analyzeMultipleImages(imagesBase64: string[]): Promise<ScanResult> {
+  return callAnalyzeImage({ imagesBase64 });
+}
+
+async function callAnalyzeImage(payload: { imageBase64?: string; imagesBase64?: string[] }): Promise<ScanResult> {
   const funcs = fn();
   if (!funcs) throw new Error('Firebase Functions non disponible dans Expo Go.');
-  const callable = funcs.httpsCallable<{ imageBase64: string }, ScanResult>('analyzePerfumeImage');
+  const callable = funcs.httpsCallable<{ imageBase64?: string; imagesBase64?: string[] }, ScanResult>('analyzePerfumeImage');
   try {
-    const result = await callable({ imageBase64: base64Image });
+    const result = await callable(payload);
     return result.data;
   } catch (err: unknown) {
     const e = err as { code?: string; message?: string };

@@ -305,3 +305,99 @@ export async function getPopularParfums(limit: number = 6): Promise<ParfumSearch
     return [];
   }
 }
+
+/** Suggestions personnalisees basees sur l'historique de scans et favoris.
+ *  Lit les sous-collections users/{uid}/favoris et users/{uid}/scans,
+ *  extrait les familles olfactives et marques preferees,
+ *  puis interroge le cache Firestore pour trouver des parfums similaires.
+ *  Aucun appel externe — tout est dans Firestore.
+ *  Retourne un tableau vide si l'utilisateur n'a pas d'historique. */
+export async function getPersonalizedSuggestions(
+  uid: string,
+  limit: number = 16,
+): Promise<ParfumSearchResult[]> {
+  // 1. Lire les signaux utilisateur (one-time, sous-collections)
+  let favDocs: FirebaseFirestoreTypes.QueryDocumentSnapshot[] = [];
+  let scanDocs: FirebaseFirestoreTypes.QueryDocumentSnapshot[] = [];
+
+  try {
+    const [favSnap, scanSnap] = await Promise.all([
+      firestore().collection(`users/${uid}/favoris`).get(),
+      firestore().collection(`users/${uid}/scans`).get(),
+    ]);
+    favDocs = favSnap.docs;
+    scanDocs = scanSnap.docs;
+  } catch {
+    return [];
+  }
+
+  // 2. Extraire affinites
+  const familyScores: Record<string, number> = {};
+  const brandScores: Record<string, number> = {};
+  const seenIds = new Set<string>();
+
+  for (const doc of [...favDocs, ...scanDocs]) {
+    const d = doc.data();
+    const f = d.familleOlactive as string | undefined;
+    const m = d.marque as string | undefined;
+    const pid = d.parfumId as string | undefined;
+    if (f) familyScores[f] = (familyScores[f] || 0) + 1;
+    if (m) brandScores[m] = (brandScores[m] || 0) + 1;
+    if (pid) seenIds.add(pid);
+  }
+
+  // 3. Top 3 familles
+  const topFamilies = Object.entries(familyScores)
+    .sort(([, a], [, b]) => b - a)
+    .slice(0, 3)
+    .map(([f]) => f);
+
+  if (topFamilies.length === 0) return [];
+
+  // 4. Chercher dans le cache Firestore par famille
+  let candidates: ParfumSearchResult[] = [];
+  try {
+    const familySnap = await col()
+      .where('familleOlactive', 'in', topFamilies)
+      .limit(20)
+      .get();
+    candidates = familySnap.docs.map(
+      (d) => ({ id: d.id, ...d.data() } as ParfumSearchResult),
+    );
+  } catch {
+    // index manquant → on continue sans
+  }
+
+  // 5. Ajouter des populaires pour la decouverte (fallback)
+  let popular: ParfumSearchResult[] = [];
+  try {
+    popular = await getPopularParfums(20);
+  } catch {}
+
+  // 6. Fusionner + dedoublonner
+  const unique = new Map<string, ParfumSearchResult>();
+  for (const p of candidates) unique.set(p.id, p);
+  for (const p of popular) {
+    if (!unique.has(p.id)) unique.set(p.id, p);
+  }
+  const all = [...unique.values()];
+
+  // 7. Scorer + filtrer + trier
+  const scored = all
+    .filter((p) => !seenIds.has(p.id) && p.imageUrl)
+    .map((p) => {
+      let score = 0;
+      if (p.familleOlactive && familyScores[p.familleOlactive]) {
+        score += familyScores[p.familleOlactive] * 3;
+      }
+      if (p.marque && brandScores[p.marque]) {
+        score += brandScores[p.marque] * 2;
+      }
+      score += (p.popularityScore ?? 0) / 20;
+      return { p, score };
+    });
+
+  scored.sort((a, b) => b.score - a.score);
+
+  return scored.slice(0, limit).map((x) => x.p);
+}

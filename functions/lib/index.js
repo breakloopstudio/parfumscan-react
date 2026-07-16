@@ -315,19 +315,38 @@ function extractJson(text) {
     return text.trim();
 }
 exports.analyzePerfumeImage = functions.https.onCall({ region: 'europe-west1' }, async (request) => {
-    const { imageBase64 } = request.data;
-    if (!imageBase64 || typeof imageBase64 !== 'string') {
-        throw new functions.https.HttpsError('invalid-argument', 'Le paramètre "imageBase64" est requis.');
+    const { imageBase64, imagesBase64 } = request.data;
+    const isBurst = Array.isArray(imagesBase64) && imagesBase64.length > 0;
+    const hasSingle = typeof imageBase64 === 'string' && imageBase64.length > 0;
+    if (!isBurst && !hasSingle) {
+        throw new functions.https.HttpsError('invalid-argument', 'Le paramètre "imageBase64" ou "imagesBase64" est requis.');
     }
-    if (!imageBase64.startsWith('data:image/')) {
-        throw new functions.https.HttpsError('invalid-argument', "L'image doit être en base64 avec préfixe \"data:image/\".");
+    const images = isBurst ? imagesBase64 : [imageBase64];
+    for (const img of images) {
+        if (typeof img !== 'string' || !img.startsWith('data:image/')) {
+            throw new functions.https.HttpsError('invalid-argument', "Chaque image doit être en base64 avec préfixe \"data:image/\".");
+        }
     }
     const apiKey = process.env.OPENAI_API_KEY;
     if (!apiKey) {
         throw new functions.https.HttpsError('internal', 'Clé API OpenAI non configurée.');
     }
     const openai = new openai_1.default({ apiKey });
-    const SYSTEM_PROMPT = `Tu es un expert en parfumerie. Analyse cette photo de flacon et retourne UNIQUEMENT un objet JSON avec ces champs :
+    const BURST_PROMPT = `Tu es un expert en parfumerie. Tu analyses ${images.length} photos du MÊME flacon de parfum prises sous des angles légèrement différents. Analyse chaque photo indépendamment puis fusionne les lectures en un résultat unique. Retourne UNIQUEMENT un objet JSON avec ces champs :
+
+- marque: la marque (ex: "Dior", "Chanel", "Xerjoff").
+- nom: le nom du parfum (ex: "Sauvage", "N°5").
+- volumeMl: le volume en ml (ex: 100). null si non visible sur aucune photo.
+- typeParfum: "Eau de Parfum", "Eau de Toilette", "Extrait", "Parfum", ou null.
+- confidence: "high" si clairement lisibles sur au moins 2 photos, "low" si incertain.
+
+RÈGLES :
+- Si les photos montrent des informations partielles ou contradictoires, utilise la photo la plus nette comme référence principale.
+- Si un champ est partiellement visible, donne ta meilleure estimation, mets confidence:"low".
+- N'invente JAMAIS volumeMl ou typeParfum si rien n'est visible (mets null).
+- Réponds TOUJOURS avec un JSON valide contenant les 5 champs.
+- Réponds uniquement avec le JSON, pas de texte autour.`;
+    const SINGLE_PROMPT = `Tu es un expert en parfumerie. Analyse cette photo de flacon et retourne UNIQUEMENT un objet JSON avec ces champs :
 
 - marque: la marque (ex: "Dior", "Chanel", "Xerjoff").
 - nom: le nom du parfum (ex: "Sauvage", "N°5").
@@ -340,6 +359,7 @@ RÈGLES :
 - N'invente JAMAIS volumeMl ou typeParfum si rien n'est visible (mets null).
 - Réponds TOUJOURS avec un JSON valide contenant les 5 champs.
 - Réponds uniquement avec le JSON, pas de texte autour.`;
+    const SYSTEM_PROMPT = isBurst ? BURST_PROMPT : SINGLE_PROMPT;
     const callOpenAI = async (detail) => {
         return openai.chat.completions.create({
             model: 'gpt-4o',
@@ -348,7 +368,7 @@ RÈGLES :
                     role: 'user',
                     content: [
                         { type: 'text', text: SYSTEM_PROMPT },
-                        { type: 'image_url', image_url: { url: imageBase64, detail } },
+                        ...images.map(img => ({ type: 'image_url', image_url: { url: img, detail } })),
                     ],
                 },
             ],
@@ -385,7 +405,7 @@ RÈGLES :
         // Premier essai avec detail:'auto' (bon compromis qualité/coût)
         const response = await callOpenAI('auto');
         const finishReason = response.choices[0]?.finish_reason;
-        console.log('[analyzePerfumeImage] Attempt 1 — finish_reason:', finishReason);
+        console.log(`[analyzePerfumeImage] ${isBurst ? `Burst (${images.length} images)` : 'Single'} — Attempt 1 finish_reason:`, finishReason);
         const content = response.choices[0]?.message?.content;
         if (content && content.trim().length > 0) {
             return parseResponse(content, finishReason ?? null);

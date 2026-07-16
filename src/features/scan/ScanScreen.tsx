@@ -4,13 +4,14 @@ import { useRef, useEffect } from 'react';
 import { Alert } from 'react-native';
 import { useRouter } from 'expo-router';
 import { useCameraPermissions } from 'expo-camera';
+import * as ImagePicker from 'expo-image-picker';
 import { useAuthContext } from '../../contexts/AuthContext';
 import { useScanReducer } from '../../hooks/useScanReducer';
-import { analyzeImage } from '../../services/openai-vision';
+import { analyzeImage, analyzeMultipleImages } from '../../services/openai-vision';
 import { searchFragrance, fragellaToParfum, type FragranceResult } from '../../services/fragella';
 import { saveScan } from '../../services/user-data';
 import { batchCacheParfums } from '../../services/firestore';
-import { hapticsLight, hapticsSuccess, hapticsError } from '../../services/haptics';
+import { hapticsSuccess, hapticsError } from '../../services/haptics';
 import { setPendingCatalogQuery } from '../../services/catalog-bridge';
 import { translateFirebaseError } from '../../utils/error-translator';
 import type { ScanResult } from '../../models';
@@ -27,7 +28,7 @@ export function ScanScreen() {
   const router = useRouter();
   const [permission, requestPermission] = useCameraPermissions();
   const { state, dispatch } = useScanReducer();
-  const pendingAnalysis = useRef<{ base64?: string; scanResult?: ScanResult } | null>(null);
+  const pendingAnalysis = useRef<{ burstBase64?: string[]; scanResult?: ScanResult } | null>(null);
 
   // Effet : gère les étapes d'animation quand on passe en mode scanning
   useEffect(() => {
@@ -39,13 +40,8 @@ export function ScanScreen() {
       if (!p) return;
       pendingAnalysis.current = null;
       try {
-        if (p.base64) {
-          const result = await analyzeImage(p.base64);
-          if (!result.marque && !result.nom) {
-            dispatch({ type: 'SCAN_CLARIFY', scanResult: result, reason: 'empty-response' });
-            return;
-          }
-          await searchAndShow(result);
+        if (p.burstBase64 && p.burstBase64.length > 0) {
+          await handleBurstAnalysis(p.burstBase64);
         } else if (p.scanResult) {
           await searchAndShow(p.scanResult);
         }
@@ -65,15 +61,66 @@ export function ScanScreen() {
     dispatch({ type: 'OPEN_CAMERA' });
   };
 
-  const handleCapture = async (base64: string) => {
-    pendingAnalysis.current = { base64 };
+  const handleGalleryImport = async () => {
+    try {
+      const result = await ImagePicker.launchImageLibraryAsync({
+        mediaTypes: ['images'],
+        base64: true,
+        quality: 0.6,
+      });
+
+      if (result.canceled || !result.assets?.[0]?.base64) return;
+
+      const base64 = `data:image/jpeg;base64,${result.assets[0].base64}`;
+      pendingAnalysis.current = { burstBase64: [base64] };
+      dispatch({ type: 'START_SCAN' });
+    } catch {
+      Alert.alert('Erreur', "Impossible d'accéder à la galerie.");
+    }
+  };
+
+  const handleCapture = (burstBase64: string[]) => {
+    pendingAnalysis.current = { burstBase64 };
     dispatch({ type: 'START_SCAN' });
-    hapticsLight();
   };
 
   const handleClarify = async (marque: string, nom: string, typeParfum: string | null, _vol: number | null) => {
     pendingAnalysis.current = { scanResult: { marque: marque || null, nom: nom || null, typeParfum: typeParfum || null, volumeMl: null, confidence: undefined } };
     dispatch({ type: 'START_SCAN' });
+  };
+
+  const handleBurstAnalysis = async (burstBase64: string[]) => {
+    const [photo1, ...rest] = burstBase64;
+
+    // Appel 1 : photo unique (detail:auto)
+    const result1 = await analyzeImage(photo1);
+
+    if (result1.confidence === 'high' && result1.marque) {
+      // Cas favorable (~70%) : une seule photo suffit
+      await searchAndShow(result1);
+      return;
+    }
+
+    // S'il n'y a pas d'autres photos, fallback direct au résultat partiel
+    if (rest.length === 0) {
+      if (result1.marque || result1.nom) {
+        await searchAndShow(result1);
+      } else {
+        dispatch({ type: 'SCAN_CLARIFY', scanResult: result1, reason: 'empty-response' });
+      }
+      return;
+    }
+
+    // Cas défavorable (~30%) : burst cross-referencing avec les photos restantes
+    const result2 = await analyzeMultipleImages(rest);
+
+    if (result2.marque || result2.nom) {
+      await searchAndShow(result2);
+    } else if (result1.marque || result1.nom) {
+      await searchAndShow(result1);
+    } else {
+      dispatch({ type: 'SCAN_CLARIFY', scanResult: result1, reason: 'empty-response' });
+    }
   };
 
   const searchAndShow = async (scanResult: ScanResult) => {
@@ -120,7 +167,7 @@ export function ScanScreen() {
   const reset = () => { pendingAnalysis.current = null; dispatch({ type: 'RESET' }); };
 
   switch (state.kind) {
-    case 'idle':      return <ScanIdle onStartScan={handleOpenCamera} onOpenManual={() => dispatch({ type: 'OPEN_MANUAL' })} />;
+    case 'idle':      return <ScanIdle onStartScan={handleOpenCamera} onImportGallery={handleGalleryImport} onOpenManual={() => dispatch({ type: 'OPEN_MANUAL' })} />;
     case 'camera':    return <ScanCamera onCapture={handleCapture} onCancel={() => dispatch({ type: 'CANCEL_CAMERA' })} />;
     case 'scanning':  return <ScanLoading step={state.step} />;
     case 'clarify':   return <ScanClarify scanResult={state.scanResult} reason={state.reason} onSearch={handleClarify} onReset={reset} />;
