@@ -54,7 +54,7 @@ export default function RootLayout() {
             <Stack.Screen name="(tabs)" />
             <Stack.Screen name="auth/login" options={{ animation: 'fade' }} />
             <Stack.Screen name="auth/register" options={{ animation: 'fade' }} />
-            <Stack.Screen name="catalog/[id]" options={{ animation: 'slide_from_right' }} />
+            <Stack.Screen name="catalog/[id]" options={{ animation: 'slide_from_right', gestureEnabled: true, fullScreenGestureEnabled: true }} />
             <Stack.Screen name="admin" options={{ animation: 'slide_from_bottom' }} />
           </Stack>
           </ErrorBoundary>

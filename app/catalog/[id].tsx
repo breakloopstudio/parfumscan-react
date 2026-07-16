@@ -1,12 +1,10 @@
 ﻿// app/catalog/[id].tsx — Fiche détail parfum
 
 import { useState, useEffect, useRef } from 'react';
-import { View, Text, ScrollView, Pressable, ActivityIndicator, Linking, StyleSheet, useWindowDimensions } from 'react-native';
+import { View, Text, ScrollView, Pressable, ActivityIndicator, Linking, StyleSheet } from 'react-native';
 import { Image } from 'expo-image';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useLocalSearchParams, useRouter } from 'expo-router';
-import { Gesture, GestureDetector } from 'react-native-gesture-handler';
-import Animated, { useSharedValue, useAnimatedStyle, withSpring, runOnJS } from 'react-native-reanimated';
 import Ionicons from "@react-native-vector-icons/ionicons/static";
 import { useAuthContext } from '../../src/contexts/AuthContext';
 import { getParfumById, cacheParfumFromSearch } from '../../src/services/firestore';
@@ -150,35 +148,6 @@ export default function CatalogDetailPage() {
   // Normalisation : useLocalSearchParams peut retourner string | string[]
   const id: string | undefined = Array.isArray(rawId) ? rawId[0] : rawId;
   const router = useRouter();
-  const { width: windowWidth } = useWindowDimensions();
-
-  const translateX = useSharedValue(0);
-
-  const SWIPE_SPRING = { damping: 28, stiffness: 300, mass: 0.8 };
-  const MIN_SWIPE_THRESHOLD = 50;
-  const SWIPE_THRESHOLD_RATIO = 0.5;
-
-  const backGesture = Gesture.Pan()
-    .activeOffsetX(20)
-    .failOffsetY(15)
-    .onUpdate((e) => {
-      if (e.translationX > 0) {
-        translateX.value = e.translationX * 0.85;
-      }
-    })
-    .onEnd((e) => {
-      const threshold = Math.max((windowWidth || 400) * SWIPE_THRESHOLD_RATIO, MIN_SWIPE_THRESHOLD);
-      if (e.translationX > threshold || e.velocityX > 500) {
-        translateX.value = withSpring(0, SWIPE_SPRING);
-        runOnJS(router.back)();
-      } else {
-        translateX.value = withSpring(0, SWIPE_SPRING);
-      }
-    });
-
-  const swipeStyle = useAnimatedStyle(() => ({
-    transform: [{ translateX: translateX.value }],
-  }));
 
   const { user, isAuthenticated } = useAuthContext();
   const [parfum, setParfum] = useState<Parfum | ParfumSearchResult | null>(null);
@@ -338,14 +307,13 @@ export default function CatalogDetailPage() {
   const occasionMax = occasionData && occasionData.length > 0 ? Math.max.apply(null, occasionData.map(function(o){return o.score})) : 0;
   const heroUrl = parfum?.imageUrl ?? parfum?.imageUrlTransparent ?? (parfum?.imageFallbacks?.[0]) ?? null;
   return (
-    <GestureDetector gesture={backGesture}>
-      <Animated.View style={[{ flex: 1, backgroundColor: theme.colors.background }, swipeStyle]}>
-        {loading ? (
-          <View style={s.center}><ActivityIndicator size="large" color={theme.colors.primary} /></View>
-        ) : !parfum ? (
-          <View style={s.center}><Text style={{color:theme.colors.textMuted}}>Parfum introuvable.</Text></View>
-        ) : (
-          <SafeAreaView style={s.container}>
+    <>
+      {loading ? (
+        <View style={[s.center, { backgroundColor: theme.colors.background }]}><ActivityIndicator size="large" color={theme.colors.primary} /></View>
+      ) : !parfum ? (
+        <View style={[s.center, { backgroundColor: theme.colors.background }]}><Text style={{color:theme.colors.textMuted}}>Parfum introuvable.</Text></View>
+      ) : (
+        <SafeAreaView style={s.container}>
       <ScrollView>
         {heroUrl && !imgFailed && <Image source={{ uri: heroUrl }} style={s.heroImg} contentFit="cover" transition={300} onError={() => setImgFailed(true)} />}
         <View style={s.card}>
@@ -443,9 +411,8 @@ export default function CatalogDetailPage() {
         </View>
       </ScrollView>
           </SafeAreaView>
-        )}
-      </Animated.View>
-    </GestureDetector>
+      )}
+    </>
   );
 }
 
