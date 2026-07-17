@@ -218,19 +218,30 @@ const shared = {
   },
 } as const;
 
-export const lightTheme = {
+export interface Theme {
+  colors: Record<string, string>;
+  fonts: typeof shared.fonts;
+  radius: typeof shared.radius;
+  spacing: typeof shared.spacing;
+  shadow: {
+    card: Record<string, unknown>;
+    elevated: Record<string, unknown>;
+    button: Record<string, unknown>;
+    scanCircle: Record<string, unknown>;
+  };
+}
+
+export const lightTheme: Theme = {
   colors: lightColors,
   ...shared,
   shadow: lightShadow,
-} as const;
+};
 
-export const darkTheme = {
+export const darkTheme: Theme = {
   colors: darkColors,
   ...shared,
   shadow: darkShadow,
-} as const;
-
-export type Theme = typeof lightTheme;
+};
 
 // Rétrocompatibilité — les anciens imports continuent de fonctionner
 // tant que tous les composants ne sont pas migrés vers useTheme()

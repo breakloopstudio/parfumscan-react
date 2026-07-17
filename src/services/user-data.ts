@@ -16,14 +16,13 @@ export function onFavoris(uid: string, cb: (favoris: UserFavori[]) => void): () 
   return onSnapshot(q, (snap) => {
     if (!snap) { cb([]); return; }
     cb(snap.docs.map((d) => ({ id: d.id, ...d.data() } as UserFavori)));
-  });
+  }, (err) => { console.warn('[user-data] onFavoris error:', err.message); cb([]); });
 }
 
 export async function addFavori(uid: string, parfumId: string, nom?: string, marque?: string, imageUrl?: string, familleOlactive?: string): Promise<string> {
-  const existing = await getDocs(query(favCol(uid), where('parfumId', '==', parfumId), limit(1)));
-  if (!existing.empty) return existing.docs[0].id;
-  const ref = await addDoc(favCol(uid), { parfumId, nom: nom ?? null, marque: marque ?? null, imageUrl: imageUrl ?? null, familleOlactive: familleOlactive ?? null, addedAt: new Date() });
-  return ref.id;
+  const dRef = doc(favCol(uid), parfumId);
+  await setDoc(dRef, { parfumId, nom: nom ?? null, marque: marque ?? null, imageUrl: imageUrl ?? null, familleOlactive: familleOlactive ?? null, addedAt: new Date() }, { merge: true });
+  return dRef.id;
 }
 
 export async function removeFavori(uid: string, favoriId: string): Promise<void> {
@@ -45,7 +44,7 @@ export function onScans(uid: string, cb: (scans: UserScan[]) => void): () => voi
   return onSnapshot(q, (snap) => {
     if (!snap) { cb([]); return; }
     cb(snap.docs.map((d) => ({ id: d.id, ...d.data() } as UserScan)));
-  });
+  }, (err) => { console.warn('[user-data] onScans error:', err.message); cb([]); });
 }
 
 export async function saveScan(uid: string, scanData: Omit<UserScan, 'id' | 'scannedAt'>): Promise<void> {
@@ -63,17 +62,16 @@ export function onCollection(uid: string, cb: (items: UserCollectionItem[]) => v
   return onSnapshot(collCol(uid), (snap) => {
     if (!snap) { cb([]); return; }
     cb(snap.docs.map((d) => ({ id: d.id, ...d.data() } as UserCollectionItem))
-      .sort((a, b) => (b.addedAt?.getTime?.() ?? 0) - (a.addedAt?.getTime?.() ?? 0)));
-  });
+      .sort((a, b) => ((b.addedAt as unknown as { toDate?: () => Date })?.toDate?.()?.getTime?.() ?? 0) - ((a.addedAt as unknown as { toDate?: () => Date })?.toDate?.()?.getTime?.() ?? 0)));
+  }, (err) => { console.warn('[user-data] onCollection error:', err.message); cb([]); });
 }
 
 export async function addToCollection(uid: string, parfumId: string, nom?: string, marque?: string, imageUrl?: string): Promise<string> {
-  const existing = await getDocs(query(collCol(uid), where('parfumId', '==', parfumId), limit(1)));
-  if (!existing.empty) return existing.docs[0].id;
-  const ref = await addDoc(collCol(uid), {
+  const dRef = doc(collCol(uid), parfumId);
+  await setDoc(dRef, {
     parfumId, nom: nom ?? null, marque: marque ?? null, imageUrl: imageUrl ?? null, addedAt: new Date(),
-  });
-  return ref.id;
+  }, { merge: true });
+  return dRef.id;
 }
 
 export async function removeFromCollection(uid: string, itemId: string): Promise<void> {
@@ -84,8 +82,7 @@ export async function moveToCollection(uid: string, fromTab: string, fromItemId:
   const batch = writeBatch(db);
   if (fromTab === 'favoris') batch.delete(doc(favCol(uid), fromItemId));
   else if (fromTab === 'wishlist') batch.delete(doc(wishCol(uid), fromItemId));
-  const collRef = doc(collCol(uid));
-  batch.set(collRef, { parfumId, nom: nom ?? null, marque: marque ?? null, imageUrl: imageUrl ?? null, addedAt: new Date() });
+  batch.set(doc(collCol(uid), parfumId), { parfumId, nom: nom ?? null, marque: marque ?? null, imageUrl: imageUrl ?? null, addedAt: new Date() }, { merge: true });
   await batch.commit();
 }
 
@@ -103,17 +100,16 @@ export function onWishlist(uid: string, cb: (items: UserWishlistItem[]) => void)
   return onSnapshot(wishCol(uid), (snap) => {
     if (!snap) { cb([]); return; }
     cb(snap.docs.map((d) => ({ id: d.id, ...d.data() } as UserWishlistItem))
-      .sort((a, b) => (b.addedAt?.getTime?.() ?? 0) - (a.addedAt?.getTime?.() ?? 0)));
-  });
+      .sort((a, b) => ((b.addedAt as unknown as { toDate?: () => Date })?.toDate?.()?.getTime?.() ?? 0) - ((a.addedAt as unknown as { toDate?: () => Date })?.toDate?.()?.getTime?.() ?? 0)));
+  }, (err) => { console.warn('[user-data] onWishlist error:', err.message); cb([]); });
 }
 
 export async function addToWishlist(uid: string, parfumId: string, nom?: string, marque?: string, imageUrl?: string, familleOlactive?: string): Promise<string> {
-  const existing = await getDocs(query(wishCol(uid), where('parfumId', '==', parfumId), limit(1)));
-  if (!existing.empty) return existing.docs[0].id;
-  const ref = await addDoc(wishCol(uid), {
+  const dRef = doc(wishCol(uid), parfumId);
+  await setDoc(dRef, {
     parfumId, nom: nom ?? null, marque: marque ?? null, imageUrl: imageUrl ?? null, familleOlactive: familleOlactive ?? null, addedAt: new Date(),
-  });
-  return ref.id;
+  }, { merge: true });
+  return dRef.id;
 }
 
 export async function removeFromWishlist(uid: string, itemId: string): Promise<void> {
@@ -124,8 +120,7 @@ export async function moveToWishlist(uid: string, fromTab: string, fromItemId: s
   const batch = writeBatch(db);
   if (fromTab === 'favoris') batch.delete(doc(favCol(uid), fromItemId));
   else if (fromTab === 'collection') batch.delete(doc(collCol(uid), fromItemId));
-  const wishRef = doc(wishCol(uid));
-  batch.set(wishRef, { parfumId, nom: nom ?? null, marque: marque ?? null, imageUrl: imageUrl ?? null, familleOlactive: familleOlactive ?? null, addedAt: new Date() });
+  batch.set(doc(wishCol(uid), parfumId), { parfumId, nom: nom ?? null, marque: marque ?? null, imageUrl: imageUrl ?? null, familleOlactive: familleOlactive ?? null, addedAt: new Date() }, { merge: true });
   await batch.commit();
 }
 
@@ -133,8 +128,7 @@ export async function moveFavori(uid: string, fromTab: string, fromItemId: strin
   const batch = writeBatch(db);
   if (fromTab === 'collection') batch.delete(doc(collCol(uid), fromItemId));
   else if (fromTab === 'wishlist') batch.delete(doc(wishCol(uid), fromItemId));
-  const favRef = doc(favCol(uid));
-  batch.set(favRef, { parfumId, nom: nom ?? null, marque: marque ?? null, imageUrl: imageUrl ?? null, familleOlactive: familleOlactive ?? null, addedAt: new Date() });
+  batch.set(doc(favCol(uid), parfumId), { parfumId, nom: nom ?? null, marque: marque ?? null, imageUrl: imageUrl ?? null, familleOlactive: familleOlactive ?? null, addedAt: new Date() }, { merge: true });
   await batch.commit();
 }
 
@@ -175,19 +169,15 @@ export async function isPriceAlertActive(uid: string, parfumId: string): Promise
 }
 
 export async function setPriceAlert(uid: string, parfumId: string, active: boolean, currentPrice?: number): Promise<void> {
+  const dRef = doc(alertsCol(uid), parfumId);
   if (active) {
-    const existing = await getDocs(query(alertsCol(uid), where('parfumId', '==', parfumId), limit(1)));
-    if (!existing.empty) return;
-    await addDoc(alertsCol(uid), {
+    await setDoc(dRef, {
       parfumId,
       addedAt: new Date(),
       lastPrice: currentPrice ?? null,
       lastChecked: new Date(),
-    });
+    }, { merge: true });
   } else {
-    const snap = await getDocs(query(alertsCol(uid), where('parfumId', '==', parfumId), limit(1)));
-    const batch = writeBatch(db);
-    snap.docs.forEach(d => batch.delete(d.ref));
-    if (!snap.empty) await batch.commit();
+    await deleteDoc(dRef).catch(() => {});
   }
 }

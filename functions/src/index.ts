@@ -303,11 +303,34 @@ interface ScanResult {
  */
 export const searchFragrance = functions.https.onCall(
   { region: 'europe-west1' },
-  async (request: functions.https.CallableRequest<{ marque?: string; nom?: string; query?: string; typeParfum?: string | null }>): Promise<Record<string, unknown> | null> => {
-    const { marque, nom, query, typeParfum } = request.data;
+  async (request: functions.https.CallableRequest<{ marque?: string; nom?: string; query?: string; typeParfum?: string | null; id?: string; similarTo?: string }>): Promise<Record<string, unknown> | null> => {
+    const { marque, nom, query, typeParfum, id, similarTo } = request.data;
     const uid = request.auth?.uid;
-    if (!uid) {
-      throw new functions.https.HttpsError('unauthenticated', 'Connexion requise pour utiliser la recherche Fragella.');
+    const isAuthed = !!uid;
+
+    // Mode getById : récupérer un parfum par son ID Fragella
+    if (id) {
+      const apiKey = process.env.FRAGELLA_API_KEY;
+      if (!apiKey) throw new functions.https.HttpsError('internal', 'Clé API Fragella non configurée.');
+      const response = await fetch(`https://api.fragella.com/api/v1/fragrances/${encodeURIComponent(id)}`, {
+        headers: { 'x-api-key': apiKey },
+      });
+      if (!response.ok) return null;
+      const data = await response.json() as Record<string, unknown>;
+      return { results: [mapFragrance(data)], source: 'fragella' as const };
+    }
+
+    // Mode similarTo : récupérer des parfums similaires
+    if (similarTo) {
+      const apiKey = process.env.FRAGELLA_API_KEY;
+      if (!apiKey) throw new functions.https.HttpsError('internal', 'Clé API Fragella non configurée.');
+      const response = await fetch(`https://api.fragella.com/api/v1/fragrances/similar?name=${encodeURIComponent(similarTo)}&limit=8`, {
+        headers: { 'x-api-key': apiKey },
+      });
+      if (!response.ok) return null;
+      const raw = await response.json();
+      const items = Array.isArray(raw) ? raw : ((raw as { data?: unknown[] })?.data ?? []);
+      return { results: (items as Record<string, unknown>[]).map(mapFragrance), source: 'fragella' as const };
     }
 
     const parts: string[] = [];
@@ -341,13 +364,15 @@ export const searchFragrance = functions.https.onCall(
       throw new functions.https.HttpsError('internal', 'Clé API Fragella non configurée.');
     }
 
-    // Rate limit utilisateur : max 10 appels Fragella / jour
+    // Rate limit : 10/jour (authed), 5/jour (anonymous)
+    const maxCalls = isAuthed ? 10 : 5;
+    const callerId = uid ?? ('anon_' + (request.rawRequest?.ip ?? 'unknown'));
     const today = new Date().toISOString().slice(0, 10);
-    const usageRef = admin.firestore().doc(`users/${uid}/_usage/${today}`);
+    const usageRef = admin.firestore().doc(`users/${callerId}/_usage/${today}`);
     const usageDoc = await usageRef.get();
     const count = usageDoc.exists ? (usageDoc.data()?.['fragellaCalls'] ?? 0) : 0;
-    if (count >= 10) {
-      throw new functions.https.HttpsError('resource-exhausted', 'Limite quotidienne atteinte (10 recherches/jour).');
+    if (count >= maxCalls) {
+      throw new functions.https.HttpsError('resource-exhausted', `Limite quotidienne atteinte (${maxCalls} recherches/jour).`);
     }
 
     // Plafond global : max 200 appels/jour tous utilisateurs confondus
@@ -419,8 +444,8 @@ export const searchFragrance = functions.https.onCall(
         }
       }
 
-      // Sauvegarder dans le cache Firestore (mode scan)
-      if (marque && nom && !query) {
+      // Sauvegarder dans le cache Firestore (mode scan) — auth only
+      if (isAuthed && marque && nom && !query) {
         try {
           const now = new Date().toISOString();
           for (const r of results) {

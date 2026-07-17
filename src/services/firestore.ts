@@ -65,12 +65,12 @@ function docToParfum(d: DocumentSnapshot<DocumentData, DocumentData>): Parfum {
 
 export function onParfums(cb: (parfums: Parfum[]) => void): () => void {
   const q = query(parfumsCol(), orderBy('updatedAt', 'desc'));
-  return onSnapshot(q, (snap) => { if (!snap) { cb([]); return; } cb(snap.docs.map(docToParfum)); });
+  return onSnapshot(q, (snap) => { if (!snap) { cb([]); return; } cb(snap.docs.map(docToParfum)); }, (err) => { console.warn('[firestore] onParfums error:', err.message); cb([]); });
 }
 
 export async function getParfumById(id: string): Promise<Parfum | undefined> {
   const snap = await getDoc(doc(parfumsCol(), id));
-  if (!snap.exists) return undefined;
+  if (!snap.exists()) return undefined;
   return docToParfum(snap);
 }
 
@@ -79,7 +79,7 @@ export function onParfumsByMarque(marque: string, cb: (parfums: Parfum[]) => voi
   return onSnapshot(q, (snap) => {
     cb(snap.docs.map(docToParfum)
       .filter((p: Parfum) => p.marque.toLowerCase().includes(marque.toLowerCase())));
-  });
+  }, (err) => { console.warn('[firestore] onParfumsByMarque error:', err.message); cb([]); });
 }
 
 export async function createParfum(fragranceData: Omit<Parfum, 'id' | 'createdAt' | 'updatedAt'>): Promise<DocumentReference<DocumentData, DocumentData>> {
@@ -129,7 +129,7 @@ export async function cacheParfumFromSearch(p: ParfumSearchResult): Promise<stri
   let existing: DocumentSnapshot<DocumentData, DocumentData>;
   try { existing = await getDoc(dRef); } catch { existing = { exists: false } as unknown as DocumentSnapshot<DocumentData, DocumentData>; }
 
-  if (!existing.exists) {
+  if (!existing.exists()) {
     const now = new Date();
     const keywords = buildSearchKeywords(p.marque, p.nom);
     await setDoc(dRef, {

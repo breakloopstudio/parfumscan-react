@@ -33,7 +33,7 @@ export function useAuth() {
       if (firebaseUser) {
         try {
           const adminSnap = await getDoc(doc(getFirestore(), 'admins', firebaseUser.uid));
-          setIsAdmin(adminSnap.exists);
+          setIsAdmin(adminSnap.exists());
         } catch { setIsAdmin(false); }
       } else {
         setIsAdmin(false);

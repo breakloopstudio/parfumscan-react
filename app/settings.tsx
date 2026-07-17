@@ -1,7 +1,7 @@
 // app/settings.tsx — Page de paramètres
 
 import { useState, useEffect, useMemo } from 'react';
-import { View, Text, ScrollView, Switch, Pressable, Alert, StyleSheet, LayoutAnimation, Platform, UIManager } from 'react-native';
+import { View, Text, ScrollView, Switch, Pressable, Alert, StyleSheet, LayoutAnimation } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import Ionicons from '@react-native-vector-icons/ionicons/static';
@@ -10,10 +10,6 @@ import { getUserSettings, updateUserSetting } from '../src/services/user-data';
 import { requestFcmPermission, deleteFcmToken } from '../src/services/fcm';
 import { useTheme, type Theme } from '../src/theme/ThemeContext';
 import type { ThemeMode } from '../src/services/theme-storage';
-
-if (Platform.OS === 'android' && UIManager.setLayoutAnimationEnabledExperimental) {
-  UIManager.setLayoutAnimationEnabledExperimental(true);
-}
 
 export default function SettingsPage() {
   const { user, logout } = useAuthContext();

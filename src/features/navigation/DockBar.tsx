@@ -60,7 +60,7 @@ export default function DockBar({ activeIndex, pageWidth, onTabPress }: Props) {
     { index: 2, iconActive: 'camera', iconInactive: 'camera-outline', label: 'Scan', isFab: true },
     { index: 3, iconActive: 'time', iconInactive: 'time-outline', label: 'Historique' },
     { index: 4, iconActive: 'flask', iconInactive: 'flask-outline', label: 'Collection' },
-  ];
+  ] as const;
 
   return (
     <View style={[s.wrapper, { paddingBottom: 8 + insets.bottom }]} pointerEvents="box-none">
@@ -68,7 +68,7 @@ export default function DockBar({ activeIndex, pageWidth, onTabPress }: Props) {
         <Animated.View style={[s.indicator, m.indicator, { left: 0 }, indicatorStyle]} />
 
         {tabs.map(tab => {
-          if (tab.isFab) {
+          if ('isFab' in tab) {
             return (
               <View key={tab.index} style={s.fabSlot}>
                 <Pressable style={[s.fab, m.fab, theme.shadow.scanCircle]} onPress={() => handlePress(tab.index)}>

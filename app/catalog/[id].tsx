@@ -154,8 +154,8 @@ export default function CatalogDetailPage() {
   const id: string | undefined = Array.isArray(rawId) ? rawId[0] : rawId;
   const router = useRouter();
   const { width: windowWidth } = useWindowDimensions();
-  const { theme } = useTheme();
-  const s = useMemo(() => getStyles(theme), [theme]);
+  const { theme: t } = useTheme();
+  const s = useMemo(() => getStyles(t), [t]);
 
   const translateX = useSharedValue(0);
 
@@ -201,6 +201,7 @@ export default function CatalogDetailPage() {
   const [similars, setSimilars] = useState<ParfumSearchResult[]>([]);
   const [similarsLoading, setSimilarsLoading] = useState(false);
   const loadingRef = useRef(false);
+  const enrichmentRef = useRef(false);
   // Chargement auto-suffisant : bridge (preview) -> Firestore -> Fragella by ID -> Fragella search
   useEffect(() => {
     if (!id) return;
@@ -276,9 +277,11 @@ export default function CatalogDetailPage() {
   // on appelle l'endpoint détail Fragella pour récupérer les métadonnées complètes
   useEffect(() => {
     if (!parfum || !id) return;
+    if (enrichmentRef.current) return;
     const hasSeason = parfum.seasonRanking && parfum.seasonRanking.length > 0;
     const hasOccasion = parfum.occasionRanking && parfum.occasionRanking.length > 0;
-    if (hasSeason && hasOccasion) return; // déjà complet
+    if (hasSeason && hasOccasion) { enrichmentRef.current = true; return; }
+    enrichmentRef.current = true;
 
     // Utiliser l'ID Fragella original si disponible, sinon chercher via search
     const enrich = async () => {
@@ -321,7 +324,7 @@ export default function CatalogDetailPage() {
       cacheParfumFromSearch(enriched).catch(() => {});
     };
     enrich().catch(() => {});
-  }, [parfum, id]);
+  }, [id]);
 
   // Parfums similaires — cache-first (Firestore free → Fragella paid)
   useEffect(() => {
@@ -593,10 +596,10 @@ export default function CatalogDetailPage() {
                 ? Object.entries(parfum.mainAccordsPercentage)
                     .sort(([, a], [, b]) => accordScore(b) - accordScore(a))
                     .map(([name, pctStr], i, arr) => (
-                      <AccordBar key={name} name={translateNote(name)} pct={accordScore(pctStr)} index={i} total={arr.length} s={s} t={theme} />
+                      <AccordBar key={name} name={translateNote(name)} pct={accordScore(pctStr)} index={i} total={arr.length} s={s} t={t} />
                     ))
                 : parfum.mainAccords.map((name, i, arr) => (
-                    <AccordBar key={name} name={translateNote(name)} pct={100 - i * 12} index={i} total={arr.length} s={s} t={theme} />
+                    <AccordBar key={name} name={translateNote(name)} pct={100 - i * 12} index={i} total={arr.length} s={s} t={t} />
                   ))
               }
             </View>

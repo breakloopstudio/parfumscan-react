@@ -69,7 +69,7 @@ export default function FavoritesPage() {
         </View>
 
         {loading ? <ActivityIndicator style={{ marginTop: 24 }} color={theme.colors.primary} /> :
-         favoris.length === 0 ? <EmptyState variant="favoris" onAction={() => router.push('/catalog')} /> :
+         favoris.length === 0 ? <EmptyState variant="favoris" onAction={() => router.navigate('/(tabs)')} /> :
          favoris.map(f => (
            <Pressable key={f.id} style={s.listItem} onPress={() => goToDetail(f.parfumId)}>
              <View style={s.itemLeft}>

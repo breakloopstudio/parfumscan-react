@@ -10,7 +10,7 @@ Projet React Native (Expo 57, RN 0.86), ~30 écrans, design « Luxe malin ». Ar
 
 ```
 app/
-├── _layout.tsx               # Root : ThemeProvider → AuthProvider → AuthGuard → ErrorBoundary
+├── _layout.tsx               # Root : ThemeProvider → GestureHandlerRootView → AuthProvider → AuthGuard → ErrorBoundary
 ├── index.tsx                 # Splash → redirection (onboarding ou tabs)
 ├── (tabs)/
 │   ├── _layout.tsx           # Stack wrapper (pages empilées sur le pager)
@@ -28,20 +28,20 @@ app/
 └── admin.tsx                 # Administration
 
 src/
-├── services/     (11)        # Firebase, Firestore, Fragella, GPT-4o, user-data, theme-storage, haptics…
-├── hooks/        (10)        # useAuth, useScanReducer, useCatalog, useFavoris, useCollection, useWishlist, useScans…
-├── contexts/     (2)         # AuthContext, ThemeContext
-├── components/   (8)         # ParfumCard, Button, PriceDisplay, SectionHeader, EmptyState, OfflineBanner, AppLoader, ErrorBoundary, AlertPriceToggle
+├── services/     (10)        # Firebase, Firestore, Fragella (via Cloud Function), GPT-4o, user-data, theme-storage, haptics…
+├── hooks/        (8)         # useAuth, useScanReducer, useCatalog, useFavoris, useCollection, useWishlist, useScans, useNetwork
+├── contexts/     (1)         # AuthContext (ThemeContext est dans src/theme/)
+├── components/   (9)         # ParfumCard, Button, PriceDisplay, SectionHeader, EmptyState, OfflineBanner, AppLoader, ErrorBoundary, AlertPriceToggle
 ├── features/
 │   ├── scan/     (8)         # ScanScreen + 7 sous-états
 │   ├── catalog/  (2)         # CatalogPage, OlfactoryPyramid
 │   └── navigation/ (1)      # DockBar (barre flottante 5 positions + FAB)
-├── theme/        (2)         # theme.ts (double palette light/dark), ThemeContext.tsx
-├── config/       (3)         # Firebase config, env, index
+├── theme/        (2)         # theme.ts (Theme interface + light/dark), ThemeContext.tsx (useTheme + export Theme)
+├── config/       (3)         # Firebase config, env (variables publiques), index
 └── utils/        (2)         # Error translator, translate-note
 ```
 
-> **Note** : `src/features/profile/ProfilePage.tsx` a été supprimé en v6.0. Son contenu est dispatché dans les 3 nouveaux écrans Favoris/Historique/Collection. La navigation se fait via un DockBar flottant 5 positions (Catalogue, Favoris, Scan FAB, Historique, Collection) avec indicateur doré.
+> **Note v6.1** : `src/features/profile/ProfilePage.tsx` a été supprimé en v6.0. La cle API Fragella est maintenant côté serveur uniquement (Cloud Function `searchFragrance`), le client appelle via `httpsCallable`. Les doc IDs utilisateur (favoris, collection, wishlist, priceAlerts) sont déterministes (`= parfumId`).
 
 ---
 
@@ -156,12 +156,14 @@ src/
 
 ---
 
-## §12 — API Fragella
+## §12 — API Fragella (via Cloud Function)
 
-- `src/services/fragella.ts` — endpoint `/fragrances`
+- `src/services/fragella.ts` — appelle la Cloud Function `searchFragrance` (via `httpsCallable`)
+- La clé API Fragella est **côté serveur uniquement** (dans `functions/.env`)
 - `searchFragrance`, `searchFragranceByQuery`, `getFragranceById`, `getSimilarFragrances`
 - Cache Firestore automatique via `batchCacheParfums`
 - `fragellaId` = champ `_id` (⚠️ underscore)
+- Auth optionnelle pour les recherches (limité à 5/jour en anonyme, 10/jour connecté)
 
 ---
 

@@ -10,7 +10,9 @@ service cloud.firestore {
     }
     match /parfums/{docId} {
       allow read: if true;
-      allow create, update, delete: if request.auth != null;
+      // Seuls les admins (vérifiés côté serveur) ou les Cloud Functions peuvent écrire
+      // Le cache est géré par la Cloud Function searchFragrance (Admin SDK)
+      allow create, update, delete: if request.auth != null && exists(/databases/$(database)/documents/admins/$(request.auth.uid));
     }
     match /users/{userId} {
       allow read, write: if request.auth != null && request.auth.uid == userId;

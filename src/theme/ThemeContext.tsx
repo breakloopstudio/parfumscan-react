@@ -4,7 +4,9 @@
 import { createContext, useContext, useState, useEffect, useCallback, useMemo, type ReactNode } from 'react';
 import { useColorScheme } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
-import { lightTheme, darkTheme, type Theme } from './theme';
+import { lightTheme, darkTheme } from './theme';
+import type { Theme } from './theme';
+export type { Theme } from './theme';
 import { getThemeMode, setThemeMode, type ThemeMode } from '../services/theme-storage';
 
 type ResolvedMode = 'light' | 'dark';

@@ -36,8 +36,6 @@ export default function OlfactoryPyramid({ topNotes, heartNotes, baseNotes }: Pr
     { key: 'base' as LayerKey, label: 'Fond', notes: baseNotes, color: colors.pyramidBase, soft: colors.pyramidBaseSoft, ink: colors.pyramidBaseInk, ringSize: 220 },
   ].filter(l => l.notes.length > 0);
 
-  if (layers.length === 0) return null;
-
   const ringScales = [
     useSharedValue(0),
     useSharedValue(0),
@@ -53,10 +51,13 @@ export default function OlfactoryPyramid({ topNotes, heartNotes, baseNotes }: Pr
     });
   }, []);
 
-  const ringStyles = ringScales.map(sv => useAnimatedStyle(() => ({
-    transform: [{ scale: sv.value }],
-    opacity: sv.value,
-  })));
+  const ringStyles = [
+    useAnimatedStyle(() => ({ transform: [{ scale: ringScales[0].value }], opacity: ringScales[0].value })),
+    useAnimatedStyle(() => ({ transform: [{ scale: ringScales[1].value }], opacity: ringScales[1].value })),
+    useAnimatedStyle(() => ({ transform: [{ scale: ringScales[2].value }], opacity: ringScales[2].value })),
+  ];
+
+  if (layers.length === 0) return null;
 
   return (
     <View style={s.root}>

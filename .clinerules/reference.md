@@ -23,32 +23,36 @@ export function searchParfumsCached(query: string): Promise<ParfumSearchResult[]
 
 ### `src/services/fragella.ts`
 ```ts
-// API Fragella — catalogue de parfums
+// API Fragella — catalogue de parfums, via Cloud Function (clé API côté serveur uniquement)
+export const FRAGELLA_BASE: string; // non utilisé (proxy Cloud Function)
 export function searchFragrance(marque: string, nom: string, typeParfum?: string | null): Promise<FragranceResult[]>;
 export function searchFragranceByQuery(query: string): Promise<FragranceResult[]>;
 export function getFragranceById(id: string): Promise<FragranceResult | null>;
-export function getSimilarFragrances(id: string): Promise<FragranceResult[]>;
+export function getSimilarFragrances(marque: string, nom: string, limit?: number): Promise<FragranceResult[]>;
 export function fragellaToParfum(f: FragranceResult): ParfumSearchResult;
+export function normalize(s: string): string;
+export function buildSearchKeywords(marque: string, nom: string): string[];
 ```
 
 ### `src/services/user-data.ts`
 ```ts
 // Firestore — données utilisateur (favoris, collection, wishlist, scans, settings)
+// Doc IDs = parfumId (déterministes, pas de doublons possibles)
 export function onFavoris(uid: string, cb: (f: UserFavori[]) => void): () => void;
-export function addFavori(uid: string, parfumId: string, marque: string | null, nom: string | null, imageUrl: string | null, familleOlactive: string | null): Promise<void>;
+export function addFavori(uid: string, parfumId: string, nom?: string, marque?: string, imageUrl?: string, familleOlactive?: string): Promise<string>;
 export function removeFavori(uid: string, parfumId: string): Promise<void>;
-export function isParfumFavori(uid: string, parfumId: string): Promise<boolean>;
+export function isParfumFavori(uid: string, parfumId: string): Promise<{ isFavori: boolean; favoriId: string | null }>;
 export function onCollection(uid: string, cb: (items: UserCollectionItem[]) => void): () => void;
-export function addToCollection(uid: string, parfumId: string, marque: string | null, nom: string | null, imageUrl: string | null): Promise<void>;
+export function addToCollection(uid: string, parfumId: string, nom?: string, marque?: string, imageUrl?: string): Promise<string>;
 export function removeFromCollection(uid: string, parfumId: string): Promise<void>;
 export function onWishlist(uid: string, cb: (items: UserWishlistItem[]) => void): () => void;
-export function addToWishlist(uid: string, parfumId: string, marque: string | null, nom: string | null, imageUrl: string | null, familleOlactive: string | null): Promise<void>;
+export function addToWishlist(uid: string, parfumId: string, nom?: string, marque?: string, imageUrl?: string, familleOlactive?: string): Promise<string>;
 export function removeFromWishlist(uid: string, parfumId: string): Promise<void>;
 export function onScans(uid: string, cb: (s: UserScan[]) => void): () => void;
 export function saveScan(uid: string, data: Omit<UserScan, 'id' | 'scannedAt'>): Promise<void>;
 export function removeScan(uid: string, scanId: string): Promise<void>;
-export function getUserSettings(uid: string): Promise<UserSettings>;
-export function updateUserSetting(uid: string, key: string, value: unknown): Promise<void>;
+export function getUserSettings(uid: string): Promise<{ priceAlerts: boolean; pushNotifs: boolean }>;
+export function updateUserSetting(uid: string, key: 'priceAlerts' | 'pushNotifs', value: boolean): Promise<void>;
 export function isPriceAlertActive(uid: string, parfumId: string): Promise<boolean>;
 export function setPriceAlert(uid: string, parfumId: string, active: boolean, currentPrice?: number): Promise<void>;
 export function moveToCollection(uid: string, from: string, itemId: string, parfumId: string, nom: string | null, marque: string | null, imageUrl: string | null): Promise<void>;

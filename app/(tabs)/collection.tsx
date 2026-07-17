@@ -84,7 +84,7 @@ export default function CollectionPage() {
         {/* Section Possédés */}
         <Text style={s.sectionTitle}>Possédés · {collection.length}</Text>
         {collLoading ? <ActivityIndicator style={{ marginTop: 12 }} color={theme.colors.primary} /> :
-         collection.length === 0 ? <EmptyState variant="collection" onAction={() => router.push('/catalog')} /> :
+         collection.length === 0 ? <EmptyState variant="collection" onAction={() => router.navigate('/(tabs)')} /> :
          collection.map(c => (
            <Pressable key={c.id} style={s.listItem} onPress={() => goToDetail(c.parfumId)}>
              <View style={s.itemLeft}>
@@ -106,7 +106,7 @@ export default function CollectionPage() {
         {/* Section Wishlist */}
         <Text style={[s.sectionTitle, { marginTop: 20 }]}>Wishlist · {wishlist.length}</Text>
         {wishLoading ? <ActivityIndicator style={{ marginTop: 12 }} color={theme.colors.primary} /> :
-         wishlist.length === 0 ? <EmptyState variant="wishlist" onAction={() => router.push('/catalog')} /> :
+         wishlist.length === 0 ? <EmptyState variant="wishlist" onAction={() => router.navigate('/(tabs)')} /> :
          wishlist.map(w => (
            <Pressable key={w.id} style={s.listItem} onPress={() => goToDetail(w.parfumId)}>
              <View style={s.itemLeft}>

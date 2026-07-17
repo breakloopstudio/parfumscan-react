@@ -1,7 +1,7 @@
-// src/services/fragella.ts — API Fragella (74K parfums) — appel direct REST
-// Compatible Expo Go (pas de dépendance Firebase)
+// src/services/fragella.ts — API Fragella (74K parfums) — via Cloud Function
+// La clé API Fragella est côté serveur uniquement (Cloud Functions)
 
-import { env } from '../config/env';
+import { getFunctions, httpsCallable } from '@react-native-firebase/functions';
 
 // ─── Types ─────────────────────────────────────────────────
 
@@ -77,10 +77,6 @@ export interface ParfumSearchResult {
   similarIds?: string[];
 }
 
-// ─── Constantes ────────────────────────────────────────────
-
-const FRAGELLA_BASE = 'https://api.fragella.com/api/v1';
-
 // ─── Helpers ──────────────────────────────────────────────
 
 
@@ -104,10 +100,6 @@ function rateScore(v: string | undefined): number | undefined {
 
 export function normalize(s: string): string {
   return s.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().replace(/[^a-z0-9]+/g, '_').replace(/^_|_$/g, '');
-}
-
-function apiKey(): string {
-  return env.FRAGELLA_API_KEY;
 }
 
 /** Mappe une entrée brute Fragella vers notre format */
@@ -231,112 +223,61 @@ export function fragellaToParfum(frag: FragranceResult): ParfumSearchResult {
   };
 }
 
-// ─── HTTP ──────────────────────────────────────────────────
+// ─── HTTP (via Cloud Function) ────────────────────────────
 
-async function fragellaGet(path: string): Promise<Response> {
-  return fetch(`${FRAGELLA_BASE}${path}`, {
-    headers: { 'x-api-key': apiKey() },
-  });
+async function callFragella(data: Record<string, unknown>): Promise<Record<string, unknown> | null> {
+  try {
+    const funcs = getFunctions();
+    const result = await httpsCallable<typeof data, Record<string, unknown> | null>(funcs, 'searchFragrance')(data);
+    return result.data;
+  } catch (err: unknown) {
+    const msg = err instanceof Error ? err.message : String(err);
+    console.warn('[Fragella] Cloud Function error:', msg);
+    return null;
+  }
 }
 
 // ─── API ──────────────────────────────────────────────────
 
 /** Récupère un parfum par son ID Fragella (détail complet).
- *  L'endpoint /:id renvoie TOUTES les métadonnées (saisonnalité, occasions, etc.)
- *  que l'endpoint /search peut parfois omettre selon les parfums. */
+ *  Passe par la Cloud Function (clé API côté serveur). */
 export async function getFragranceById(id: string): Promise<FragranceResult | null> {
-  if (!apiKey()) {
-    console.warn('[Fragella] Clé API non configurée.');
-    return null;
-  }
   if (!id) return null;
-
-  try {
-    const response = await fragellaGet(`/fragrances/${encodeURIComponent(id)}`);
-    if (!response.ok) {
-      console.error('[Fragella] getById error:', response.status);
-      return null;
-    }
-    const data = await response.json() as Record<string, unknown>;
-    return mapFragrance(data);
-  } catch (err: unknown) {
-    console.error('[Fragella] getById error:', err instanceof Error ? err.message : String(err));
-    return null;
-  }
+  const r = await callFragella({ id });
+  if (!r || !r.results) return null;
+  const results = r.results as Record<string, unknown>[];
+  return results.length > 0 ? mapFragrance(results[0]) : null;
 }
 
 export async function searchFragrance(marque: string, nom: string, typeParfum?: string | null): Promise<FragranceResult[]> {
-  if (!apiKey()) {
-    console.warn('[Fragella] Clé API non configurée.');
-    return [];
-  }
   const query = [marque, nom].filter(Boolean).join(' ');
   if (!query) return [];
+  const r = await callFragella({ marque, nom, typeParfum });
+  if (!r || !r.results) return [];
+  let results = (r.results as Record<string, unknown>[]).map(mapFragrance);
 
-  try {
-    const response = await fragellaGet(`/fragrances?search=${encodeURIComponent(query)}&limit=10`);
-    if (!response.ok) {
-      console.error('[Fragella] search error:', response.status);
-      return [];
-    }
-    const data = await response.json() as Array<Record<string, unknown>>;
-    let results = data.map(mapFragrance);
-
-    // Filtrer par typeParfum si fourni
-    if (typeParfum && results.length > 0) {
-      const filtered = results.filter(r =>
-        normalize(r.typeParfum ?? '').includes(normalize(typeParfum))
-      );
-      if (filtered.length > 0) results = filtered;
-    }
-
-    return results;
-  } catch (err: unknown) {
-    console.error('[Fragella] search error:', err instanceof Error ? err.message : String(err));
-    return [];
+  // Filtrer par typeParfum si fourni
+  if (typeParfum && results.length > 0) {
+    const filtered = results.filter(res =>
+      normalize(res.typeParfum ?? '').includes(normalize(typeParfum))
+    );
+    if (filtered.length > 0) results = filtered;
   }
+
+  return results;
 }
 
 export async function searchFragranceByQuery(query: string): Promise<FragranceResult[]> {
-  if (!apiKey()) {
-    console.warn('[Fragella] Clé API non configurée.');
-    return [];
-  }
   if (!query || query.trim().length < 3) return [];
-
-  try {
-    const response = await fragellaGet(`/fragrances?search=${encodeURIComponent(query.trim())}&limit=7`);
-    if (!response.ok) {
-      console.error('[Fragella] searchByQuery error:', response.status);
-      return [];
-    }
-    const data = await response.json() as Array<Record<string, unknown>>;
-    return data.map(mapFragrance);
-  } catch (err: unknown) {
-    console.error('[Fragella] searchByQuery error:', err instanceof Error ? err.message : String(err));
-    return [];
-  }
+  const r = await callFragella({ query: query.trim() });
+  if (!r || !r.results) return [];
+  return (r.results as Record<string, unknown>[]).map(mapFragrance);
 }
 
 export async function getSimilarFragrances(marque: string, nom: string, limit: number = 6): Promise<FragranceResult[]> {
-  if (!apiKey()) {
-    console.warn('[Fragella] Clé API non configurée.');
-    return [];
-  }
-  const query = `${marque} ${nom}`.trim();
-  if (!query) return [];
-
-  try {
-    const response = await fragellaGet(`/fragrances/similar?name=${encodeURIComponent(query)}&limit=${limit}`);
-    if (!response.ok) {
-      console.error('[Fragella] similar error:', response.status);
-      return [];
-    }
-    const raw = await response.json();
-    const data = Array.isArray(raw) ? raw : (raw as { data?: unknown[] })?.data ?? [];
-    return (data as Record<string, unknown>[]).map(mapFragrance);
-  } catch (err: unknown) {
-    console.error('[Fragella] similar error:', err instanceof Error ? err.message : String(err));
-    return [];
-  }
+  const similarTo = `${marque} ${nom}`.trim();
+  if (!similarTo) return [];
+  const r = await callFragella({ similarTo });
+  if (!r || !r.results) return [];
+  return (r.results as Record<string, unknown>[]).slice(0, limit).map(mapFragrance);
 }
