@@ -27,7 +27,7 @@
 | ❤️ **Favoris** | Coups de cœur, sans obligation d'achat |
 | ⚙️ **Paramètres** | Alertes prix, devise EUR, notifs push, mentions légales |
 | 🧠 **Fiche détail** | Hub d'actions (3 boutons), PriceDisplay animé, tendance prix, comparateur magasin vs ligne, pyramide olfactive |
-| 🚀 **Onboarding** | 3 slides au premier lancement, swipe navigation, sans auth |
+| 🚀 **Onboarding** | 3 slides au premier lancement, swipe navigation, sans auth (⏸️ désactivé temporairement) |
 | 🔐 **Auth optionnelle** | App utilisable sans compte, login demandé uniquement quand nécessaire |
 | 📴 **Mode hors-ligne** | Bannière réseau, contenu dégradé via cache Firestore local |
 | 🌓 **Dark Mode** | 3 modes (système/clair/sombre), persistance AsyncStorage, accessible sans authentification, palette « Luxe profond » |
@@ -137,7 +137,7 @@ app/
 │   └── register.tsx          # Inscription
 ├── catalog/[id].tsx          # Détail enrichi : PriceDisplay, 3 boutons, tendance prix, pyramide, accords, saisons, occasions
 ├── settings.tsx              # Paramètres : alertes prix, devise, apparence, déconnexion
-├── onboarding.tsx            # 3 slides swipe + AsyncStorage
+├── onboarding.tsx            # 3 slides swipe + AsyncStorage (⏸️ désactivé temporairement)
 └── admin.tsx                 # Administration (seed + reset cache + upload)
 
 src/
@@ -246,7 +246,7 @@ dénormalisés → affichage direct sans appel API Firestore ni Fragella.
 - **New hooks** : `useFavoris`, `useCollection`, `useWishlist`, `useScans` — Firestore temps réel
 - **0 fontWeight** : migration complète de tout le code vers `fontFamily`
 - **Firebase modular API** : migration namespaced → modular (v25+)
-- **Onboarding** : 3 slides swipe au 1er lancement, AsyncStorage `@parfumscan_onboarding_done`
+- **Onboarding** : 3 slides swipe au 1er lancement, AsyncStorage `@parfumscan_onboarding_done` (⏸️ désactivé temporairement)
 
 ## v5.7 — Burst + Galerie + Personnalisation (16/07/2026)
 

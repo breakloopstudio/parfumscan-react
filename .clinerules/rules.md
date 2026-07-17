@@ -73,10 +73,10 @@ src/
 ## §6 — Authentification
 
 - Firebase Auth (email + Google Sign-In)
-- Auth optionnelle — l'app fonctionne sans compte
+- Auth optionnelle — l'app fonctionne sans compte, aucune redirection forcée vers `/auth/login`
 - `AuthContext` fournit `user`, `authReady`, `isAuthenticated`, `isAdmin`, `login`, `register`, `logout`
-- L'onboarding est exempté de l'AuthGuard
-- Les routes `/auth/*` sont inaccessibles si déjà connecté
+- `AuthGuard` bloque uniquement l'accès aux routes `/auth/*` si déjà connecté (`isAuthenticated && inAuth → /(tabs)`)
+- Les écrans protégés (admin, actions favoris/collection/wishlist) ont leurs propres vérifications inline
 
 ---
 
@@ -194,7 +194,7 @@ src/
 - ✅ Auth optionnelle (app fonctionne sans login)
 - ✅ EUR uniquement en V1
 - ✅ 3 boutons distincts sur fiche détail
-- ✅ Onboarding au 1er lancement, sans demande de compte
+- ⏸️ Onboarding désactivé (route contournée, index → tabs directement)
 - ✅ 0 `fontWeight` — tout en `fontFamily`
 
 ---

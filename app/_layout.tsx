@@ -36,9 +36,7 @@ function AuthGuard({ children }: { children: React.ReactNode }) {
     if (!isFirebaseReady()) return;
     if (!segments[0]) return;
     const inAuth = segments[0] === 'auth';
-    const isOnboarding = segments[0] === 'onboarding';
-    if (!isAuthenticated && !inAuth && !isOnboarding) router.replace('/auth/login');
-    else if (isAuthenticated && inAuth) router.replace('/(tabs)');
+    if (isAuthenticated && inAuth) router.replace('/(tabs)');
   }, [authReady, isAuthenticated, segments]);
 
   if (!authReady) return null;
