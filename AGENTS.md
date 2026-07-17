@@ -92,4 +92,3 @@ react-native-svg ^15 · @react-native-vector-icons/ionicons ^13
 Expo SDK 57: https://docs.expo.dev/versions/v57.0.0/
 iOS cross-platform rules: `.clinerules/rules.md` §17
 Design system « Luxe malin » : `.clinerules/design-guide.md`
-Wardrobe design brief : `DESIGN_BRIEF_WARDROBE-1.md`
