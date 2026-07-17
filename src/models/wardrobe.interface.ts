@@ -12,6 +12,7 @@ export interface WardrobeItem {
   shelfIds: string[];
   sizeMl: number | null;
   sotdCount: number;
+  isSignature: boolean;
   addedAt: Date;
   updatedAt: Date;
 }

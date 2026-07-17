@@ -1,4 +1,4 @@
-# ParfumScan React — Environment & Commands (v6.2)
+# ParfumScan React — Environment & Commands (v6.3)
 
 ## Environnement local (Windows)
 | Variable | Valeur |
@@ -12,8 +12,9 @@
 
 ### Development Build (mode complet — recommandé)
 ```bash
-# ⭐ Méthode rapide : script tout-en-un (émulateur + build + Metro)
-start.bat
+# ⭐ Script tout-en-un (2 modes)
+start.bat           # Mode FAST : Metro uniquement (pas de rebuild Gradle)
+start.bat build     # Mode BUILD complet : Gradle + install + Metro
 
 # Méthode manuelle :
 emulator -avd Pixel_7_Pro
@@ -84,11 +85,13 @@ npx tsc --noEmit     # vérifier la compilation (0 erreur attendu)
 react-native 0.86.0 · expo ~57 · expo-router ~57
 @react-native-firebase/* ^25 · expo-camera ~57 · expo-image ~57 · expo-splash-screen ~57
 react-native-gesture-handler ~2.32 · react-native-reanimated ~4.5 · react-native-worklets 0.10
-@react-native-vector-icons/ionicons ^13 · @react-native-async-storage/async-storage · typescript ~6.0
+react-native-svg ^15 · @react-native-vector-icons/ionicons ^13
+@react-native-async-storage/async-storage · typescript ~6.0
 
 ## Docs
 Expo SDK 57: https://docs.expo.dev/versions/v57.0.0/
 iOS cross-platform rules: `.clinerules/rules.md` §17
 Design system « Luxe malin » : `.clinerules/design-guide.md`
 Wardrobe spec : `IMPLEMENTATION_PLAN.md`
-Wardrobe design brief : `DESIGN_BRIEF_WARDROBE.md`
+Wardrobe design brief : `DESIGN_BRIEF_WARDROBE-1.md`, `DESIGN_BRIEF_WARDROBE-2.md`
+Olfactory triangle plan : `olfactory-triangle-plan.md`

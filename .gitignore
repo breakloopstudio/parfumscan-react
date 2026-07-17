@@ -41,6 +41,7 @@ GoogleService-Info.plist
 # ─── IDE / Outils locaux ─────────────────────────────────────────
 .idea/
 .claude/
+.od-skills/
 CLAUDE.md
 AGENTS.md
 *.log

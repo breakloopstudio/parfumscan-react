@@ -37,14 +37,15 @@ src/
 ├── features/
 │   ├── scan/     (8)         # ScanScreen + 7 sous-états
 │   ├── catalog/  (2)         # CatalogPage, OlfactoryPyramid
-│   ├── wardrobe/ (8)         # StarRating, WardrobeCard, SOTDCard, SOTDPicker, FilterBar, WardrobeGrid, WardrobeQuickSheet, ShelfManager
+│   ├── wardrobe/ (9)         # WardrobeAddSheet, WardrobeCard, WardrobeGrid, WardrobeQuickSheet, SOTDCard, SOTDPicker, FilterBar, StarRating, ShelfManager
 │   └── navigation/ (1)      # DockBar (barre flottante 5 positions + FAB, verre depoli via expo-blur, pulse ring, show/hide au scroll)
 ├── theme/        (2)         # theme.ts (Theme interface + light/dark), ThemeContext.tsx (useTheme + export Theme)
 ├── config/       (3)         # Firebase config, env (variables publiques), index
-└── utils/        (3)         # Error translator, translate-note, ownership
+├── models/       (8)         # Parfum, WardrobeItem, Shelf, SotdEntry, UserFavori, UserScan, UserCollectionItem, UserWishlistItem + interfaces de scan
+└── utils/        (3)         # Error translator, translate-note, ownership (labels, helpers)
 ```
 
-> **Note v6.2** : La garde-robe (`collection.tsx`) a été refondue — ownership states (have/want/had/sample/decant), étagères custom, rating 1-5, notes personnelles, SOTD (parfum du jour). Les sous-collections Firestore `wardrobe`, `shelves`, `sotd` sont ajoutées. `src/features/profile/ProfilePage.tsx` supprimé en v6.0. La cle API Fragella côté serveur uniquement.
+> **Note v6.3** : La garde-robe (`collection.tsx`) a été enrichie — WardrobeAddSheet (bottom sheet d'ajout avec taille), parfum signature (max 3, toggle + compteur), tailles décant/échantillon (2-30ml), ownership labels centralisés (`src/utils/ownership.ts`), `isSignature` sur le modèle WardrobeItem, `sizeMl` dans `addToWardrobe()`. AuthContext memoïsé (`useMemo`) pour éviter les re-renders. `react-native-svg` ajouté aux dépendances. `WardrobeAddSheet.tsx` remplace le `Alert.alert` archaïque de la fiche détail. OlfactoryPyramid et StarRating retravaillés (support demi-étoiles). `start.bat` réécrit avec 2 modes (fast / build).
 
 ---
 

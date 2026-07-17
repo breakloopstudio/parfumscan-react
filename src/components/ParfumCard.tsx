@@ -47,6 +47,7 @@ export default function ParfumCard({ parfum, showDeal = false, compact = false, 
   const hasImage = imageUrl !== null;
   const showImage = hasImage && !imgFailed;
   const tint = brandColor(parfum.marque);
+  const imageSource = useMemo(() => (imageUrl ? { uri: imageUrl } : null), [imageUrl]);
 
   const goToDetail = () => {
     if (onPressOverride) {
@@ -61,7 +62,7 @@ export default function ParfumCard({ parfum, showDeal = false, compact = false, 
     <Pressable style={compact ? s.cardCompact : s.card} onPress={goToDetail}>
         {showImage ? (
           <View style={compact ? s.imgWrapCompact : s.imgWrap}>
-            <Image source={{ uri: imageUrl }} style={compact ? s.imgCompact : s.img} contentFit="cover" transition={300} onError={() => setImgFailed(true)} />
+            <Image source={imageSource!} style={compact ? s.imgCompact : s.img} contentFit="cover" transition={300} onError={() => setImgFailed(true)} />
             <View style={s.imgOverlay} />
             {discount !== null && <View style={compact ? s.dealBadgeCompact : s.dealBadge}><Text style={compact ? s.dealBadgeTextCompact : s.dealBadgeText}>-{discount}%</Text></View>}
           </View>

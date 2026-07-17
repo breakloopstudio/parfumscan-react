@@ -38,7 +38,7 @@ interface Props {
 }
 
 export default function CatalogPage({ onScroll }: Props) {
-  const { theme } = useTheme();
+  const { theme, resolvedMode } = useTheme();
   const s = useMemo(() => getStyles(theme), [theme]);
   const { user, authReady, isAuthenticated } = useAuthContext();
   const router = useRouter();
@@ -86,7 +86,7 @@ export default function CatalogPage({ onScroll }: Props) {
   }, [authReady, isAuthenticated, user?.uid]);
 
   return (
-    <SafeAreaView edges={['top', 'bottom']} style={s.container}>
+    <SafeAreaView edges={['bottom']} style={s.container}>
       {authReady && !isAuthenticated && (
         <View style={s.banner}>
           <Ionicons name="heart-outline" size={20} color={theme.colors.primary} />
@@ -133,6 +133,7 @@ export default function CatalogPage({ onScroll }: Props) {
         <View style={s.ghostSection}><Text style={s.ghostLabel}>{suggestionLabel}</Text><ActivityIndicator style={{ marginTop: 20 }} color={theme.colors.primary} /></View>
       ) : (
         <FlatList
+          key={`suggestions-${resolvedMode}`}
           data={suggestionParfums}
           numColumns={2}
           keyExtractor={p => p.id}
@@ -159,7 +160,7 @@ function getStyles(t: Theme) {
     bannerText: { flex: 1, fontFamily: 'Inter_400Regular', fontSize: 13, color: t.colors.primaryInk },
     bannerLink: { backgroundColor: t.colors.primary, paddingHorizontal: 12, paddingVertical: 6, borderRadius: t.radius.sm },
     bannerLinkText: { color: '#FFFFFF', fontFamily: 'Inter_600SemiBold', fontSize: 13 },
-    headerBar: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 16, paddingTop: 16, paddingBottom: 12 },
+    headerBar: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 16, paddingTop: 8, paddingBottom: 12 },
     heroTitle: { fontFamily: 'PlayfairDisplay_700Bold', fontSize: 28, color: t.colors.text },
     heroSub: { fontFamily: 'Inter_400Regular', fontSize: 14, color: t.colors.textMuted, marginTop: 4 },
     familyScroll: { maxHeight: 44, marginBottom: 4 },

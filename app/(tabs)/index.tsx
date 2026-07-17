@@ -48,11 +48,13 @@ export default function TabPager() {
   const scrollY = useSharedValue(0);
   const dockTranslateY = useSharedValue(0);
   const searchBarTranslateY = useSharedValue(0);
+  const dockSheetVisible = useSharedValue(false);
+  const [sheetOpen, setSheetOpen] = useState(false);
 
   useAnimatedReaction(
     () => scrollY.value,
     (current, prev) => {
-      if (prev === null) return;
+      if (prev === null || dockSheetVisible.value) return;
       if (current > prev! && current > SCROLL_HIDE_OFFSET) {
         dockTranslateY.value = withTiming(120, { duration: DOCK_DURATION, easing: Easing.out(Easing.cubic) });
         searchBarTranslateY.value = withTiming(-70, { duration: DOCK_DURATION, easing: Easing.out(Easing.cubic) });
@@ -84,6 +86,11 @@ export default function TabPager() {
   const handlePageScroll = useCallback((y: number) => {
     'worklet';
     scrollY.value = y;
+  }, []);
+
+  const handleSheetOpen = useCallback((visible: boolean) => {
+    dockSheetVisible.value = visible;
+    setSheetOpen(visible);
   }, []);
 
   const goTo = useCallback((p: number) => {
@@ -162,6 +169,10 @@ export default function TabPager() {
     };
   });
 
+  const dockFadeStyle = useAnimatedStyle(() => ({
+    opacity: withTiming(dockSheetVisible.value ? 0 : 1, { duration: 150 }),
+  }));
+
   const m = useMemo(() => getSearchStyles(theme), [theme]);
 
   if (windowWidth === 0) {
@@ -169,7 +180,7 @@ export default function TabPager() {
   }
 
   return (
-    <SafeAreaView style={[s.root, { backgroundColor: theme.colors.background }]}>
+    <SafeAreaView edges={['top']} style={[s.root, { backgroundColor: theme.colors.background }]}>
       <Animated.View style={[m.searchWrap, m.searchBarShadow, searchBarAnimatedStyle]}>
         <Pressable
           style={({ pressed }) => [m.searchBar, pressed && m.searchBarPressed]}
@@ -198,17 +209,19 @@ export default function TabPager() {
             <HistoryPage onScroll={handlePageScroll} />
           </Animated.View>
           <Animated.View style={[s.page, colStyle]}>
-            <CollectionPage onScroll={handlePageScroll} />
+            <CollectionPage onScroll={handlePageScroll} onSheetOpen={handleSheetOpen} />
           </Animated.View>
         </View>
       </GestureDetector>
 
-      <DockBar
+      <Animated.View style={dockFadeStyle} pointerEvents={sheetOpen ? 'none' : 'box-none'}>
+        <DockBar
         activeIndex={dockActiveIndex}
         pageWidth={pageWidth}
         dockTranslateY={dockTranslateY}
         onTabPress={onTabPress}
       />
+      </Animated.View>
     </SafeAreaView>
   );
 }

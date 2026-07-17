@@ -1,7 +1,7 @@
 // src/contexts/AuthContext.tsx
 // Provider d'authentification React
 
-import React, { createContext, useContext, type ReactNode } from 'react';
+import React, { createContext, useContext, useMemo, type ReactNode } from 'react';
 import type { User, UserCredential } from '@react-native-firebase/auth';
 import { useAuth } from '../hooks/useAuth';
 
@@ -20,7 +20,17 @@ const AuthContext = createContext<AuthContextValue | null>(null);
 
 export function AuthProvider({ children }: { children: ReactNode }) {
   const auth = useAuth();
-  return <AuthContext.Provider value={auth as AuthContextValue}>{children}</AuthContext.Provider>;
+  const value = useMemo<AuthContextValue>(() => ({
+    user: auth.user,
+    authReady: auth.authReady,
+    isAdmin: auth.isAdmin,
+    isAuthenticated: auth.isAuthenticated,
+    register: auth.register,
+    login: auth.login,
+    loginWithGoogle: auth.loginWithGoogle,
+    logout: auth.logout,
+  }), [auth.user, auth.authReady, auth.isAdmin, auth.isAuthenticated, auth.register, auth.login, auth.loginWithGoogle, auth.logout]);
+  return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 }
 
 export function useAuthContext(): AuthContextValue {

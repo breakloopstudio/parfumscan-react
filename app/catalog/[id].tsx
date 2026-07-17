@@ -1,7 +1,7 @@
 ﻿// app/catalog/[id].tsx — Fiche détail parfum (refonte Luxe malin)
 
 import { useState, useEffect, useRef, useMemo } from 'react';
-import { View, Text, ScrollView, Pressable, ActivityIndicator, Linking, TextInput, StyleSheet, useWindowDimensions, Platform, Alert } from 'react-native';
+import { View, Text, ScrollView, Pressable, ActivityIndicator, Linking, TextInput, StyleSheet, useWindowDimensions, Platform } from 'react-native';
 import { Image } from 'expo-image';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useLocalSearchParams, useRouter } from 'expo-router';
@@ -22,6 +22,8 @@ import OlfactoryPyramid from '../../src/features/catalog/OlfactoryPyramid';
 import PriceDisplay from '../../src/components/PriceDisplay';
 import Button from '../../src/components/Button';
 import AlertPriceToggle from '../../src/components/AlertPriceToggle';
+import WardrobeAddSheet from '../../src/features/wardrobe/WardrobeAddSheet';
+import { ownershipLabel } from '../../src/utils/ownership';
 
 // ─── Mappings FR ─────────────────────────────────────────────
 
@@ -192,6 +194,7 @@ export default function CatalogDetailPage() {
   const [isFav, setIsFav] = useState(false);
   const [favoriId, setFavoriId] = useState<string | null>(null);
   const [wardrobeItem, setWardrobeItem] = useState<import('../../src/models/wardrobe.interface').WardrobeItem | null>(null);
+  const [showWardrobeSheet, setShowWardrobeSheet] = useState(false);
   const [pending] = useState<Parfum | ParfumSearchResult | null>(() => consumePendingParfum());
   const [imgFailed, setImgFailed] = useState(false);
   const [storePrice, setStorePrice] = useState('');
@@ -393,18 +396,17 @@ export default function CatalogDetailPage() {
     }
   };
 
-  const handleWardrobeAdd = async (ownership: import('../../src/models/wardrobe.interface').WardrobeItem['ownership']) => {
-    if (!isAuthenticated) { router.push('/auth/login'); return; }
-    if (!user?.uid || !id || !parfum) return;
-    try {
-      await addToWardrobe(user.uid, id, ownership, parfum.nom, parfum.marque, parfum.imageUrl, parfum.familleOlactive);
-      setWardrobeItem({
-        parfumId: id, ownership, nom: parfum.nom, marque: parfum.marque,
-        imageUrl: parfum.imageUrl ?? null, familleOlactive: parfum.familleOlactive ?? null,
-        rating: null, notes: null, shelfIds: [], sizeMl: null, sotdCount: 0,
-        addedAt: new Date(), updatedAt: new Date(),
-      });
-    } catch (e) { console.warn('[wardrobe] add failed:', (e as Error)?.message); }
+  const handleWardrobeAdd = async (ownership: import('../../src/models/wardrobe.interface').WardrobeItem['ownership'], sizeMl?: number | null): Promise<void> => {
+    if (!isAuthenticated) { router.push('/auth/login'); throw new Error('Non authentifié'); }
+    if (!user?.uid || !id || !parfum) throw new Error('Données manquantes');
+    await addToWardrobe(user.uid, id, ownership, parfum.nom, parfum.marque, parfum.imageUrl, parfum.familleOlactive, sizeMl ?? null);
+    setWardrobeItem({
+      parfumId: id, ownership, nom: parfum.nom, marque: parfum.marque,
+      imageUrl: parfum.imageUrl ?? null, familleOlactive: parfum.familleOlactive ?? null,
+      rating: null, notes: null, shelfIds: [], sizeMl: sizeMl ?? null, sotdCount: 0,
+      isSignature: false,
+      addedAt: new Date(), updatedAt: new Date(),
+    });
   };
   const seasonData = parfum && parfum.seasonRanking ? [...parfum.seasonRanking].sort(function(a,b){return b.score-a.score}) : null;
   const seasonMax = seasonData && seasonData.length > 0 ? Math.max.apply(null, seasonData.map(function(s){return s.score})) : 0;
@@ -520,19 +522,12 @@ export default function CatalogDetailPage() {
             {wardrobeItem ? (
               <Pressable onPress={() => router.push(`/wardrobe/${id}`)} style={[s.actionBtn, s.actionBtnActive]}>
                 <Ionicons name="shirt" size={18} color={t.colors.primary} />
-                <Text style={[s.actionLabel, { color: t.colors.primary }]}>{wardrobeItem.ownership === 'have' ? 'Possédé' : wardrobeItem.ownership === 'want' ? 'Souhaité' : wardrobeItem.ownership === 'had' ? 'Ancien' : wardrobeItem.ownership === 'sample' ? 'Échantillon' : 'Décant'}</Text>
+                <Text style={[s.actionLabel, { color: t.colors.primary }]}>{ownershipLabel(wardrobeItem.ownership)}</Text>
               </Pressable>
             ) : (
               <Pressable onPress={() => {
                 if (!isAuthenticated) { router.push('/auth/login'); return; }
-                Alert.alert('Ajouter à la garde-robe', 'Choisissez l\'état :', [
-                  { text: 'Possédé', onPress: () => handleWardrobeAdd('have') },
-                  { text: 'Souhaité', onPress: () => handleWardrobeAdd('want') },
-                  { text: 'Ancien', onPress: () => handleWardrobeAdd('had') },
-                  { text: 'Échantillon', onPress: () => handleWardrobeAdd('sample') },
-                  { text: 'Décant', onPress: () => handleWardrobeAdd('decant') },
-                  { text: 'Annuler', style: 'cancel' },
-                ]);
+                setShowWardrobeSheet(true);
               }} style={s.actionBtn}>
                 <Ionicons name="shirt-outline" size={18} color={t.colors.textMuted} />
                 <Text style={s.actionLabel}>Garde-robe</Text>
@@ -642,6 +637,14 @@ export default function CatalogDetailPage() {
       </ScrollView>
           </SafeAreaView>
       )}
+      <WardrobeAddSheet
+        visible={showWardrobeSheet}
+        parfumName={parfum?.nom}
+        parfumBrand={parfum?.marque}
+        parfumImageUrl={heroUrl}
+        onClose={() => setShowWardrobeSheet(false)}
+        onSelect={handleWardrobeAdd}
+      />
     </>
   );
 

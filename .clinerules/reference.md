@@ -64,8 +64,8 @@ export function moveFavori(uid: string, from: string, itemId: string, parfumId: 
 ```ts
 // Wardrobe — collection unifiée (ownership states + metadata)
 export function onWardrobe(uid: string, cb: (items: WardrobeItem[]) => void): () => void;
-export async function addToWardrobe(uid: string, parfumId: string, ownership: 'have' | 'want' | 'had' | 'sample' | 'decant', nom?: string, marque?: string, imageUrl?: string, familleOlactive?: string): Promise<void>;
-export async function updateWardrobeItem(uid: string, parfumId: string, data: Partial<Pick<WardrobeItem, 'ownership' | 'rating' | 'notes' | 'shelfIds' | 'sizeMl'>>): Promise<void>;
+export async function addToWardrobe(uid: string, parfumId: string, ownership: 'have' | 'want' | 'had' | 'sample' | 'decant', nom?: string, marque?: string, imageUrl?: string, familleOlactive?: string, sizeMl?: number | null): Promise<void>;
+export async function updateWardrobeItem(uid: string, parfumId: string, data: Partial<Pick<WardrobeItem, 'ownership' | 'rating' | 'notes' | 'shelfIds' | 'sizeMl' | 'isSignature'>>): Promise<void>;
 export async function removeFromWardrobe(uid: string, parfumId: string): Promise<void>;
 export async function isInWardrobe(uid: string, parfumId: string): Promise<WardrobeItem | null>;
 
@@ -316,9 +316,53 @@ interface UserWishlistItem {
 }
 ```
 
+### `src/models/wardrobe.interface.ts`
+```ts
+interface WardrobeItem {
+  parfumId: string;
+  nom: string | null;
+  marque: string | null;
+  imageUrl: string | null;
+  familleOlactive: string | null;
+  ownership: 'have' | 'want' | 'had' | 'sample' | 'decant';
+  rating: number | null;
+  notes: string | null;
+  shelfIds: string[];
+  sizeMl: number | null;
+  sotdCount: number;
+  isSignature: boolean;
+  addedAt: Date;
+  updatedAt: Date;
+}
+
+interface Shelf {
+  id: string;
+  name: string;
+  icon: string | null;
+  color: string | null;
+  order: number;
+  createdAt: Date;
+}
+
+interface SotdEntry {
+  parfumId: string;
+  nom: string;
+  marque: string;
+  imageUrl: string | null;
+}
+```
+
 ---
 
 ## §5 — Utilitaires
+
+### `src/utils/ownership.ts`
+```ts
+// Labels centralisés pour les états de garde-robe
+export const OWNERSHIP_LABELS: Record<WardrobeItem['ownership'], string>;
+export function ownershipLabel(o: WardrobeItem['ownership']): string;
+export function wardrobeToCardItem(item: WardrobeItem): { id, nom, marque, imageUrl, familleOlactive, source };
+```
 
 ### `src/utils/translate-note.ts`
 ```ts

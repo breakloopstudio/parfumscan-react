@@ -1,6 +1,6 @@
 // app/(tabs)/collection.tsx — Garde-robe principale
 
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import { View, Text, ScrollView, Pressable, ActivityIndicator, Alert, StyleSheet } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
@@ -24,9 +24,10 @@ import type { WardrobeItem } from '../../src/models/wardrobe.interface';
 
 interface Props {
   onScroll?: (y: number) => void;
+  onSheetOpen?: (visible: boolean) => void;
 }
 
-export default function WardrobePage({ onScroll }: Props) {
+export default function WardrobePage({ onScroll, onSheetOpen }: Props) {
   const { theme } = useTheme();
   const s = useMemo(() => getStyles(theme), [theme]);
   const { user, authReady, isAuthenticated } = useAuthContext();
@@ -52,6 +53,10 @@ export default function WardrobePage({ onScroll }: Props) {
   const [quickSheetItem, setQuickSheetItem] = useState<WardrobeItem | null>(null);
   const [shelfManagerVisible, setShelfManagerVisible] = useState(false);
   const [sotdPickerVisible, setSotdPickerVisible] = useState(false);
+
+  useEffect(() => {
+    onSheetOpen?.(quickSheetItem !== null);
+  }, [quickSheetItem, onSheetOpen]);
 
   const filtered = useMemo(() => {
     let result = [...items];
@@ -95,6 +100,19 @@ export default function WardrobePage({ onScroll }: Props) {
     setQuickSheetItem(prev => prev ? { ...prev, shelfIds: next } : null);
   };
 
+  const handleQuickToggleSignature = () => {
+    if (!quickSheetItem) return;
+    const next = !quickSheetItem.isSignature;
+    if (next && items.filter(i => i.isSignature).length >= 3) {
+      Alert.alert('Limite atteinte', 'Vous avez déjà 3 signatures. Retirez-en une avant d\'en ajouter.');
+      return;
+    }
+    update(quickSheetItem.parfumId, { isSignature: next });
+    setQuickSheetItem(prev => prev ? { ...prev, isSignature: next } : null);
+  };
+
+  const signatureCount = useMemo(() => items.filter(i => i.isSignature).length, [items]);
+
   const handleQuickRemove = () => {
     if (!quickSheetItem) return;
     Alert.alert('Retirer', 'Retirer ce parfum de la garde-robe ?', [
@@ -107,7 +125,7 @@ export default function WardrobePage({ onScroll }: Props) {
 
   if (!isAuthenticated) {
     return (
-      <SafeAreaView edges={['top', 'bottom']} style={s.container}>
+      <SafeAreaView edges={['bottom']} style={s.container}>
         <View style={s.center}>
           <Ionicons name="shirt-outline" size={64} color={theme.colors.textMuted} />
           <Text style={s.authTitle}>Connectez-vous</Text>
@@ -119,7 +137,7 @@ export default function WardrobePage({ onScroll }: Props) {
 
   if (items.length === 0 && !loading) {
     return (
-      <SafeAreaView edges={['top', 'bottom']} style={s.container}>
+      <SafeAreaView edges={['bottom']} style={s.container}>
         <View style={s.header}>
           <Text style={s.title}>Ma Garde-robe</Text>
           <ProfileAvatar />
@@ -135,7 +153,7 @@ export default function WardrobePage({ onScroll }: Props) {
   }
 
   return (
-    <SafeAreaView edges={['top', 'bottom']} style={s.container}>
+    <SafeAreaView edges={['bottom']} style={s.container}>
       <View style={s.header}>
         <Text style={s.title}>Ma Garde-robe · {items.length}</Text>
         <ProfileAvatar />
@@ -172,10 +190,12 @@ export default function WardrobePage({ onScroll }: Props) {
         visible={quickSheetItem !== null}
         item={quickSheetItem}
         shelves={shelves}
+        signatureCount={signatureCount}
         onClose={() => setQuickSheetItem(null)}
         onOwnershipChange={handleQuickOwnership}
         onRatingChange={handleQuickRating}
         onToggleShelf={handleQuickToggleShelf}
+        onToggleSignature={handleQuickToggleSignature}
         onViewMore={() => {
           const id = quickSheetItem?.parfumId;
           setQuickSheetItem(null);
@@ -216,7 +236,7 @@ function getStyles(t: Theme) {
   return {
     container: { flex: 1, backgroundColor: t.colors.background },
     center: { flex: 1, justifyContent: 'center', alignItems: 'center', padding: 32 },
-    header: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 16, paddingTop: 20, paddingBottom: 4 },
+    header: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 16, paddingTop: 8, paddingBottom: 4 },
     title: { fontFamily: 'PlayfairDisplay_700Bold', fontSize: 22, color: t.colors.text, flex: 1 },
     authTitle: { fontFamily: 'PlayfairDisplay_600SemiBold', fontSize: 20, color: t.colors.text, marginTop: 12 },
     authDesc: { fontFamily: 'Inter_400Regular', fontSize: 14, color: t.colors.textMuted, textAlign: 'center', lineHeight: 20, marginTop: 6 },

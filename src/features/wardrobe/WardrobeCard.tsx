@@ -52,6 +52,12 @@ export default function WardrobeCard({ item, onPress }: Props) {
             <Ionicons name="document-text" size={11} color="#FFFFFF" />
           </View>
         )}
+
+        {item.isSignature && (
+          <View style={s.signatureBadge}>
+            <Ionicons name="star" size={10} color={theme.colors.secondary} />
+          </View>
+        )}
       </View>
     </View>
   );
@@ -94,6 +100,17 @@ function getStyles(t: Theme) {
       position: 'absolute',
       bottom: 8,
       right: 6,
+      width: 22,
+      height: 22,
+      borderRadius: 11,
+      backgroundColor: 'rgba(0,0,0,0.55)',
+      justifyContent: 'center',
+      alignItems: 'center',
+    },
+    signatureBadge: {
+      position: 'absolute',
+      bottom: 8,
+      left: 6,
       width: 22,
       height: 22,
       borderRadius: 11,

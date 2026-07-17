@@ -52,7 +52,7 @@ export default function HistoryPage({ onScroll }: Props) {
   if (!authReady) return <View style={s.center}><ActivityIndicator size="large" color={theme.colors.primary} /></View>;
   if (!isAuthenticated) {
     return (
-      <SafeAreaView edges={['top', 'bottom']} style={s.container}>
+      <SafeAreaView edges={['bottom']} style={s.container}>
         <View style={s.center}>
           <Ionicons name="scan-outline" size={64} color={theme.colors.textMuted} />
           <Text style={s.emptyTitle}>Connectez-vous</Text>
@@ -63,7 +63,7 @@ export default function HistoryPage({ onScroll }: Props) {
   }
 
   return (
-    <SafeAreaView edges={['top', 'bottom']} style={s.container}>
+    <SafeAreaView edges={['bottom']} style={s.container}>
       <ScrollView
         contentContainerStyle={s.scroll}
         onScroll={onScroll ? (e) => onScroll(e.nativeEvent.contentOffset.y) : undefined}
@@ -113,7 +113,7 @@ function getStyles(t: Theme) {
     center: { flex: 1, justifyContent: 'center', alignItems: 'center', padding: 32 },
     scroll: { paddingBottom: 40 },
     title: { fontFamily: 'PlayfairDisplay_700Bold', fontSize: 22, color: t.colors.text, flex: 1 },
-    headerBar: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 16, paddingTop: 20, paddingBottom: 8 },
+    headerBar: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 16, paddingTop: 8, paddingBottom: 8 },
     listItem: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingVertical: 14, paddingHorizontal: 16, borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: t.colors.border },
     itemLeft: { flexDirection: 'row', alignItems: 'center', gap: 12, flex: 1 },
     itemName: { fontFamily: 'Inter_600SemiBold', fontSize: 15, color: t.colors.text },

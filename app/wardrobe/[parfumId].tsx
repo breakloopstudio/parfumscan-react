@@ -20,6 +20,7 @@ import type { Parfum } from '../../src/models';
 
 const OWNERSHIP_OPTIONS: WardrobeItem['ownership'][] = ['have', 'want', 'had', 'sample', 'decant'];
 const SIZE_OPTIONS = [30, 50, 75, 100, 125, 200];
+const DECANT_SIZE_OPTIONS = [2, 5, 8, 10, 20, 30];
 
 export default function WardrobeDetailPage() {
   const rawId = useLocalSearchParams<{ parfumId: string }>().parfumId;
@@ -39,6 +40,7 @@ export default function WardrobeDetailPage() {
   const [notesDraft, setNotesDraft] = useState('');
 
   const item = useMemo(() => items.find(i => i.parfumId === parfumId) ?? null, [items, parfumId]);
+  const signatureCount = useMemo(() => items.filter(i => i.isSignature).length, [items]);
 
   useEffect(() => {
     if (parfumId) {
@@ -82,6 +84,17 @@ export default function WardrobeDetailPage() {
 
   const handleSizeChange = (ml: number) => {
     update(parfumId!, { sizeMl: item.sizeMl === ml ? null : ml });
+  };
+
+  const handleToggleSignature = () => {
+    if (!item) return;
+    const next = !item.isSignature;
+    if (next && signatureCount >= 3) {
+      Alert.alert('Limite atteinte', 'Vous avez déjà 3 signatures. Retirez-en une avant d\'en ajouter.');
+      return;
+    }
+    hapticsLight();
+    update(parfumId!, { isSignature: next });
   };
 
   const handleSaveNotes = () => {
@@ -140,7 +153,7 @@ export default function WardrobeDetailPage() {
               onChange={handleRatingChange}
             />
             <Text style={s.ratingLabel}>
-              {item.rating ? `Ma note : ${item.rating}/5` : 'Non noté'}
+              {item.rating ? `Ma note : ${item.rating.toFixed(1).replace(/\.0$/, '')}/5` : 'Non noté'}
             </Text>
           </View>
 
@@ -159,11 +172,29 @@ export default function WardrobeDetailPage() {
             ))}
           </View>
 
-          {item.ownership === 'have' && (
+          <View style={s.signatureRow}>
+            <Pressable
+              style={s.signatureBtn}
+              onPress={handleToggleSignature}
+              disabled={!item.isSignature && signatureCount >= 3}
+            >
+              <Ionicons
+                name={item.isSignature ? 'star' : 'star-outline'}
+                size={18}
+                color={item.isSignature ? theme.colors.secondary : theme.colors.textMuted}
+              />
+              <Text style={[s.signatureLabel, item.isSignature && s.signatureLabelActive]}>
+                {item.isSignature ? 'Parfum signature' : 'Définir comme parfum signature'}
+              </Text>
+              <Text style={s.signatureCount}>{signatureCount}/3</Text>
+            </Pressable>
+          </View>
+
+          {(item.ownership === 'have' || item.ownership === 'decant' || item.ownership === 'sample') && (
             <>
               <Text style={s.sectionLabel}>Format</Text>
               <View style={s.chips}>
-                {SIZE_OPTIONS.map(ml => (
+                {(item.ownership === 'have' ? SIZE_OPTIONS : DECANT_SIZE_OPTIONS).map(ml => (
                   <Pressable
                     key={ml}
                     style={[s.chip, item.sizeMl === ml && s.chipActive]}
@@ -328,6 +359,34 @@ function getStyles(t: Theme) {
       flexDirection: 'row',
       flexWrap: 'wrap',
       gap: 8,
+    },
+    signatureRow: {
+      marginTop: 12,
+      marginBottom: 8,
+    },
+    signatureBtn: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 8,
+      paddingVertical: 8,
+      paddingHorizontal: 12,
+      borderRadius: 10,
+      backgroundColor: t.colors.surface2,
+    },
+    signatureLabel: {
+      fontFamily: 'Inter_500Medium',
+      fontSize: 13,
+      color: t.colors.textMuted,
+      flex: 1,
+    },
+    signatureLabelActive: {
+      color: t.colors.secondary,
+      fontFamily: 'Inter_600SemiBold',
+    },
+    signatureCount: {
+      fontFamily: 'Inter_400Regular',
+      fontSize: 12,
+      color: t.colors.textMuted,
     },
     chip: {
       flexDirection: 'row',

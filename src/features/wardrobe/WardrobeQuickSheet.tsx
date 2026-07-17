@@ -17,10 +17,12 @@ interface Props {
   visible: boolean;
   item: WardrobeItem | null;
   shelves: Shelf[];
+  signatureCount: number;
   onClose: () => void;
   onOwnershipChange: (ownership: WardrobeItem['ownership']) => void;
   onRatingChange: (rating: number) => void;
   onToggleShelf: (shelfId: string) => void;
+  onToggleSignature: () => void;
   onViewMore: () => void;
   onRemove: () => void;
 }
@@ -29,10 +31,12 @@ export default function WardrobeQuickSheet({
   visible,
   item,
   shelves,
+  signatureCount,
   onClose,
   onOwnershipChange,
   onRatingChange,
   onToggleShelf,
+  onToggleSignature,
   onViewMore,
   onRemove,
 }: Props) {
@@ -86,6 +90,24 @@ export default function WardrobeQuickSheet({
               </Pressable>
             ))}
           </View>
+        </View>
+
+        <View style={s.section}>
+          <Pressable
+            style={s.signatureRow}
+            onPress={() => { hapticsLight(); onToggleSignature(); }}
+            disabled={!item.isSignature && signatureCount >= 3}
+          >
+            <Ionicons
+              name={item.isSignature ? 'star' : 'star-outline'}
+              size={18}
+              color={item.isSignature ? theme.colors.secondary : theme.colors.textMuted}
+            />
+            <Text style={[s.signatureLabel, item.isSignature && s.signatureLabelActive]}>
+              {item.isSignature ? 'Parfum signature' : 'Définir comme parfum signature'}
+            </Text>
+            <Text style={s.signatureCount}>{signatureCount}/3</Text>
+          </Pressable>
         </View>
 
         {shelves.length > 0 && (
@@ -189,6 +211,27 @@ function getStyles(t: Theme) {
     },
     section: {
       marginBottom: 16,
+    },
+    signatureRow: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 8,
+      paddingVertical: 6,
+    },
+    signatureLabel: {
+      fontFamily: 'Inter_500Medium',
+      fontSize: 13,
+      color: t.colors.textMuted,
+      flex: 1,
+    },
+    signatureLabelActive: {
+      color: t.colors.secondary,
+      fontFamily: 'Inter_600SemiBold',
+    },
+    signatureCount: {
+      fontFamily: 'Inter_400Regular',
+      fontSize: 12,
+      color: t.colors.textMuted,
     },
     sectionLabel: {
       fontFamily: 'Inter_600SemiBold',

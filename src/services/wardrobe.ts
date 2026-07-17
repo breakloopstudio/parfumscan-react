@@ -32,6 +32,7 @@ function docToWardrobeItem(docId: string, data: Record<string, unknown>): Wardro
     shelfIds: Array.isArray(data.shelfIds) ? data.shelfIds as string[] : [],
     sizeMl: typeof data.sizeMl === 'number' ? data.sizeMl : null,
     sotdCount: typeof data.sotdCount === 'number' ? data.sotdCount : 0,
+    isSignature: data.isSignature === true,
     addedAt,
     updatedAt,
   };
@@ -60,6 +61,7 @@ export function onWardrobe(uid: string, cb: (items: WardrobeItem[]) => void): ()
 export async function addToWardrobe(
   uid: string, parfumId: string, ownership: WardrobeItem['ownership'],
   nom?: string, marque?: string, imageUrl?: string, familleOlactive?: string,
+  sizeMl?: number | null,
 ): Promise<void> {
   const dRef = doc(wCol(uid), parfumId);
   const now = new Date();
@@ -73,8 +75,9 @@ export async function addToWardrobe(
     rating: null,
     notes: null,
     shelfIds: [],
-    sizeMl: null,
+    sizeMl: sizeMl ?? null,
     sotdCount: 0,
+    isSignature: false,
     addedAt: now,
     updatedAt: now,
   }, { merge: true });
@@ -82,7 +85,7 @@ export async function addToWardrobe(
 
 export async function updateWardrobeItem(
   uid: string, parfumId: string,
-  data: Partial<Pick<WardrobeItem, 'ownership' | 'rating' | 'notes' | 'shelfIds' | 'sizeMl'>>,
+  data: Partial<Pick<WardrobeItem, 'ownership' | 'rating' | 'notes' | 'shelfIds' | 'sizeMl' | 'isSignature'>>,
 ): Promise<void> {
   const dRef = doc(wCol(uid), parfumId);
   await setDoc(dRef, { ...data, updatedAt: new Date() }, { merge: true });

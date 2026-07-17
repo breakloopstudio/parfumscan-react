@@ -22,7 +22,8 @@
 | 📸 **Scan intelligent** | Burst 3 photos → GPT-4o Vision (adaptatif : 70% en 1 appel, 30% en cross-ref 2 photos) → API Fragella |
 | 🖼️ **Import galerie** | Photo existante → même pipeline IA, sans permissions supplémentaires |
 | 📚 **Catalogue** | Recherche cache-first (Firestore → Fragella), navigation par famille olfactive, tri (prix/pertinence), suggestions personnalisées |
-| 🗂️ **Collection** | Parfums possédés, inventaire personnel |
+| 🗂️ **Garde-robe** | Parfums possédés/souhaités/échantillons/décants, étagères custom, parfum signature (max 3) |
+| 🧪 **Décants & échantillons** | Tailles dédiées 2–30ml, distinctes des formats full-size (30–200ml) |
 | ⭐ **Wishlist** | Parfums à acheter, alertes prix |
 | ❤️ **Favoris** | Coups de cœur, sans obligation d'achat |
 | ⚙️ **Paramètres** | Alertes prix, devise EUR, notifs push, mentions légales |
@@ -41,7 +42,7 @@
 | **Frontend** | React Native 0.86, Expo SDK 57, Expo Router 57 |
 | **Langage** | TypeScript 6.0 (strict) |
 | **Navigation** | Expo Router (file-based) + Reanimated pager |
-| **Animations** | React Native Reanimated 4, Gesture Handler 2 |
+| **Animations** | React Native Reanimated 4, Gesture Handler 2, react-native-svg |
 | **Backend** | Firebase Auth, Firestore, Storage, Cloud Functions (europe-west1) |
 | **IA** | GPT-4o Vision (analyse photo), Fragella API (catalogue) |
 | **Formulaires** | React Hook Form 7 + Zod 4 |
@@ -130,28 +131,32 @@ app/
 │   ├── index.tsx             # TabPager Reanimated 4 pages + DockBar flottant
 │   ├── favorites.tsx         # Favoris (page standalone)
 │   ├── history.tsx           # Historique des scans
-│   ├── collection.tsx        # Collection + Wishlist (2 sections)
-│   └── scan.tsx              # Scanner overlay (push FAB)
+│   ├── collection.tsx        # Garde-robe (grid, étagères, SOTD, parfum signature)
+│   ├── scan.tsx              # Scanner overlay (push FAB)
+│   └── search.tsx            # Overlay recherche plein écran (barre persistante → push)
 ├── auth/
 │   ├── login.tsx             # Connexion email + Google
 │   └── register.tsx          # Inscription
 ├── catalog/[id].tsx          # Détail enrichi : PriceDisplay, 3 boutons, tendance prix, pyramide, accords, saisons, occasions
+├── wardrobe/[parfumId].tsx    # Fiche personnelle (notes, notes, SOTD, étagères, signature)
 ├── settings.tsx              # Paramètres : alertes prix, devise, apparence, déconnexion
 ├── onboarding.tsx            # 3 slides swipe + AsyncStorage (⏸️ désactivé temporairement)
 └── admin.tsx                 # Administration (seed + reset cache + upload)
 
 src/
-├── services/     (11)        # Firebase, Firestore (upsert intelligent), Fragella, GPT-4o, user-data, theme-storage…
-├── hooks/        (10)        # useAuth, useScanReducer, useCatalog, useFavoris, useCollection, useWishlist, useScans…
-├── contexts/     (2)         # AuthContext, ThemeContext
-├── components/   (9)         # ParfumCard, Button, PriceDisplay, SectionHeader, EmptyState, OfflineBanner, AlertPriceToggle, AppLoader, ErrorBoundary
+├── services/     (11)        # Firebase, Firestore (upsert intelligent), Fragella, GPT-4o, user-data, wardrobe, theme-storage…
+├── hooks/        (11)        # useAuth, useScanReducer, useCatalog, useFavoris, useCollection, useWishlist, useScans, useWardrobe, useShelves, useSotd, useNetwork
+├── contexts/     (1)         # AuthContext (ThemeContext est dans src/theme/)
+├── components/   (10)        # ParfumCard, Button, PriceDisplay, SectionHeader, EmptyState, OfflineBanner, AlertPriceToggle, AppLoader, ErrorBoundary, ProfileAvatar
 ├── theme/        (2)         # theme.ts (double palette light/dark), ThemeContext.tsx
 ├── features/
 │   ├── scan/     (8)         # ScanScreen + 7 sous-états
 │   ├── catalog/  (2)         # CatalogPage (navigation par famille + tri), OlfactoryPyramid
-│   └── navigation/ (1)      # DockBar (barre flottante 5 positions + FAB, indicateur doré)
+│   ├── wardrobe/ (9)         # WardrobeAddSheet, WardrobeCard, WardrobeGrid, WardrobeQuickSheet, SOTDCard, SOTDPicker, FilterBar, StarRating, ShelfManager
+│   └── navigation/ (1)       # DockBar (barre flottante 5 positions + FAB, indicateur doré, pulse ring, show/hide)
+├── models/       (8)         # Parfum, WardrobeItem, Shelf, SotdEntry, UserFavori, UserScan, UserCollectionItem, UserWishlistItem
 ├── config/       (3)         # Firebase config, env, index
-└── utils/        (2)         # Error translator, translate-note (traduction notes FR)
+└── utils/        (3)         # Error translator, translate-note, ownership (labels)
 
 functions/                    # Cloud Functions Firebase
 ├── src/index.ts              # Analyse GPT-4o Vision
@@ -235,6 +240,19 @@ Les documents `UserFavori` et `UserScan` stockent `imageUrl` et `familleOlactive
 dénormalisés → affichage direct sans appel API Firestore ni Fragella.
 
 ---
+## v6.3 — Wardrobe enrichie + OlfactoryPyramid rework (17/07/2026)
+
+- **WardrobeAddSheet** : bottom sheet d'ajout avec sélection de taille (remplace l'ancien `Alert.alert` sur la fiche détail)
+- **Parfum signature** : toggle dans la fiche personnelle, maximum 3 signatures, compteur `isSignature` sur le modèle WardrobeItem
+- **Tailles décant/échantillon** : formats 2–30ml distincts des full-size (30–200ml), selon le type d'ownership
+- **Ownership labels centralisés** : `src/utils/ownership.ts` — `OWNERSHIP_LABELS`, `ownershipLabel()`, `wardrobeToCardItem()`
+- **Wardrobe service** : `addToWardrobe()` accepte `sizeMl` optionnel, `updateWardrobeItem()` supporte `isSignature`
+- **AuthContext memoïsé** : `useMemo` sur la value du provider pour éviter les re-renders inutiles
+- **OlfactoryPyramid** : retravaillé — support demi-étoiles, rendu optimisé
+- **StarRating** : support demi-étoiles (notation au demi-point près)
+- **react-native-svg** : ajouté aux dépendances (utilisé par OlfactoryPyramid et StarRating)
+- **start.bat** : réécrit avec 2 modes — `start.bat` (Metro uniquement, fast) et `start.bat build` (Gradle + install + Metro), cleanup ADB + kill old Metro inclus
+
 ## v6.2 — Bugfixes & Search Bar (17/07/2026)
 
 - **Barre de recherche persistante** : visible sur les 4 onglets, verre dépoli (BlurView), show/hide synchronisé avec le DockBar, navigation vers overlay recherche plein écran
