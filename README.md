@@ -280,6 +280,17 @@ dénormalisés → affichage direct sans appel API Firestore ni Fragella.
 - **Firebase modular API** : migration namespaced → modular (v25+)
 - **Onboarding** : 3 slides swipe au 1er lancement, AsyncStorage `@parfumscan_onboarding_done` (⏸️ désactivé temporairement)
 
+## v6.4 — Refonte fiche détail prix-first (17/07/2026)
+
+- **Prix en overlay** : `HeroPriceOverlay` — badge flottant en bas à gauche de l'image hero (prix, réduction, prix ref barré, CTA)
+- **Header collapsé** : `CollapsingHeader` — marque fade-out + nom shrink au scroll via `useAnimatedReaction` + `LayoutAnimation`
+- **Barre sticky bas** : `StickyBottomBar` — slide-in prix + favori + garde-robe + CTA dès que la section prix est hors écran
+- **Ordre prix-first** : prix → pyramide → accords → stats (longévité/sillage/popularité) → saisons → occasions → similaires
+- **Doublon fav supprimé** : le cœur disparaît du header et de l'actionRow, uniquement dans la sticky bar
+- **Badges 2 lignes** : identification (type, famille, année) + contexte (saisons top 2, occasions top 2, note) avec icônes Ionicons
+- **Suppression comparateur prix magasin** et état `storePrice`/`showStoreInput`
+- **3 nouveaux composants** extraits : `HeroPriceOverlay` (156 lignes), `CollapsingHeader` (140 lignes), `StickyBottomBar` (189 lignes)
+
 ## v5.7 — Burst + Galerie + Personnalisation (16/07/2026)
 
 - **Burst adaptatif** : 3 photos en rafale, 70% des scans résolus en 1 appel GPT-4o (~2s), 30% en 2 appels cross-ref (~4s)

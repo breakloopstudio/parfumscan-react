@@ -36,7 +36,7 @@ src/
 ├── components/   (10)        # ParfumCard, Button, PriceDisplay, SectionHeader, EmptyState, OfflineBanner, AppLoader, ErrorBoundary, AlertPriceToggle, ProfileAvatar
 ├── features/
 │   ├── scan/     (8)         # ScanScreen + 7 sous-états
-│   ├── catalog/  (2)         # CatalogPage, OlfactoryPyramid
+│   ├── catalog/  (5)         # CatalogPage, OlfactoryPyramid, HeroPriceOverlay, CollapsingHeader, StickyBottomBar
 │   ├── wardrobe/ (9)         # WardrobeAddSheet, WardrobeCard, WardrobeGrid, WardrobeQuickSheet, SOTDCard, SOTDPicker, FilterBar, StarRating, ShelfManager
 │   └── navigation/ (1)      # DockBar (barre flottante 5 positions + FAB, verre depoli via expo-blur, pulse ring, show/hide au scroll)
 ├── theme/        (2)         # theme.ts (Theme interface + light/dark), ThemeContext.tsx (useTheme + export Theme)
@@ -45,7 +45,7 @@ src/
 └── utils/        (3)         # Error translator, translate-note, ownership (labels, helpers)
 ```
 
-> **Note v6.3** : La garde-robe (`collection.tsx`) a été enrichie — WardrobeAddSheet (bottom sheet d'ajout avec taille), parfum signature (max 3, toggle + compteur), tailles décant/échantillon (2-30ml), ownership labels centralisés (`src/utils/ownership.ts`), `isSignature` sur le modèle WardrobeItem, `sizeMl` dans `addToWardrobe()`. AuthContext memoïsé (`useMemo`) pour éviter les re-renders. `react-native-svg` ajouté aux dépendances. `WardrobeAddSheet.tsx` remplace le `Alert.alert` archaïque de la fiche détail. OlfactoryPyramid et StarRating retravaillés (support demi-étoiles). `start.bat` réécrit avec 2 modes (fast / build).
+> **Note v6.4** : Refonte prix-first de la fiche détail (`app/catalog/[id].tsx`). Le prix est désormais en overlay sur l'image hero (HeroPriceOverlay) et prioritaire dans l'ordre de scroll (prix → pyramide → accords → stats → saisons → similaires). Barre sticky bas (StickyBottomBar) avec prix + favori + garde-robe + CTA, remplaçant les boutons d'action dans le header. Header collapsé (CollapsingHeader) avec marque qui disparaît et nom qui rétrécit au scroll. Doublon cœur/favori supprimé. Badges d'identification + saisons/occasions (top 2) sous l'image. Suppression du comparateur prix magasin. Section prix développée juste après les badges.
 
 ---
 

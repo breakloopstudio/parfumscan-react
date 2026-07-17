@@ -1,9 +1,9 @@
 ﻿// app/catalog/[id].tsx — Fiche détail parfum (refonte Luxe malin)
 
 import { useState, useEffect, useRef, useMemo } from 'react';
-import { View, Text, ScrollView, Pressable, ActivityIndicator, Linking, TextInput, StyleSheet, useWindowDimensions, Platform } from 'react-native';
-import { Image } from 'expo-image';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { View, Text, ScrollView, Pressable, ActivityIndicator, Linking, StyleSheet, useWindowDimensions, Platform } from 'react-native';
+import type { NativeSyntheticEvent, NativeScrollEvent, LayoutChangeEvent } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { Gesture, GestureDetector } from 'react-native-gesture-handler';
 import Animated, { useSharedValue, useAnimatedStyle, withSpring, runOnJS } from 'react-native-reanimated';
@@ -23,7 +23,10 @@ import PriceDisplay from '../../src/components/PriceDisplay';
 import Button from '../../src/components/Button';
 import AlertPriceToggle from '../../src/components/AlertPriceToggle';
 import WardrobeAddSheet from '../../src/features/wardrobe/WardrobeAddSheet';
-import { ownershipLabel } from '../../src/utils/ownership';
+import NoteDetailPopup from '../../src/components/NoteDetailPopup';
+import HeroPriceOverlay from '../../src/features/catalog/HeroPriceOverlay';
+import CollapsingHeader from '../../src/features/catalog/CollapsingHeader';
+import StickyBottomBar from '../../src/features/catalog/StickyBottomBar';
 
 // ─── Mappings FR ─────────────────────────────────────────────
 
@@ -195,14 +198,18 @@ export default function CatalogDetailPage() {
   const [favoriId, setFavoriId] = useState<string | null>(null);
   const [wardrobeItem, setWardrobeItem] = useState<import('../../src/models/wardrobe.interface').WardrobeItem | null>(null);
   const [showWardrobeSheet, setShowWardrobeSheet] = useState(false);
+  const [selectedNote, setSelectedNote] = useState<string | null>(null);
   const [pending] = useState<Parfum | ParfumSearchResult | null>(() => consumePendingParfum());
   const [imgFailed, setImgFailed] = useState(false);
-  const [storePrice, setStorePrice] = useState('');
-  const [showStoreInput, setShowStoreInput] = useState(false);
   const [similars, setSimilars] = useState<ParfumSearchResult[]>([]);
   const [similarsLoading, setSimilarsLoading] = useState(false);
   const loadingRef = useRef(false);
   const enrichmentRef = useRef(false);
+  const scrollY = useSharedValue(0);
+  const priceSectionY = useSharedValue(9999);
+  const priceSectionRef = useRef<View>(null);
+  const insets = useSafeAreaInsets();
+
   // Chargement auto-suffisant : bridge (preview) -> Firestore -> Fragella by ID -> Fragella search
   useEffect(() => {
     if (!id) return;
@@ -408,11 +415,43 @@ export default function CatalogDetailPage() {
       addedAt: new Date(), updatedAt: new Date(),
     });
   };
+
+  const handleWardrobePress = () => {
+    if (!isAuthenticated) { router.push('/auth/login'); return; }
+    if (wardrobeItem) { router.push(`/wardrobe/${id}`); return; }
+    setShowWardrobeSheet(true);
+  };
+
+  const handleScroll = (e: NativeSyntheticEvent<NativeScrollEvent>) => {
+    scrollY.value = e.nativeEvent.contentOffset.y;
+  };
+
   const seasonData = parfum && parfum.seasonRanking ? [...parfum.seasonRanking].sort(function(a,b){return b.score-a.score}) : null;
   const seasonMax = seasonData && seasonData.length > 0 ? Math.max.apply(null, seasonData.map(function(s){return s.score})) : 0;
   const occasionData = parfum && parfum.occasionRanking ? [...parfum.occasionRanking].sort(function(a,b){return b.score-a.score}) : null;
   const occasionMax = occasionData && occasionData.length > 0 ? Math.max.apply(null, occasionData.map(function(o){return o.score})) : 0;
   const heroUrl = parfum?.imageUrl ?? parfum?.imageUrlTransparent ?? (parfum?.imageFallbacks?.[0]) ?? null;
+  const topSeasons = seasonData?.slice(0, 2) ?? [];
+  const topOccasions = occasionData?.slice(0, 2) ?? [];
+  const hasBestPrice = ('bestPrice' in (parfum ?? {}) && typeof (parfum as ParfumSearchResult).bestPrice === 'number') ? (parfum as ParfumSearchResult).bestPrice! > 0 : false;
+  const ratingDisplay: number | undefined = (() => {
+    const p = parfum as ParfumSearchResult | null;
+    if (!p) return undefined;
+    if ('ratingScore' in p && typeof p.ratingScore === 'number') return p.ratingScore;
+    if ('rating' in p && typeof p.rating === 'string') return parseFloat(p.rating);
+    return undefined;
+  })();
+
+  const SEASON_ICON: Record<string, string> = {
+    spring: 'leaf', summer: 'sunny', fall: 'leaf', autumn: 'leaf', winter: 'snow',
+  };
+  const OCCASION_ICON: Record<string, string> = {
+    casual: 'sunny', day: 'sunny', evening: 'musical-notes', night: 'moon',
+    party: 'musical-notes', club: 'musical-notes', work: 'briefcase', office: 'briefcase',
+    date: 'heart', romantic: 'heart', formal: 'shirt', sport: 'fitness',
+    professional: 'briefcase', 'night out': 'moon', night_out: 'moon',
+    business: 'briefcase', leisure: 'game-controller', daily: 'sunny',
+  };
 
   const content = (
     <>
@@ -421,153 +460,146 @@ export default function CatalogDetailPage() {
     ) : !parfum ? (
       <View style={s.center}><Text style={{color:t.colors.textMuted}}>Parfum introuvable.</Text></View>
     ) : (
-      <SafeAreaView style={s.container}>
-    <ScrollView>
-        {heroUrl && !imgFailed && <Image source={{ uri: heroUrl }} style={s.heroImg} contentFit="cover" transition={300} onError={() => setImgFailed(true)} />}
-        <View style={s.card}>
-          <View style={s.titleRow}>
-            <View style={{flex:1}}><Text style={s.brand}>{parfum.marque}</Text><Text style={s.name}>{parfum.nom}</Text></View>
-            <Pressable onPress={toggleFav} hitSlop={12}><Ionicons name={isFav?'heart':'heart-outline'} size={28} color={isFav?t.colors.favorite:t.colors.textMuted}/></Pressable>
-            {__DEV__ && <View style={{width:8,height:8,borderRadius:4,backgroundColor:parfum.source==='fragella'?'#10B981':parfum.source==='fragella-cached'?'#3B82F6':parfum.source==='seed'||parfum.source==='manual'?'#8B5CF6':'#EF4444',marginLeft:4}} />}
-          </View>
-          <View style={s.badges}>
-            <View style={s.tagFamily}><Text style={s.tagFamilyText}>{translateNote(parfum.familleOlactive)}</Text></View>
-            {parfum.annee && <View style={s.tagYear}><Text style={s.tagYearText}>{parfum.annee}</Text></View>}
-            {'gender' in parfum && parfum.gender && <View style={s.tagGender}><Text style={s.tagGenderText}>{parfum.gender === 'men' ? '👨 Homme' : parfum.gender === 'women' ? '👩 Femme' : '🧑 Unisexe'}</Text></View>}
-            {'typeParfum' in parfum && parfum.typeParfum && <View style={s.tagType}><Text style={s.tagTypeText}>{typeParfumLabel(parfum.typeParfum)}</Text></View>}
-            {'ratingScore' in parfum && parfum.ratingScore ? <View style={s.tagRating}><Ionicons name="star" size={13} color="#D97706" /><Text style={s.tagRatingText}> {parfum.ratingScore}</Text></View> : ('rating' in parfum && parfum.rating ? <View style={s.tagRating}><Ionicons name="star" size={13} color="#D97706" /><Text style={s.tagRatingText}> {parfum.rating}</Text></View> : null)}
-            {/* Popularit� masqu�e */}
-          </View>
-          {/* ─── Longévité & Sillage ─── */}
-          {('longevity' in parfum && parfum.longevity) || ('sillage' in parfum && parfum.sillage) || ('popularityScore' in parfum && typeof parfum.popularityScore === 'number') ? (
-            <View style={s.infoZone}>
-              {('longevity' in parfum && parfum.longevity) ? (() => { const m = longevityMeta(parfum.longevity!); return <View style={s.gaugeRow}><View style={[s.gaugeIcon, { backgroundColor: t.colors.violetSoft }]}><Ionicons name="time-outline" size={14} color={t.colors.violetInk} /></View><View style={s.gaugeBody}><Text style={s.gaugeLabel}>Longévité</Text><View style={s.gaugeTrack}><View style={[s.gaugeFill, { width: `${m.pct}%`, backgroundColor: t.colors.primary }]} /></View></View><Text style={[s.gaugeVal, { color: t.colors.violetInk }]}>{m.label}</Text></View>; })() : null}
-              {('sillage' in parfum && parfum.sillage) ? (() => { const m = sillageMeta(parfum.sillage!); return <View style={s.gaugeRow}><View style={[s.gaugeIcon, { backgroundColor: t.colors.rewardSoft }]}><Ionicons name="pulse-outline" size={14} color={t.colors.reward} /></View><View style={s.gaugeBody}><Text style={s.gaugeLabel}>Sillage</Text><View style={s.gaugeTrack}><View style={[s.gaugeFill, { width: `${m.pct}%`, backgroundColor: t.colors.reward }]} /></View></View><Text style={[s.gaugeVal, { color: t.colors.reward }]}>{m.label}</Text></View>; })() : null}
-              {('popularityScore' in parfum && typeof parfum.popularityScore === 'number') ? (() => { const pop = popLabel(parfum.popularityScore!); return <View style={s.gaugeRow}><View style={[s.gaugeIcon, { backgroundColor: '#FFF7ED' }]}><Ionicons name="flame-outline" size={14} color={pop.color} /></View><View style={s.gaugeBody}><Text style={s.gaugeLabel}>Popularité</Text><View style={s.gaugeTrack}><View style={[s.gaugeFill, { width: `${parfum.popularityScore}%`, backgroundColor: pop.color }]} /></View></View><Text style={[s.gaugeVal, { color: pop.color }]}>{pop.label}</Text></View>; })() : null}
-            </View>
-          ) : null}
+      <View style={{flex:1,backgroundColor:t.colors.background}}>
+        <CollapsingHeader scrollY={scrollY} brand={parfum.marque} name={parfum.nom} />
+        <ScrollView
+          style={{flex:1}}
+          contentContainerStyle={{paddingTop:insets.top+70}}
+          onScroll={handleScroll}
+          scrollEventThrottle={16}
+          showsVerticalScrollIndicator={false}
+        >
+          <HeroPriceOverlay
+            imageUrl={heroUrl}
+            brand={parfum.marque}
+            bestPrice={hasBestPrice ? (parfum as ParfumSearchResult).bestPrice : undefined}
+            referencePrice={'referencePrice' in parfum ? (parfum as ParfumSearchResult).referencePrice : undefined}
+            purchaseUrl={'purchaseUrl' in parfum ? (parfum as ParfumSearchResult).purchaseUrl : undefined}
+            imgFailed={imgFailed}
+            onImageError={() => setImgFailed(true)}
+            onPurchasePress={() => {
+              const purl = (parfum as ParfumSearchResult).purchaseUrl;
+              if (purl) Linking.openURL(purl);
+            }}
+          />
 
-          {/* ─── Prix (PriceDisplay) ─── */}
-          {'bestPrice' in parfum && parfum.bestPrice ? (
-            <View style={s.dealSection}>
-              <PriceDisplay
-                bestPrice={parfum.bestPrice}
-                referencePrice={parfum.referencePrice}
-                priceValue={'priceValue' in parfum ? parfum.priceValue as 'deal' | 'fair' | 'overpriced' : undefined}
-                large
-              />
-              {parfum.purchaseUrl && (
-                <Button variant="primary" onPress={() => Linking.openURL(parfum.purchaseUrl!)} icon="cart-outline" style={s.buyBtn}>
-                  Voir l'offre
-                </Button>
+          <View style={s.contentWrap}>
+            <View style={s.badgeRow}>
+              {'typeParfum' in parfum && parfum.typeParfum && (
+                <View style={s.badgeCompact}><Text style={s.badgeCompactText}>{typeParfumLabel(parfum.typeParfum)}</Text></View>
               )}
+              <View style={[s.badgeCompact,{backgroundColor:t.colors.primarySoft}]}>
+                <Text style={[s.badgeCompactText,{color:t.colors.primaryInk}]}>{translateNote(parfum.familleOlactive)}</Text>
+              </View>
+              {parfum.annee && (
+                <View style={[s.badgeCompact,{backgroundColor:t.colors.secondarySoft}]}>
+                  <Text style={[s.badgeCompactText,{color:t.colors.secondary}]}>{parfum.annee}</Text>
+                </View>
+              )}
+              {__DEV__ && (
+                <View style={{width:6,height:6,borderRadius:3,backgroundColor:parfum.source==='fragella'?'#10B981':parfum.source==='fragella-cached'?'#3B82F6':parfum.source==='seed'||parfum.source==='manual'?'#8B5CF6':'#EF4444',alignSelf:'center'}} />
+              )}
+            </View>
 
-              {/* ─── Indicateur de tendance ─── */}
-              {'bestPrice' in parfum && parfum.referencePrice ? (
-                <View style={s.trendRow}>
-                  <Ionicons
-                    name={parfum.bestPrice < parfum.referencePrice * 0.9 ? 'trending-down' : parfum.bestPrice > parfum.referencePrice * 1.05 ? 'trending-up' : 'remove'}
-                    size={16}
-                    color={parfum.bestPrice < parfum.referencePrice * 0.9 ? t.colors.deal : parfum.bestPrice > parfum.referencePrice * 1.05 ? t.colors.overpriced : t.colors.textMuted}
-                  />
-                  <Text style={[s.trendText, {
-                    color: parfum.bestPrice < parfum.referencePrice * 0.9 ? t.colors.deal : parfum.bestPrice > parfum.referencePrice * 1.05 ? t.colors.overpriced : t.colors.textMuted
-                  }]}>
-                    {parfum.bestPrice < parfum.referencePrice * 0.9
-                      ? `-${Math.round((1 - parfum.bestPrice / parfum.referencePrice) * 100)}% vs prix de référence`
-                      : parfum.bestPrice > parfum.referencePrice * 1.05
-                      ? `+${Math.round((parfum.bestPrice / parfum.referencePrice - 1) * 100)}% vs prix de référence`
-                      : 'Prix stable'}
+            <View style={[s.badgeRow,{marginBottom:4}]}>
+              {topSeasons.length > 0 && (
+                <View style={s.badgeCompactMuted}>
+                  <Ionicons name={SEASON_ICON[topSeasons[0].name.toLowerCase()] as never ?? 'leaf'} size={12} color={t.colors.textMuted} />
+                  <Text style={s.badgeCompactMutedText}>
+                    {topSeasons.map(s => SEASON_META[s.name.toLowerCase()]?.label ?? s.name).join(' / ')}
                   </Text>
+                </View>
+              )}
+              {topOccasions.length > 0 && (
+                <View style={s.badgeCompactMuted}>
+                  <Ionicons name={OCCASION_ICON[topOccasions[0].name.toLowerCase()] as never ?? 'musical-notes'} size={12} color={t.colors.textMuted} />
+                  <Text style={s.badgeCompactMutedText}>
+                    {topOccasions.map(o => OCCASION_META[o.name.toLowerCase()]?.label ?? o.name).join(' / ')}
+                  </Text>
+                </View>
+              )}
+              {ratingDisplay !== undefined && (
+                <View style={s.badgeCompactMuted}>
+                  <Ionicons name="star" size={12} color="#D97706" />
+                  <Text style={[s.badgeCompactMutedText,{color:'#D97706'}]}>{ratingDisplay}</Text>
+                </View>
+              )}
+            </View>
+
+            <View ref={priceSectionRef} onLayout={(e: LayoutChangeEvent) => { priceSectionY.value = e.nativeEvent.layout.y + 20; }}>
+              {/* ─── Prix (PriceDisplay) ─── */}
+              {'bestPrice' in parfum && parfum.bestPrice ? (
+                <View style={s.dealSection}>
+                  <PriceDisplay
+                    bestPrice={parfum.bestPrice}
+                    referencePrice={parfum.referencePrice}
+                    priceValue={'priceValue' in parfum ? parfum.priceValue as 'deal' | 'fair' | 'overpriced' : undefined}
+                    large
+                  />
+                  {parfum.purchaseUrl && (
+                    <Button variant="primary" onPress={() => Linking.openURL(parfum.purchaseUrl!)} icon="cart-outline" style={s.buyBtn}>
+                      Voir l'offre
+                    </Button>
+                  )}
+
+                  {/* ─── Indicateur de tendance ─── */}
+                  {'bestPrice' in parfum && parfum.referencePrice ? (
+                    <View style={s.trendRow}>
+                      <Ionicons
+                        name={parfum.bestPrice < parfum.referencePrice * 0.9 ? 'trending-down' : parfum.bestPrice > parfum.referencePrice * 1.05 ? 'trending-up' : 'remove'}
+                        size={16}
+                        color={parfum.bestPrice < parfum.referencePrice * 0.9 ? t.colors.deal : parfum.bestPrice > parfum.referencePrice * 1.05 ? t.colors.overpriced : t.colors.textMuted}
+                      />
+                      <Text style={[s.trendText, {
+                        color: parfum.bestPrice < parfum.referencePrice * 0.9 ? t.colors.deal : parfum.bestPrice > parfum.referencePrice * 1.05 ? t.colors.overpriced : t.colors.textMuted
+                      }]}>
+                        {parfum.bestPrice < parfum.referencePrice * 0.9
+                          ? `-${Math.round((1 - parfum.bestPrice / parfum.referencePrice) * 100)}% vs prix de référence`
+                          : parfum.bestPrice > parfum.referencePrice * 1.05
+                          ? `+${Math.round((parfum.bestPrice / parfum.referencePrice - 1) * 100)}% vs prix de référence`
+                          : 'Prix stable'}
+                      </Text>
+                    </View>
+              ) : null}
                 </View>
               ) : null}
 
-              {/* ─── Prix en magasin ─── */}
-              {!showStoreInput ? (
-                <Pressable onPress={() => setShowStoreInput(true)} style={s.storeToggle}>
-                  <Ionicons name="storefront-outline" size={16} color={t.colors.textMuted} />
-                  <Text style={s.storeToggleText}>Comparer avec le prix en magasin</Text>
-                </Pressable>
-              ) : (
-                <View style={s.storeRow}>
-                  <View style={s.storeInputWrap}>
-                    <Ionicons name="storefront-outline" size={16} color={t.colors.textMuted} style={{ marginRight: 6 }} />
-                    <TextInput
-                      style={s.storeInput}
-                      placeholder="Prix en boutique (€)"
-                      placeholderTextColor={t.colors.textMuted}
-                      value={storePrice}
-                      onChangeText={setStorePrice}
-                      keyboardType="decimal-pad"
-                    />
-                  </View>
-                  {storePrice && !isNaN(Number(storePrice)) && Number(storePrice) > 0 ? (
-                    <Text style={[s.storeDiff, { color: Number(storePrice) > parfum.bestPrice ? t.colors.deal : t.colors.overpriced }]}>
-                      {Number(storePrice) > parfum.bestPrice
-                        ? `Tu économises ${(Number(storePrice) - parfum.bestPrice).toFixed(0)} € en ligne`
-                        : `Le prix boutique est plus bas de ${(parfum.bestPrice - Number(storePrice)).toFixed(0)} €`}
-                    </Text>
-                  ) : null}
-                </View>
+              {/* ─── Alerte prix ─── */}
+              {isAuthenticated && user?.uid && id && (
+                <AlertPriceToggle parfumId={id} uid={user.uid} currentPrice={parfum.bestPrice} />
               )}
+
+              {/* ─── Toutes les offres (multi-marchands) ─── */}
+              {'offers' in parfum && parfum.offers && parfum.offers.length > 1 ? (
+                <View style={s.infoZone}>
+                  <SectionTitle icon="🛍️" title="Toutes les offres" s={s} />
+                  {parfum.offers.map((offer, i) => (
+                    <Pressable
+                      key={`${offer.marchand}-${i}`}
+                      style={s.offerRow}
+                      onPress={() => offer.url && Linking.openURL(offer.url)}
+                    >
+                      <View style={s.offerLeft}>
+                        <Text style={s.offerMerchant}>{offer.marchand}</Text>
+                        {offer.volumeMl && <Text style={s.offerVolume}>{offer.volumeMl} ml</Text>}
+                      </View>
+                      <View style={s.offerRight}>
+                        <Text style={s.offerPrice}>{offer.prix.toFixed(0)} €</Text>
+                        {parfum.bestPrice && offer.prix > parfum.bestPrice && (
+                          <Text style={s.offerDiff}>+{(offer.prix - parfum.bestPrice).toFixed(0)} €</Text>
+                        )}
+                      </View>
+                    </Pressable>
+                  ))}
+                </View>
+              ) : null}
             </View>
-          ) : null}
 
-          {/* ─── 2 boutons d'action ─── */}
-          <View style={s.actionRow}>
-            <Pressable onPress={toggleFav} style={s.actionBtn}>
-              <Ionicons name={isFav ? 'heart' : 'heart-outline'} size={18} color={isFav ? t.colors.favorite : t.colors.textMuted} />
-              <Text style={[s.actionLabel, isFav && { color: t.colors.favorite }]}>Favori</Text>
-            </Pressable>
-            {wardrobeItem ? (
-              <Pressable onPress={() => router.push(`/wardrobe/${id}`)} style={[s.actionBtn, s.actionBtnActive]}>
-                <Ionicons name="shirt" size={18} color={t.colors.primary} />
-                <Text style={[s.actionLabel, { color: t.colors.primary }]}>{ownershipLabel(wardrobeItem.ownership)}</Text>
-              </Pressable>
-            ) : (
-              <Pressable onPress={() => {
-                if (!isAuthenticated) { router.push('/auth/login'); return; }
-                setShowWardrobeSheet(true);
-              }} style={s.actionBtn}>
-                <Ionicons name="shirt-outline" size={18} color={t.colors.textMuted} />
-                <Text style={s.actionLabel}>Garde-robe</Text>
-              </Pressable>
-            )}
-          </View>
-
-          {/* ─── Alerte prix ─── */}
-          {isAuthenticated && user?.uid && id && (
-            <AlertPriceToggle parfumId={id} uid={user.uid} currentPrice={parfum.bestPrice} />
-          )}
-
-          {/* ─── Toutes les offres (multi-marchands) ─── */}
-          {'offers' in parfum && parfum.offers && parfum.offers.length > 1 ? (
-            <View style={s.infoZone}>
-              <SectionTitle icon="🛍️" title="Toutes les offres" s={s} />
-              {parfum.offers.map((offer, i) => (
-                <Pressable
-                  key={`${offer.marchand}-${i}`}
-                  style={s.offerRow}
-                  onPress={() => offer.url && Linking.openURL(offer.url)}
-                >
-                  <View style={s.offerLeft}>
-                    <Text style={s.offerMerchant}>{offer.marchand}</Text>
-                    {offer.volumeMl && <Text style={s.offerVolume}>{offer.volumeMl} ml</Text>}
-                  </View>
-                  <View style={s.offerRight}>
-                    <Text style={s.offerPrice}>{offer.prix.toFixed(0)} €</Text>
-                    {parfum.bestPrice && offer.prix > parfum.bestPrice && (
-                      <Text style={s.offerDiff}>+{(offer.prix - parfum.bestPrice).toFixed(0)} €</Text>
-                    )}
-                  </View>
-                </Pressable>
-              ))}
-            </View>
-          ) : null}
           <OlfactoryPyramid
             topNotes={parfum.notesTete}
             heartNotes={parfum.notesCoeur}
             baseNotes={parfum.notesFond}
+            onNotePress={setSelectedNote}
           />
           {/* ─── Accords principaux ─── */}
           {'mainAccords' in parfum && parfum.mainAccords && parfum.mainAccords.length > 0 ? (
@@ -583,6 +615,15 @@ export default function CatalogDetailPage() {
                     <AccordBar key={name} name={translateNote(name)} pct={100 - i * 12} index={i} total={arr.length} s={s} t={t} />
                   ))
               }
+            </View>
+          ) : null}
+          {/* ─── Longévité & Sillage ─── */}
+          {('longevity' in parfum && parfum.longevity) || ('sillage' in parfum && parfum.sillage) || ('popularityScore' in parfum && typeof parfum.popularityScore === 'number') ? (
+            <View style={s.infoZone}>
+              <SectionTitle icon="⚡" title="En résumé" s={s} />
+              {('longevity' in parfum && parfum.longevity) ? (() => { const m = longevityMeta(parfum.longevity!); return <View style={s.gaugeRow}><View style={[s.gaugeIcon, { backgroundColor: t.colors.violetSoft }]}><Ionicons name="time-outline" size={14} color={t.colors.violetInk} /></View><View style={s.gaugeBody}><Text style={s.gaugeLabel}>Longévité</Text><View style={s.gaugeTrack}><View style={[s.gaugeFill, { width: `${m.pct}%`, backgroundColor: t.colors.primary }]} /></View></View><Text style={[s.gaugeVal, { color: t.colors.violetInk }]}>{m.label}</Text></View>; })() : null}
+              {('sillage' in parfum && parfum.sillage) ? (() => { const m = sillageMeta(parfum.sillage!); return <View style={s.gaugeRow}><View style={[s.gaugeIcon, { backgroundColor: t.colors.rewardSoft }]}><Ionicons name="pulse-outline" size={14} color={t.colors.reward} /></View><View style={s.gaugeBody}><Text style={s.gaugeLabel}>Sillage</Text><View style={s.gaugeTrack}><View style={[s.gaugeFill, { width: `${m.pct}%`, backgroundColor: t.colors.reward }]} /></View></View><Text style={[s.gaugeVal, { color: t.colors.reward }]}>{m.label}</Text></View>; })() : null}
+              {('popularityScore' in parfum && typeof parfum.popularityScore === 'number') ? (() => { const pop = popLabel(parfum.popularityScore!); return <View style={s.gaugeRow}><View style={[s.gaugeIcon, { backgroundColor: '#FFF7ED' }]}><Ionicons name="flame-outline" size={14} color={pop.color} /></View><View style={s.gaugeBody}><Text style={s.gaugeLabel}>Popularité</Text><View style={s.gaugeTrack}><View style={[s.gaugeFill, { width: `${parfum.popularityScore}%`, backgroundColor: pop.color }]} /></View></View><Text style={[s.gaugeVal, { color: pop.color }]}>{pop.label}</Text></View>; })() : null}
             </View>
           ) : null}
           {/* ─── Saisonnalité ─── */}
@@ -632,10 +673,27 @@ export default function CatalogDetailPage() {
               </ScrollView>
             </View>
           )}
-          {similarsLoading && <ActivityIndicator style={{ marginTop: 12 }} color={t.colors.primary} />}
+        {similarsLoading && <ActivityIndicator style={{ marginTop: 12 }} color={t.colors.primary} />}
         </View>
-      </ScrollView>
-          </SafeAreaView>
+        <View style={{height:100}} />
+        </ScrollView>
+
+        <StickyBottomBar
+          scrollY={scrollY}
+          priceSectionY={priceSectionY}
+          bestPrice={hasBestPrice ? (parfum as ParfumSearchResult).bestPrice : undefined}
+          referencePrice={'referencePrice' in parfum ? (parfum as ParfumSearchResult).referencePrice : undefined}
+          isFav={isFav}
+          wardrobeItem={wardrobeItem}
+          purchaseUrl={'purchaseUrl' in parfum ? (parfum as ParfumSearchResult).purchaseUrl : undefined}
+          onToggleFav={toggleFav}
+          onWardrobePress={handleWardrobePress}
+          onPurchasePress={() => {
+            const purl = (parfum as ParfumSearchResult).purchaseUrl;
+            if (purl) Linking.openURL(purl);
+          }}
+        />
+      </View>
       )}
       <WardrobeAddSheet
         visible={showWardrobeSheet}
@@ -644,6 +702,11 @@ export default function CatalogDetailPage() {
         parfumImageUrl={heroUrl}
         onClose={() => setShowWardrobeSheet(false)}
         onSelect={handleWardrobeAdd}
+      />
+      <NoteDetailPopup
+        visible={selectedNote !== null}
+        noteName={selectedNote ?? ''}
+        onClose={() => setSelectedNote(null)}
       />
     </>
   );
@@ -667,42 +730,20 @@ export default function CatalogDetailPage() {
 
 function getStyles(t: Theme) {
   return {
-  container: { flex: 1, backgroundColor: t.colors.background },
   center: { flex: 1, justifyContent: 'center', alignItems: 'center' },
-  heroImg: { width: '100%', height: 280, resizeMode: 'cover' },
-  card: { backgroundColor: t.colors.surface, borderRadius: 20, padding: 20, marginTop: -30, position: 'relative', zIndex: 1, ...t.shadow.card },
-  titleRow: { flexDirection: 'row', alignItems: 'flex-start', justifyContent: 'space-between' },
-  brand: { fontSize: 11, textTransform: 'uppercase', letterSpacing: 2, color: t.colors.textMuted, fontFamily: 'Inter_600SemiBold' },
-  name: { fontFamily: 'PlayfairDisplay_700Bold', fontSize: 26, color: t.colors.text, marginTop: 4, lineHeight: 30 },
-  badges: { flexDirection: 'row', gap: 8, flexWrap: 'wrap', marginTop: 12, marginBottom: 24 },
-  tagFamily: { backgroundColor: t.colors.primarySoft, paddingHorizontal: 12, paddingVertical: 5, borderRadius: 20 },
-  tagFamilyText: { fontSize: 11, fontFamily: 'Inter_500Medium', color: t.colors.primaryInk },
-  tagYear: { backgroundColor: t.colors.secondarySoft, paddingHorizontal: 12, paddingVertical: 5, borderRadius: 20 },
-  tagYearText: { fontSize: 11, fontFamily: 'Inter_500Medium', color: t.colors.secondary },
-  tagGender: { backgroundColor: '#E8F0FE', paddingHorizontal: 12, paddingVertical: 5, borderRadius: 20 },
-  tagGenderText: { fontSize: 11, fontFamily: 'Inter_500Medium', color: '#1A56DB' },
-  tagType: { backgroundColor: '#FFF7ED', paddingHorizontal: 12, paddingVertical: 5, borderRadius: 20 },
-  tagRating: { flexDirection: 'row', alignItems: 'center', backgroundColor: '#FFFBEB', paddingHorizontal: 10, paddingVertical: 5, borderRadius: 20 },
-  tagRatingText: { fontSize: 12, fontFamily: 'Inter_700Bold', color: '#D97706' },
-  tagTypeText: { fontSize: 11, fontFamily: 'Inter_500Medium', color: '#9A3412' },
+  contentWrap: { paddingHorizontal: t.spacing.md, paddingTop: 14, paddingBottom: t.spacing.base, backgroundColor: t.colors.surface, borderRadius: t.radius.card, ...t.shadow.card },
+  // ─── Badges 2 lignes ───
+  badgeRow: { flexDirection: 'row', gap: 6, flexWrap: 'wrap', alignItems: 'center', marginBottom: 8 },
+  badgeCompact: { paddingHorizontal: 10, paddingVertical: 4, borderRadius: 20, backgroundColor: '#FFF7ED' },
+  badgeCompactText: { fontSize: 11, fontFamily: 'Inter_500Medium', color: '#9A3412' },
+  badgeCompactMuted: { flexDirection: 'row', alignItems: 'center', gap: 4, paddingHorizontal: 10, paddingVertical: 4, borderRadius: 20, backgroundColor: t.colors.surface2 },
+  badgeCompactMutedText: { fontSize: 11, fontFamily: 'Inter_500Medium', color: t.colors.textMuted },
   // ─── Prix & Deal ───
   dealSection: { marginBottom: 20, gap: 10 },
   buyBtn: { marginTop: 4 },
   trendRow: { flexDirection: 'row', alignItems: 'center', gap: 6, paddingVertical: 4 },
   trendText: { fontFamily: 'Inter_500Medium', fontSize: 13 },
-  storeToggle: { flexDirection: 'row', alignItems: 'center', gap: 6, paddingVertical: 4 },
-  storeToggleText: { fontFamily: 'Inter_500Medium', fontSize: 13, color: t.colors.textMuted },
-  storeRow: { gap: 8 },
-  storeInputWrap: { flexDirection: 'row', alignItems: 'center', borderRadius: t.radius.sm, backgroundColor: t.colors.surface2, paddingHorizontal: 12, height: 40 },
-  storeInput: { flex: 1, fontFamily: 'Inter_400Regular', fontSize: 14, color: t.colors.text },
-  storeDiff: { fontFamily: 'Inter_600SemiBold', fontSize: 13 },
-  // ─── Boutons d'action (Collection / Wishlist / Favori) ───
-  actionRow: { flexDirection: 'row', marginBottom: 24, gap: 8 },
-  actionBtn: { flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6, paddingVertical: 12, borderRadius: t.radius.base, borderWidth: 1, borderColor: t.colors.border, backgroundColor: t.colors.surface2 },
-  actionBtnActive: { backgroundColor: t.colors.primarySoft, borderColor: t.colors.primary },
-  actionLabel: { fontFamily: 'Inter_500Medium', fontSize: 13, color: t.colors.textMuted },
   // ─── Sections ───
-  pyramidDesc: { fontSize: 13, color: t.colors.textMuted, marginBottom: 4 },
   infoZone: { marginTop: 20, marginBottom: 20, gap: 8 },
   sectionTitle: { flexDirection: 'row', alignItems: 'center', gap: 6, marginBottom: 4 },
   sectionIcon: { fontSize: 15 },
