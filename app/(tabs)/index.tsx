@@ -11,6 +11,8 @@ import Animated, {
   useAnimatedStyle,
   useAnimatedReaction,
   withSpring,
+  withTiming,
+  Easing,
   runOnJS,
 } from 'react-native-reanimated';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -24,7 +26,7 @@ import CollectionPage from './collection';
 import DockBar from '../../src/features/navigation/DockBar';
 
 const SPRING = { damping: 28, stiffness: 300, mass: 0.8 };
-const DOCK_SPRING = { damping: 22, stiffness: 260 };
+const DOCK_DURATION = 200;
 const MIN_THRESHOLD = 40;
 const THRESHOLD_RATIO = 0.5;
 const PAGES = 4;
@@ -48,9 +50,9 @@ export default function TabPager() {
     (current, prev) => {
       if (prev === null) return;
       if (current > prev! && current > SCROLL_HIDE_OFFSET) {
-        dockTranslateY.value = withSpring(120, DOCK_SPRING);
+        dockTranslateY.value = withTiming(120, { duration: DOCK_DURATION, easing: Easing.out(Easing.cubic) });
       } else if (current < prev!) {
-        dockTranslateY.value = withSpring(0, DOCK_SPRING);
+        dockTranslateY.value = withTiming(0, { duration: DOCK_DURATION, easing: Easing.out(Easing.cubic) });
       }
     },
   );
@@ -84,7 +86,7 @@ export default function TabPager() {
     runOnJS(setActivePage)(p);
     translateX.value = withSpring(-p * pageWidth.value, SPRING);
     scrollY.value = 0;
-    dockTranslateY.value = withSpring(0, DOCK_SPRING);
+    dockTranslateY.value = withTiming(0, { duration: DOCK_DURATION, easing: Easing.out(Easing.cubic) });
   }, []);
 
   const dockActiveIndex = activePage < 2 ? activePage : activePage + 1;
