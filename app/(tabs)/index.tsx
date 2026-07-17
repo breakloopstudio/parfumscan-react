@@ -1,5 +1,5 @@
 // app/(tabs)/index.tsx — Pager horizontal 4 pages (Catalogue, Favoris, Historique, Collection)
-// Dock flottant 5 positions + FAB scan avec indicateur doré
+// Dock flottant 5 positions + FAB scan avec indicateur dore
 // Swipe gesture-driven avec Reanimated + animations d'interpolation
 
 import { useCallback, useEffect, useState } from 'react';
@@ -9,6 +9,7 @@ import { Gesture, GestureDetector } from 'react-native-gesture-handler';
 import Animated, {
   useSharedValue,
   useAnimatedStyle,
+  useAnimatedReaction,
   withSpring,
   runOnJS,
 } from 'react-native-reanimated';
@@ -23,9 +24,11 @@ import CollectionPage from './collection';
 import DockBar from '../../src/features/navigation/DockBar';
 
 const SPRING = { damping: 28, stiffness: 300, mass: 0.8 };
+const DOCK_SPRING = { damping: 22, stiffness: 260 };
 const MIN_THRESHOLD = 40;
 const THRESHOLD_RATIO = 0.5;
 const PAGES = 4;
+const SCROLL_HIDE_OFFSET = 60;
 
 export default function TabPager() {
   const { theme } = useTheme();
@@ -36,6 +39,21 @@ export default function TabPager() {
   const translateX = useSharedValue(0);
   const currentPage = useSharedValue(0);
   const [activePage, setActivePage] = useState(0);
+
+  const scrollY = useSharedValue(0);
+  const dockTranslateY = useSharedValue(0);
+
+  useAnimatedReaction(
+    () => scrollY.value,
+    (current, prev) => {
+      if (prev === null) return;
+      if (current > prev! && current > SCROLL_HIDE_OFFSET) {
+        dockTranslateY.value = withSpring(120, DOCK_SPRING);
+      } else if (current < prev!) {
+        dockTranslateY.value = withSpring(0, DOCK_SPRING);
+      }
+    },
+  );
 
   useEffect(() => {
     if (windowWidth > 0) {
@@ -55,27 +73,27 @@ export default function TabPager() {
     }, [])
   );
 
+  const handlePageScroll = useCallback((y: number) => {
+    'worklet';
+    scrollY.value = y;
+  }, []);
+
   const goTo = useCallback((p: number) => {
     'worklet';
     currentPage.value = p;
     runOnJS(setActivePage)(p);
     translateX.value = withSpring(-p * pageWidth.value, SPRING);
+    scrollY.value = 0;
+    dockTranslateY.value = withSpring(0, DOCK_SPRING);
   }, []);
 
-  // dockIndex: 0=Catalogue, 1=Favoris, 2=Scan(FAB), 3=Historique, 4=Collection
-  // pagerIndex: 0=Catalogue, 1=Favoris, 2=Historique, 3=Collection
+  const dockActiveIndex = activePage < 2 ? activePage : activePage + 1;
+
   const onTabPress = useCallback((dockIndex: number) => {
     hapticsLight();
-    if (dockIndex === 2) {
-      router.push('/(tabs)/scan');
-      return;
-    }
     const pagerIndex = dockIndex < 2 ? dockIndex : dockIndex - 1;
     goTo(pagerIndex);
   }, []);
-
-  // Map pager index to dock index for the indicator
-  const dockActiveIndex = activePage < 2 ? activePage : activePage + 1;
 
   const gesture = Gesture.Pan()
     .activeOffsetX([-15, 15])
@@ -135,16 +153,16 @@ export default function TabPager() {
       <GestureDetector gesture={gesture}>
         <View style={s.pager}>
           <Animated.View style={[s.page, catStyle]}>
-            <CatalogPage />
+            <CatalogPage onScroll={handlePageScroll} />
           </Animated.View>
           <Animated.View style={[s.page, favStyle]}>
-            <FavoritesPage />
+            <FavoritesPage onScroll={handlePageScroll} />
           </Animated.View>
           <Animated.View style={[s.page, histStyle]}>
-            <HistoryPage />
+            <HistoryPage onScroll={handlePageScroll} />
           </Animated.View>
           <Animated.View style={[s.page, colStyle]}>
-            <CollectionPage />
+            <CollectionPage onScroll={handlePageScroll} />
           </Animated.View>
         </View>
       </GestureDetector>
@@ -152,6 +170,7 @@ export default function TabPager() {
       <DockBar
         activeIndex={dockActiveIndex}
         pageWidth={pageWidth}
+        dockTranslateY={dockTranslateY}
         onTabPress={onTabPress}
       />
     </SafeAreaView>

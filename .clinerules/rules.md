@@ -35,7 +35,7 @@ src/
 ├── features/
 │   ├── scan/     (8)         # ScanScreen + 7 sous-états
 │   ├── catalog/  (2)         # CatalogPage, OlfactoryPyramid
-│   └── navigation/ (1)      # DockBar (barre flottante 5 positions + FAB)
+│   └── navigation/ (1)      # DockBar (barre flottante 5 positions + FAB, verre depoli via expo-blur, pulse ring, show/hide au scroll)
 ├── theme/        (2)         # theme.ts (Theme interface + light/dark), ThemeContext.tsx (useTheme + export Theme)
 ├── config/       (3)         # Firebase config, env (variables publiques), index
 └── utils/        (2)         # Error translator, translate-note

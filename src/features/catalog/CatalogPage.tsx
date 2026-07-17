@@ -32,7 +32,11 @@ function seededShuffle<T>(arr: T[], seed: number): T[] {
   return shuffled;
 }
 
-export default function CatalogPage() {
+interface Props {
+  onScroll?: (y: number) => void;
+}
+
+export default function CatalogPage({ onScroll }: Props) {
   const { theme } = useTheme();
   const s = useMemo(() => getStyles(theme), [theme]);
   const { user, authReady, isAuthenticated } = useAuthContext();
@@ -180,6 +184,8 @@ export default function CatalogPage() {
             contentContainerStyle={{ paddingHorizontal: 16, paddingBottom: 16 }}
             style={{ flex: 1 }}
             showsVerticalScrollIndicator={false}
+            onScroll={onScroll ? (e) => onScroll(e.nativeEvent.contentOffset.y) : undefined}
+            scrollEventThrottle={16}
           />
         )
       ) : (
@@ -191,6 +197,8 @@ export default function CatalogPage() {
             renderItem={({ item }) => <ParfumCard parfum={item} showDeal />}
             contentContainerStyle={{ paddingBottom: 16 }}
             showsVerticalScrollIndicator={false}
+            onScroll={onScroll ? (e) => onScroll(e.nativeEvent.contentOffset.y) : undefined}
+            scrollEventThrottle={16}
             ListEmptyComponent={
               !searching ? (
                 <View style={s.empty}>

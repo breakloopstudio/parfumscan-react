@@ -1,4 +1,4 @@
-// app/(tabs)/favorites.tsx — Écran Favoris (extrait de ProfilePage)
+// app/(tabs)/favorites.tsx — Ecran Favoris (extrait de ProfilePage)
 
 import { useState, useMemo } from 'react';
 import { View, Text, ScrollView, Pressable, ActivityIndicator, Alert, StyleSheet } from 'react-native';
@@ -14,7 +14,11 @@ import { setPendingParfum } from '../../src/services/catalog-bridge';
 import { useTheme, type Theme } from '../../src/theme/ThemeContext';
 import EmptyState from '../../src/components/EmptyState';
 
-export default function FavoritesPage() {
+interface Props {
+  onScroll?: (y: number) => void;
+}
+
+export default function FavoritesPage({ onScroll }: Props) {
   const { theme } = useTheme();
   const s = useMemo(() => getStyles(theme), [theme]);
   const { user, authReady, isAuthenticated } = useAuthContext();
@@ -34,8 +38,8 @@ export default function FavoritesPage() {
 
   const showContextMenu = (itemId: string, nom: string | null, marque: string | null, imageUrl: string | null, parfumId: string, familleOlactive?: string | null) => {
     Alert.alert('Actions', undefined, [
-      { text: 'Déplacer vers Collection', onPress: () => moveToCollection(uid!, 'favoris', itemId, parfumId, nom, marque, imageUrl) },
-      { text: 'Déplacer vers Wishlist', onPress: () => moveToWishlist(uid!, 'favoris', itemId, parfumId, nom, marque, imageUrl, familleOlactive) },
+      { text: 'Deplacer vers Collection', onPress: () => moveToCollection(uid!, 'favoris', itemId, parfumId, nom, marque, imageUrl) },
+      { text: 'Deplacer vers Wishlist', onPress: () => moveToWishlist(uid!, 'favoris', itemId, parfumId, nom, marque, imageUrl, familleOlactive) },
       { text: 'Retirer', style: 'destructive', onPress: () => removeFavori(itemId) },
       { text: 'Annuler', style: 'cancel' },
     ]);
@@ -48,7 +52,7 @@ export default function FavoritesPage() {
         <View style={s.center}>
           <Ionicons name="heart-outline" size={64} color={theme.colors.textMuted} />
           <Text style={s.emptyTitle}>Connectez-vous</Text>
-          <Text style={s.emptyDesc}>Accédez à vos favoris.</Text>
+          <Text style={s.emptyDesc}>Accedez a vos favoris.</Text>
         </View>
       </SafeAreaView>
     );
@@ -56,9 +60,13 @@ export default function FavoritesPage() {
 
   return (
     <SafeAreaView edges={['top', 'bottom']} style={s.container}>
-      <ScrollView contentContainerStyle={s.scroll}>
+      <ScrollView
+        contentContainerStyle={s.scroll}
+        onScroll={onScroll ? (e) => onScroll(e.nativeEvent.contentOffset.y) : undefined}
+        scrollEventThrottle={16}
+      >
         <View style={s.headerBar}>
-          <Text style={s.title}>Favoris · {favoris.length}</Text>
+          <Text style={s.title}>Favoris . {favoris.length}</Text>
           <Pressable onPress={() => router.push('/settings')} hitSlop={8} style={s.avatarBtn}>
             {user?.photoURL && !imgFailed ? (
               <Image source={{ uri: user.photoURL }} style={s.avatarImg} contentFit="cover" transition={200} onError={() => setImgFailed(true)} />

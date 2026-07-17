@@ -1,4 +1,4 @@
-// app/(tabs)/collection.tsx — Écran Collection + Wishlist (extrait de ProfilePage)
+// app/(tabs)/collection.tsx — Ecran Collection + Wishlist (extrait de ProfilePage)
 
 import { useState, useMemo } from 'react';
 import { View, Text, ScrollView, Pressable, ActivityIndicator, Alert, StyleSheet } from 'react-native';
@@ -15,7 +15,11 @@ import { setPendingParfum } from '../../src/services/catalog-bridge';
 import { useTheme, type Theme } from '../../src/theme/ThemeContext';
 import EmptyState from '../../src/components/EmptyState';
 
-export default function CollectionPage() {
+interface Props {
+  onScroll?: (y: number) => void;
+}
+
+export default function CollectionPage({ onScroll }: Props) {
   const { theme } = useTheme();
   const s = useMemo(() => getStyles(theme), [theme]);
   const { user, authReady, isAuthenticated } = useAuthContext();
@@ -36,8 +40,8 @@ export default function CollectionPage() {
 
   const showCollectionMenu = (itemId: string, nom: string | null, marque: string | null, imageUrl: string | null, parfumId: string, familleOlactive?: string | null) => {
     Alert.alert('Actions', undefined, [
-      { text: 'Déplacer vers Wishlist', onPress: () => moveToWishlist(uid!, 'collection', itemId, parfumId, nom, marque, imageUrl, familleOlactive) },
-      { text: 'Déplacer vers Favoris', onPress: () => moveFavori(uid!, 'collection', itemId, parfumId, nom, marque, imageUrl, familleOlactive) },
+      { text: 'Deplacer vers Wishlist', onPress: () => moveToWishlist(uid!, 'collection', itemId, parfumId, nom, marque, imageUrl, familleOlactive) },
+      { text: 'Deplacer vers Favoris', onPress: () => moveFavori(uid!, 'collection', itemId, parfumId, nom, marque, imageUrl, familleOlactive) },
       { text: 'Retirer', style: 'destructive', onPress: () => removeCollection(itemId) },
       { text: 'Annuler', style: 'cancel' },
     ]);
@@ -45,8 +49,8 @@ export default function CollectionPage() {
 
   const showWishlistMenu = (itemId: string, nom: string | null, marque: string | null, imageUrl: string | null, parfumId: string, familleOlactive?: string | null) => {
     Alert.alert('Actions', undefined, [
-      { text: 'Déplacer vers Collection', onPress: () => moveToCollection(uid!, 'wishlist', itemId, parfumId, nom, marque, imageUrl) },
-      { text: 'Déplacer vers Favoris', onPress: () => moveFavori(uid!, 'wishlist', itemId, parfumId, nom, marque, imageUrl, familleOlactive) },
+      { text: 'Deplacer vers Collection', onPress: () => moveToCollection(uid!, 'wishlist', itemId, parfumId, nom, marque, imageUrl) },
+      { text: 'Deplacer vers Favoris', onPress: () => moveFavori(uid!, 'wishlist', itemId, parfumId, nom, marque, imageUrl, familleOlactive) },
       { text: 'Retirer', style: 'destructive', onPress: () => removeWishlist(itemId) },
       { text: 'Annuler', style: 'cancel' },
     ]);
@@ -59,7 +63,7 @@ export default function CollectionPage() {
         <View style={s.center}>
           <Ionicons name="flask-outline" size={64} color={theme.colors.textMuted} />
           <Text style={s.emptyTitle}>Connectez-vous</Text>
-          <Text style={s.emptyDesc}>Accédez à votre collection.</Text>
+          <Text style={s.emptyDesc}>Accedez a votre collection.</Text>
         </View>
       </SafeAreaView>
     );
@@ -69,9 +73,13 @@ export default function CollectionPage() {
 
   return (
     <SafeAreaView edges={['top', 'bottom']} style={s.container}>
-      <ScrollView contentContainerStyle={s.scroll}>
+      <ScrollView
+        contentContainerStyle={s.scroll}
+        onScroll={onScroll ? (e) => onScroll(e.nativeEvent.contentOffset.y) : undefined}
+        scrollEventThrottle={16}
+      >
         <View style={s.headerBar}>
-          <Text style={s.title}>Collection · {total}</Text>
+          <Text style={s.title}>Collection . {total}</Text>
           <Pressable onPress={() => router.push('/settings')} hitSlop={8} style={s.avatarBtn}>
             {user?.photoURL && !imgFailed ? (
               <Image source={{ uri: user.photoURL }} style={s.avatarImg} contentFit="cover" transition={200} onError={() => setImgFailed(true)} />
@@ -81,8 +89,7 @@ export default function CollectionPage() {
           </Pressable>
         </View>
 
-        {/* Section Possédés */}
-        <Text style={s.sectionTitle}>Possédés · {collection.length}</Text>
+        <Text style={s.sectionTitle}>Possedes . {collection.length}</Text>
         {collLoading ? <ActivityIndicator style={{ marginTop: 12 }} color={theme.colors.primary} /> :
          collection.length === 0 ? <EmptyState variant="collection" onAction={() => router.navigate('/(tabs)')} /> :
          collection.map(c => (
@@ -95,7 +102,7 @@ export default function CollectionPage() {
                </View>
              </View>
              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
-               <View style={s.badgeOwned}><Text style={s.badgeOwnedText}>Possédé</Text></View>
+               <View style={s.badgeOwned}><Text style={s.badgeOwnedText}>Possede</Text></View>
                <Pressable onPress={() => showCollectionMenu(c.id, c.nom ?? null, c.marque ?? null, c.imageUrl ?? null, c.parfumId)} hitSlop={12}>
                  <Ionicons name="ellipsis-horizontal" size={20} color={theme.colors.textMuted} />
                </Pressable>
@@ -103,8 +110,7 @@ export default function CollectionPage() {
            </Pressable>
          ))}
 
-        {/* Section Wishlist */}
-        <Text style={[s.sectionTitle, { marginTop: 20 }]}>Wishlist · {wishlist.length}</Text>
+        <Text style={[s.sectionTitle, { marginTop: 20 }]}>Wishlist . {wishlist.length}</Text>
         {wishLoading ? <ActivityIndicator style={{ marginTop: 12 }} color={theme.colors.primary} /> :
          wishlist.length === 0 ? <EmptyState variant="wishlist" onAction={() => router.navigate('/(tabs)')} /> :
          wishlist.map(w => (
@@ -118,7 +124,7 @@ export default function CollectionPage() {
                </View>
              </View>
              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
-               <View style={s.badgeWish}><Text style={s.badgeWishText}>À acheter</Text></View>
+               <View style={s.badgeWish}><Text style={s.badgeWishText}>A acheter</Text></View>
                <Pressable onPress={() => showWishlistMenu(w.id, w.nom ?? null, w.marque ?? null, w.imageUrl ?? null, w.parfumId, w.familleOlactive ?? null)} hitSlop={12}>
                  <Ionicons name="ellipsis-horizontal" size={20} color={theme.colors.textMuted} />
                </Pressable>
@@ -156,9 +162,9 @@ function getStyles(t: Theme) {
     itemBrand: { fontFamily: 'Inter_400Regular', fontSize: 12, color: t.colors.textMuted, marginTop: 1 },
     itemFamily: { fontFamily: 'Inter_400Regular', fontSize: 11, color: t.colors.primary, marginTop: 2 },
     badgeOwned: { backgroundColor: t.colors.primarySoft, paddingHorizontal: 10, paddingVertical: 4, borderRadius: 8 },
-    badgeOwnedText: { fontFamily: 'Inter_600SemiBold', fontSize: 11, color: t.colors.primary },
+    badgeOwnedText: { fontFamily: 'Inter_600SemiBold', fontSize: 11, color: t.colors.primaryInk },
     badgeWish: { backgroundColor: t.colors.secondarySoft, paddingHorizontal: 10, paddingVertical: 4, borderRadius: 8 },
-    badgeWishText: { fontFamily: 'Inter_600SemiBold', fontSize: 11, color: t.colors.secondary },
+    badgeWishText: { fontFamily: 'Inter_600SemiBold', fontSize: 11, color: t.colors.secondaryInk },
     emptyTitle: { fontFamily: 'PlayfairDisplay_600SemiBold', fontSize: 20, color: t.colors.text, marginTop: 12 },
     emptyDesc: { fontFamily: 'Inter_400Regular', fontSize: 14, color: t.colors.textMuted, textAlign: 'center', lineHeight: 20, marginTop: 6 },
   } as const;

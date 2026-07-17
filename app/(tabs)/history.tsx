@@ -1,4 +1,4 @@
-// app/(tabs)/history.tsx — Écran Historique des scans (extrait de ProfilePage)
+// app/(tabs)/history.tsx — Ecran Historique des scans (extrait de ProfilePage)
 
 import { useState, useMemo } from 'react';
 import { View, Text, ScrollView, Pressable, ActivityIndicator, Alert, StyleSheet } from 'react-native';
@@ -19,7 +19,11 @@ function formatScanDate(d: Date | { toDate: () => Date } | undefined): string {
   return date.toLocaleString([], { day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' });
 }
 
-export default function HistoryPage() {
+interface Props {
+  onScroll?: (y: number) => void;
+}
+
+export default function HistoryPage({ onScroll }: Props) {
   const { theme } = useTheme();
   const s = useMemo(() => getStyles(theme), [theme]);
   const { user, authReady, isAuthenticated } = useAuthContext();
@@ -51,7 +55,7 @@ export default function HistoryPage() {
         <View style={s.center}>
           <Ionicons name="scan-outline" size={64} color={theme.colors.textMuted} />
           <Text style={s.emptyTitle}>Connectez-vous</Text>
-          <Text style={s.emptyDesc}>Accédez à votre historique de scans.</Text>
+          <Text style={s.emptyDesc}>Accedez a votre historique de scans.</Text>
         </View>
       </SafeAreaView>
     );
@@ -59,9 +63,13 @@ export default function HistoryPage() {
 
   return (
     <SafeAreaView edges={['top', 'bottom']} style={s.container}>
-      <ScrollView contentContainerStyle={s.scroll}>
+      <ScrollView
+        contentContainerStyle={s.scroll}
+        onScroll={onScroll ? (e) => onScroll(e.nativeEvent.contentOffset.y) : undefined}
+        scrollEventThrottle={16}
+      >
         <View style={s.headerBar}>
-          <Text style={s.title}>Historique · {scans.length}</Text>
+          <Text style={s.title}>Historique . {scans.length}</Text>
           <Pressable onPress={() => router.push('/settings')} hitSlop={8} style={s.avatarBtn}>
             {user?.photoURL && !imgFailed ? (
               <Image source={{ uri: user.photoURL }} style={s.avatarImg} contentFit="cover" transition={200} onError={() => setImgFailed(true)} />
@@ -81,7 +89,7 @@ export default function HistoryPage() {
                  {scan.marque ? <Text style={s.itemName}>{scan.marque}</Text> : null}
                  <Text style={scan.marque ? s.itemSubName : s.itemName}>
                    {scan.nom ?? (!scan.marque ? 'Scan' : '')}
-                   {scan.typeParfum && scan.nom ? ' · ' + scan.typeParfum : ''}
+                   {scan.typeParfum && scan.nom ? ' . ' + scan.typeParfum : ''}
                  </Text>
                  <Text style={s.itemDate}>{formatScanDate(scan.scannedAt)}</Text>
                </View>

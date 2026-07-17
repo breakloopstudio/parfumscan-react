@@ -190,7 +190,7 @@ export type Theme = typeof lightTheme;
 export const theme = lightTheme;
 
 interface Theme {
-  colors: { /* 26 tokens couleur */ };
+  colors: { /* 28 tokens couleur */ };
   fonts: { /* display, body, sizes */ };
   radius: { /* sm, base, card, lg, xl, full */ };
   spacing: { /* xs → 3xl */ };
@@ -277,3 +277,31 @@ export function translateNote(note: string): string;
 export function translateFirebaseError(e: unknown): string;
 // Traduit les erreurs Firebase en messages FR
 ```
+
+---
+
+## §6 — Composants
+
+### `DockBar` — `src/features/navigation/DockBar.tsx`
+
+Barre de navigation flottante 5 positions (Catalogue, Favoris, Scan, Historique, Collection) + FAB central.
+
+```ts
+interface Props {
+  activeIndex: number;                    // 0=Catalogue, 1=Favoris, 3=Historique, 4=Collection (2=FAB)
+  pageWidth: SharedValue<number>;        // Largeur ecran partagee pour le calcul de position
+  dockTranslateY: SharedValue<number>;   // Drive le show/hide au scroll (0 visible / +120 cache)
+  onTabPress: (index: number) => void;   // Callback changement d'onglet (haptics attendu par le parent)
+}
+```
+
+**Caracteristiques** :
+- Verre depoli : `BlurView` (expo-blur, intensity 24) + overlay semi-transparent `rgba(background, 0.88)`
+- Indicateur dore anime : `withSpring({ damping: 22, stiffness: 280, mass: 0.7 })` via `useAnimatedReaction`
+- Pulse ring : halo violet autour du FAB, `withRepeat(withTiming(1.18, 2500ms), -1, true)`, opacity inversee
+- Show/hide au scroll : `useAnimatedReaction` sur `scrollY` → cache si `y > prev && y > 60`, montre si `y < prev`
+- Dimensions : 64px hauteur, 24px borderRadius, 88% largeur (max 380px), FAB 56×56
+- Dark mode : `BlurView tint` suit `resolvedMode`, overlay couleur dynamique via `t.colors.background`
+- Haptics integres sur le FAB, delegues au parent pour les onglets
+
+**Dependances** : `expo-blur`, `react-native-reanimated`, `@react-native-vector-icons/ionicons`, `react-native-safe-area-context`
