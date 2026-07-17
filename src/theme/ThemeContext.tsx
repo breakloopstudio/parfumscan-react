@@ -26,10 +26,9 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
   const systemScheme = useColorScheme();
 
   useEffect(() => {
-    getThemeMode().then(v => {
-      setModeState(v);
-      setReady(true);
-    });
+    getThemeMode()
+      .then(v => { setModeState(v); setReady(true); })
+      .catch(() => { setModeState('system'); setReady(true); });
   }, []);
 
   const resolvedMode: ResolvedMode =

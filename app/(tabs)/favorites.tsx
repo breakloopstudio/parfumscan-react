@@ -1,4 +1,4 @@
-// app/(tabs)/favorites.tsx — Ecran Favoris (extrait de ProfilePage)
+// app/(tabs)/favorites.tsx — Écran Favoris
 
 import { useState, useMemo } from 'react';
 import { View, Text, ScrollView, Pressable, ActivityIndicator, Alert, StyleSheet } from 'react-native';
@@ -13,6 +13,7 @@ import { moveToCollection, moveToWishlist } from '../../src/services/user-data';
 import { setPendingParfum } from '../../src/services/catalog-bridge';
 import { useTheme, type Theme } from '../../src/theme/ThemeContext';
 import EmptyState from '../../src/components/EmptyState';
+import ProfileAvatar from '../../src/components/ProfileAvatar';
 
 interface Props {
   onScroll?: (y: number) => void;
@@ -25,8 +26,6 @@ export default function FavoritesPage({ onScroll }: Props) {
   const router = useRouter();
   const uid = user?.uid ?? null;
   const { favoris, loading, removeFavori } = useFavoris(uid);
-  const [imgFailed, setImgFailed] = useState(false);
-  const initial = user?.email?.charAt(0).toUpperCase() ?? '?';
 
   const goToDetail = async (parfumId: string) => {
     try {
@@ -37,9 +36,10 @@ export default function FavoritesPage({ onScroll }: Props) {
   };
 
   const showContextMenu = (itemId: string, nom: string | null, marque: string | null, imageUrl: string | null, parfumId: string, familleOlactive?: string | null) => {
+    if (!uid) return;
     Alert.alert('Actions', undefined, [
-      { text: 'Deplacer vers Collection', onPress: () => moveToCollection(uid!, 'favoris', itemId, parfumId, nom, marque, imageUrl) },
-      { text: 'Deplacer vers Wishlist', onPress: () => moveToWishlist(uid!, 'favoris', itemId, parfumId, nom, marque, imageUrl, familleOlactive) },
+      { text: 'Deplacer vers Collection', onPress: () => moveToCollection(uid, 'favoris', itemId, parfumId, nom, marque, imageUrl) },
+      { text: 'Deplacer vers Wishlist', onPress: () => moveToWishlist(uid, 'favoris', itemId, parfumId, nom, marque, imageUrl, familleOlactive) },
       { text: 'Retirer', style: 'destructive', onPress: () => removeFavori(itemId) },
       { text: 'Annuler', style: 'cancel' },
     ]);
@@ -67,17 +67,11 @@ export default function FavoritesPage({ onScroll }: Props) {
       >
         <View style={s.headerBar}>
           <Text style={s.title}>Favoris . {favoris.length}</Text>
-          <Pressable onPress={() => router.push('/settings')} hitSlop={8} style={s.avatarBtn}>
-            {user?.photoURL && !imgFailed ? (
-              <Image source={{ uri: user.photoURL }} style={s.avatarImg} contentFit="cover" transition={200} onError={() => setImgFailed(true)} />
-            ) : (
-              <View style={s.avatarFb}><Text style={s.avatarTxt}>{initial}</Text></View>
-            )}
-          </Pressable>
+          <ProfileAvatar />
         </View>
 
         {loading ? <ActivityIndicator style={{ marginTop: 24 }} color={theme.colors.primary} /> :
-         favoris.length === 0 ? <EmptyState variant="favoris" onAction={() => router.navigate('/(tabs)')} /> :
+         favoris.length === 0 ? <EmptyState variant="favoris" onAction={() => router.replace('/(tabs)')} /> :
          favoris.map(f => (
            <Pressable key={f.id} style={s.listItem} onPress={() => goToDetail(f.parfumId)}>
              <View style={s.itemLeft}>
@@ -113,10 +107,6 @@ function getStyles(t: Theme) {
     scroll: { paddingBottom: 40 },
     title: { fontFamily: 'PlayfairDisplay_700Bold', fontSize: 22, color: t.colors.text, flex: 1 },
     headerBar: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 16, paddingTop: 20, paddingBottom: 8 },
-    avatarBtn: { width: 36, height: 36, borderRadius: 18, overflow: 'hidden' },
-    avatarImg: { width: 36, height: 36, borderRadius: 18 },
-    avatarFb: { width: 36, height: 36, borderRadius: 18, backgroundColor: t.colors.primarySoft, justifyContent: 'center', alignItems: 'center' },
-    avatarTxt: { fontFamily: 'Inter_700Bold', fontSize: 14, color: t.colors.primaryInk },
     listItem: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingVertical: 14, paddingHorizontal: 16, borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: t.colors.border },
     itemLeft: { flexDirection: 'row', alignItems: 'center', gap: 12, flex: 1 },
     itemName: { fontFamily: 'Inter_600SemiBold', fontSize: 15, color: t.colors.text },

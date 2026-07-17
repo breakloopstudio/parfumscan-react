@@ -235,6 +235,17 @@ Les documents `UserFavori` et `UserScan` stockent `imageUrl` et `familleOlactive
 dénormalisés → affichage direct sans appel API Firestore ni Fragella.
 
 ---
+## v6.2 — Bugfixes & Polish (17/07/2026)
+
+- **ProfileAvatar** : composant partagé (photo Google ou initiale), dédupliqué sur Favoris/Historique/Collection
+- **ThemeContext** : fix crash si AsyncStorage échoue (écran blanc → fallback system)
+- **DockBar** : ombres migrées vers `t.shadow` (invisibles en dark mode → bordures adaptatives)
+- **EmptyState** : typage icônes corrigé (`as never` → `as const satisfies`)
+- **Favoris/Collection** : guards `uid` ajoutés sur les menus contextuels (plus de `!` non-null)
+- **History** : `formatScanDate` réécrit avec type guards corrects
+- **Index** : `Gesture.Pan()` memoïsé (`useMemo`) — plus de recréation à chaque render
+- **Navigation** : `router.navigate` → `router.replace` sur les CTA EmptyState (évite l'empilement)
+
 ## v6.0 — Navigation Rework + Dark Mode (17/07/2026)
 
 - **Dock flottant 5 positions** : barre verre dépoli, indicateur doré animé, FAB scan central avec pulse ring

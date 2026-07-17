@@ -1,4 +1,4 @@
-// app/(tabs)/collection.tsx — Ecran Collection + Wishlist (extrait de ProfilePage)
+// app/(tabs)/collection.tsx — Écran Collection + Wishlist
 
 import { useState, useMemo } from 'react';
 import { View, Text, ScrollView, Pressable, ActivityIndicator, Alert, StyleSheet } from 'react-native';
@@ -14,6 +14,7 @@ import { moveToWishlist, moveToCollection, moveFavori } from '../../src/services
 import { setPendingParfum } from '../../src/services/catalog-bridge';
 import { useTheme, type Theme } from '../../src/theme/ThemeContext';
 import EmptyState from '../../src/components/EmptyState';
+import ProfileAvatar from '../../src/components/ProfileAvatar';
 
 interface Props {
   onScroll?: (y: number) => void;
@@ -27,8 +28,6 @@ export default function CollectionPage({ onScroll }: Props) {
   const uid = user?.uid ?? null;
   const { items: collection, loading: collLoading, remove: removeCollection } = useCollection(uid);
   const { items: wishlist, loading: wishLoading, remove: removeWishlist } = useWishlist(uid);
-  const [imgFailed, setImgFailed] = useState(false);
-  const initial = user?.email?.charAt(0).toUpperCase() ?? '?';
 
   const goToDetail = async (parfumId: string) => {
     try {
@@ -39,18 +38,20 @@ export default function CollectionPage({ onScroll }: Props) {
   };
 
   const showCollectionMenu = (itemId: string, nom: string | null, marque: string | null, imageUrl: string | null, parfumId: string, familleOlactive?: string | null) => {
+    if (!uid) return;
     Alert.alert('Actions', undefined, [
-      { text: 'Deplacer vers Wishlist', onPress: () => moveToWishlist(uid!, 'collection', itemId, parfumId, nom, marque, imageUrl, familleOlactive) },
-      { text: 'Deplacer vers Favoris', onPress: () => moveFavori(uid!, 'collection', itemId, parfumId, nom, marque, imageUrl, familleOlactive) },
+      { text: 'Deplacer vers Wishlist', onPress: () => moveToWishlist(uid, 'collection', itemId, parfumId, nom, marque, imageUrl, familleOlactive) },
+      { text: 'Deplacer vers Favoris', onPress: () => moveFavori(uid, 'collection', itemId, parfumId, nom, marque, imageUrl, familleOlactive) },
       { text: 'Retirer', style: 'destructive', onPress: () => removeCollection(itemId) },
       { text: 'Annuler', style: 'cancel' },
     ]);
   };
 
   const showWishlistMenu = (itemId: string, nom: string | null, marque: string | null, imageUrl: string | null, parfumId: string, familleOlactive?: string | null) => {
+    if (!uid) return;
     Alert.alert('Actions', undefined, [
-      { text: 'Deplacer vers Collection', onPress: () => moveToCollection(uid!, 'wishlist', itemId, parfumId, nom, marque, imageUrl) },
-      { text: 'Deplacer vers Favoris', onPress: () => moveFavori(uid!, 'wishlist', itemId, parfumId, nom, marque, imageUrl, familleOlactive) },
+      { text: 'Deplacer vers Collection', onPress: () => moveToCollection(uid, 'wishlist', itemId, parfumId, nom, marque, imageUrl) },
+      { text: 'Deplacer vers Favoris', onPress: () => moveFavori(uid, 'wishlist', itemId, parfumId, nom, marque, imageUrl, familleOlactive) },
       { text: 'Retirer', style: 'destructive', onPress: () => removeWishlist(itemId) },
       { text: 'Annuler', style: 'cancel' },
     ]);
@@ -80,18 +81,12 @@ export default function CollectionPage({ onScroll }: Props) {
       >
         <View style={s.headerBar}>
           <Text style={s.title}>Collection . {total}</Text>
-          <Pressable onPress={() => router.push('/settings')} hitSlop={8} style={s.avatarBtn}>
-            {user?.photoURL && !imgFailed ? (
-              <Image source={{ uri: user.photoURL }} style={s.avatarImg} contentFit="cover" transition={200} onError={() => setImgFailed(true)} />
-            ) : (
-              <View style={s.avatarFb}><Text style={s.avatarTxt}>{initial}</Text></View>
-            )}
-          </Pressable>
+          <ProfileAvatar />
         </View>
 
         <Text style={s.sectionTitle}>Possedes . {collection.length}</Text>
         {collLoading ? <ActivityIndicator style={{ marginTop: 12 }} color={theme.colors.primary} /> :
-         collection.length === 0 ? <EmptyState variant="collection" onAction={() => router.navigate('/(tabs)')} /> :
+         collection.length === 0 ? <EmptyState variant="collection" onAction={() => router.replace('/(tabs)')} /> :
          collection.map(c => (
            <Pressable key={c.id} style={s.listItem} onPress={() => goToDetail(c.parfumId)}>
              <View style={s.itemLeft}>
@@ -112,7 +107,7 @@ export default function CollectionPage({ onScroll }: Props) {
 
         <Text style={[s.sectionTitle, { marginTop: 20 }]}>Wishlist . {wishlist.length}</Text>
         {wishLoading ? <ActivityIndicator style={{ marginTop: 12 }} color={theme.colors.primary} /> :
-         wishlist.length === 0 ? <EmptyState variant="wishlist" onAction={() => router.navigate('/(tabs)')} /> :
+         wishlist.length === 0 ? <EmptyState variant="wishlist" onAction={() => router.replace('/(tabs)')} /> :
          wishlist.map(w => (
            <Pressable key={w.id} style={s.listItem} onPress={() => goToDetail(w.parfumId)}>
              <View style={s.itemLeft}>
@@ -151,10 +146,6 @@ function getStyles(t: Theme) {
     scroll: { paddingBottom: 40 },
     title: { fontFamily: 'PlayfairDisplay_700Bold', fontSize: 22, color: t.colors.text, flex: 1 },
     headerBar: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 16, paddingTop: 20, paddingBottom: 4 },
-    avatarBtn: { width: 36, height: 36, borderRadius: 18, overflow: 'hidden' },
-    avatarImg: { width: 36, height: 36, borderRadius: 18 },
-    avatarFb: { width: 36, height: 36, borderRadius: 18, backgroundColor: t.colors.primarySoft, justifyContent: 'center', alignItems: 'center' },
-    avatarTxt: { fontFamily: 'Inter_700Bold', fontSize: 14, color: t.colors.primaryInk },
     sectionTitle: { fontFamily: 'Inter_600SemiBold', fontSize: 13, textTransform: 'uppercase', letterSpacing: 0.8, color: t.colors.textMuted, paddingHorizontal: 16, paddingTop: 12, paddingBottom: 4 },
     listItem: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingVertical: 14, paddingHorizontal: 16, borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: t.colors.border },
     itemLeft: { flexDirection: 'row', alignItems: 'center', gap: 12, flex: 1 },

@@ -1,4 +1,4 @@
-// app/(tabs)/history.tsx — Ecran Historique des scans (extrait de ProfilePage)
+// app/(tabs)/history.tsx — Écran Historique des scans
 
 import { useState, useMemo } from 'react';
 import { View, Text, ScrollView, Pressable, ActivityIndicator, Alert, StyleSheet } from 'react-native';
@@ -12,10 +12,13 @@ import { getParfumById } from '../../src/services/firestore';
 import { setPendingParfum } from '../../src/services/catalog-bridge';
 import { useTheme, type Theme } from '../../src/theme/ThemeContext';
 import EmptyState from '../../src/components/EmptyState';
+import ProfileAvatar from '../../src/components/ProfileAvatar';
 
 function formatScanDate(d: Date | { toDate: () => Date } | undefined): string {
   if (!d) return '';
-  const date = 'toDate' in (d as object) ? (d as { toDate: () => Date }).toDate() : new Date(d as Date);
+  const date = 'toDate' in d && typeof (d as Record<string, unknown>).toDate === 'function'
+    ? (d as { toDate: () => Date }).toDate()
+    : d instanceof Date ? d : new Date(d as unknown as string);
   return date.toLocaleString([], { day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' });
 }
 
@@ -30,8 +33,6 @@ export default function HistoryPage({ onScroll }: Props) {
   const router = useRouter();
   const uid = user?.uid ?? null;
   const { scans, loading, removeScan } = useScans(uid);
-  const [imgFailed, setImgFailed] = useState(false);
-  const initial = user?.email?.charAt(0).toUpperCase() ?? '?';
 
   const goToDetail = async (parfumId: string) => {
     try {
@@ -70,13 +71,7 @@ export default function HistoryPage({ onScroll }: Props) {
       >
         <View style={s.headerBar}>
           <Text style={s.title}>Historique . {scans.length}</Text>
-          <Pressable onPress={() => router.push('/settings')} hitSlop={8} style={s.avatarBtn}>
-            {user?.photoURL && !imgFailed ? (
-              <Image source={{ uri: user.photoURL }} style={s.avatarImg} contentFit="cover" transition={200} onError={() => setImgFailed(true)} />
-            ) : (
-              <View style={s.avatarFb}><Text style={s.avatarTxt}>{initial}</Text></View>
-            )}
-          </Pressable>
+          <ProfileAvatar />
         </View>
 
         {loading ? <ActivityIndicator style={{ marginTop: 24 }} color={theme.colors.primary} /> :
@@ -119,10 +114,6 @@ function getStyles(t: Theme) {
     scroll: { paddingBottom: 40 },
     title: { fontFamily: 'PlayfairDisplay_700Bold', fontSize: 22, color: t.colors.text, flex: 1 },
     headerBar: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 16, paddingTop: 20, paddingBottom: 8 },
-    avatarBtn: { width: 36, height: 36, borderRadius: 18, overflow: 'hidden' },
-    avatarImg: { width: 36, height: 36, borderRadius: 18 },
-    avatarFb: { width: 36, height: 36, borderRadius: 18, backgroundColor: t.colors.primarySoft, justifyContent: 'center', alignItems: 'center' },
-    avatarTxt: { fontFamily: 'Inter_700Bold', fontSize: 14, color: t.colors.primaryInk },
     listItem: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingVertical: 14, paddingHorizontal: 16, borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: t.colors.border },
     itemLeft: { flexDirection: 'row', alignItems: 'center', gap: 12, flex: 1 },
     itemName: { fontFamily: 'Inter_600SemiBold', fontSize: 15, color: t.colors.text },

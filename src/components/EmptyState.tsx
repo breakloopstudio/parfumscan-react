@@ -8,7 +8,7 @@ import Button from './Button';
 
 type Variant = 'collection' | 'wishlist' | 'favoris' | 'historique';
 
-const CONFIG: Record<Variant, { icon: string; title: string; desc: string; cta: string }> = {
+const CONFIG = {
   collection: {
     icon: 'flask-outline',
     title: 'Ta collection est vide',
@@ -33,7 +33,7 @@ const CONFIG: Record<Variant, { icon: string; title: string; desc: string; cta: 
     desc: 'Photographie un flacon de parfum pour commencer ton historique. Chaque scan te rapproche du meilleur prix.',
     cta: 'Scanner un flacon',
   },
-};
+} as const satisfies Record<Variant, { icon: string; title: string; desc: string; cta: string }>;
 
 interface Props {
   variant: Variant;
@@ -49,7 +49,7 @@ export default function EmptyState({ variant, onAction, style }: Props) {
   return (
     <View style={[s.container, style]}>
       <View style={s.iconCircle}>
-        <Ionicons name={icon as never} size={32} color={theme.colors.primary} />
+        <Ionicons name={icon} size={32} color={theme.colors.primary} />
       </View>
       <Text style={s.title}>{title}</Text>
       <Text style={s.desc}>{desc}</Text>

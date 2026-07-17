@@ -31,7 +31,7 @@ src/
 ├── services/     (10)        # Firebase, Firestore, Fragella (via Cloud Function), GPT-4o, user-data, theme-storage, haptics…
 ├── hooks/        (8)         # useAuth, useScanReducer, useCatalog, useFavoris, useCollection, useWishlist, useScans, useNetwork
 ├── contexts/     (1)         # AuthContext (ThemeContext est dans src/theme/)
-├── components/   (9)         # ParfumCard, Button, PriceDisplay, SectionHeader, EmptyState, OfflineBanner, AppLoader, ErrorBoundary, AlertPriceToggle
+├── components/   (10)        # ParfumCard, Button, PriceDisplay, SectionHeader, EmptyState, OfflineBanner, AppLoader, ErrorBoundary, AlertPriceToggle, ProfileAvatar
 ├── features/
 │   ├── scan/     (8)         # ScanScreen + 7 sous-états
 │   ├── catalog/  (2)         # CatalogPage, OlfactoryPyramid

@@ -111,7 +111,7 @@ export default function DockBar({ activeIndex, pageWidth, dockTranslateY, onTabP
 
   return (
     <Animated.View style={[s.wrapper, { paddingBottom: 8 + insets.bottom }, dockStyle]} pointerEvents="box-none">
-      <View style={[s.bar, m.border]}>
+      <View style={[s.bar, m.border, m.barShadow]}>
         <BlurView
           intensity={24}
           tint={resolvedMode === 'dark' ? 'dark' : 'light'}
@@ -127,7 +127,7 @@ export default function DockBar({ activeIndex, pageWidth, dockTranslateY, onTabP
                 <View style={s.fabOuter}>
                   <Animated.View style={[s.pulseRing, m.pulseRing, pulseRingStyle]} />
                   <Pressable
-                    style={[s.fab, m.fab]}
+                    style={[s.fab, m.fab, m.fabShadow]}
                     onPress={() => handlePress(tab.index)}
                   >
                     <Ionicons name="camera" size={24} color="#FFF" />
@@ -170,11 +170,6 @@ const s = StyleSheet.create({
     maxWidth: 380,
     borderRadius: 24,
     overflow: 'hidden',
-    elevation: 8,
-    shadowColor: '#1A1520',
-    shadowOpacity: 0.06,
-    shadowRadius: 12,
-    shadowOffset: { width: 0, height: 2 },
   },
   blur: {
     ...StyleSheet.absoluteFill,
@@ -220,11 +215,6 @@ const s = StyleSheet.create({
     borderRadius: 28,
     justifyContent: 'center',
     alignItems: 'center',
-    elevation: 8,
-    shadowColor: '#6C3ED9',
-    shadowOpacity: 0.4,
-    shadowRadius: 16,
-    shadowOffset: { width: 0, height: 4 },
     zIndex: 3,
   },
   pulseRing: {
@@ -237,6 +227,7 @@ const s = StyleSheet.create({
 
 function getStyles(t: Theme) {
   return {
+    barShadow: { ...t.shadow.elevated },
     border: {
       borderWidth: StyleSheet.hairlineWidth,
       borderColor: t.colors.border,
@@ -248,6 +239,7 @@ function getStyles(t: Theme) {
     label: { fontFamily: 'Inter_500Medium', fontSize: 10, color: t.colors.textMuted },
     labelOn: { color: t.colors.primary },
     fab: { backgroundColor: t.colors.primary },
+    fabShadow: { ...t.shadow.scanCircle },
     pulseRing: { borderColor: t.colors.primary + '4D' },
   } as const;
 }

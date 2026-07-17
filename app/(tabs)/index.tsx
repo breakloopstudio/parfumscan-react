@@ -2,7 +2,7 @@
 // Dock flottant 5 positions + FAB scan avec indicateur dore
 // Swipe gesture-driven avec Reanimated + animations d'interpolation
 
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { View, useWindowDimensions, StyleSheet } from 'react-native';
 import { useRouter, useFocusEffect } from 'expo-router';
 import { Gesture, GestureDetector } from 'react-native-gesture-handler';
@@ -97,7 +97,7 @@ export default function TabPager() {
     goTo(pagerIndex);
   }, []);
 
-  const gesture = Gesture.Pan()
+  const gesture = useMemo(() => Gesture.Pan()
     .activeOffsetX([-15, 15])
     .failOffsetY([-15, 15])
     .onUpdate((e) => {
@@ -129,7 +129,7 @@ export default function TabPager() {
       } else {
         translateX.value = withSpring(-currentPage.value * pageWidth.value, SPRING);
       }
-    });
+    }), []);
 
   const makePageStyle = (pageIdx: number) => useAnimatedStyle(() => {
     const x = translateX.value + pageIdx * pageWidth.value;
