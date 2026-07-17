@@ -60,6 +60,26 @@ export function moveToWishlist(uid: string, from: string, itemId: string, parfum
 export function moveFavori(uid: string, from: string, itemId: string, parfumId: string, nom: string | null, marque: string | null, imageUrl: string | null, familleOlactive?: string | null): Promise<void>;
 ```
 
+### `src/services/wardrobe.ts`
+```ts
+// Wardrobe — collection unifiée (ownership states + metadata)
+export function onWardrobe(uid: string, cb: (items: WardrobeItem[]) => void): () => void;
+export async function addToWardrobe(uid: string, parfumId: string, ownership: 'have' | 'want' | 'had' | 'sample' | 'decant', nom?: string, marque?: string, imageUrl?: string, familleOlactive?: string): Promise<void>;
+export async function updateWardrobeItem(uid: string, parfumId: string, data: Partial<Pick<WardrobeItem, 'ownership' | 'rating' | 'notes' | 'shelfIds' | 'sizeMl'>>): Promise<void>;
+export async function removeFromWardrobe(uid: string, parfumId: string): Promise<void>;
+export async function isInWardrobe(uid: string, parfumId: string): Promise<WardrobeItem | null>;
+
+// Shelves — étagères custom
+export function onShelves(uid: string, cb: (shelves: Shelf[]) => void): () => void;
+export async function createShelf(uid: string, name: string, icon?: string, color?: string): Promise<string>;
+export async function updateShelf(uid: string, shelfId: string, data: Partial<Pick<Shelf, 'name' | 'icon' | 'color' | 'order'>>): Promise<void>;
+export async function deleteShelf(uid: string, shelfId: string): Promise<void>;
+
+// SOTD — Parfum du jour (stocké par date YYYY-MM-DD)
+export async function getTodaySotd(uid: string): Promise<SotdEntry | null>;
+export async function setSotd(uid: string, parfumId: string, nom: string, marque: string, imageUrl?: string | null): Promise<void>;
+```
+
 ### `src/services/theme-storage.ts`
 ```ts
 // Persistance de la préférence de thème dans AsyncStorage
@@ -171,6 +191,40 @@ export function useScans(uid: string | null): {
   scans: UserScan[];
   loading: boolean;
   removeScan: (id: string) => Promise<void>;
+};
+```
+
+### `useWardrobe(uid)` — `src/hooks/useWardrobe.ts`
+```ts
+// Hook Firestore temps réel pour la garde-robe
+export function useWardrobe(uid: string | null): {
+  items: WardrobeItem[];
+  loading: boolean;
+  add: (parfumId: string, ownership: WardrobeItem['ownership'], nom?: string, marque?: string, imageUrl?: string, familleOlactive?: string) => Promise<void>;
+  update: (parfumId: string, data: Partial<Pick<WardrobeItem, 'ownership' | 'rating' | 'notes' | 'shelfIds' | 'sizeMl'>>) => Promise<void>;
+  remove: (parfumId: string) => Promise<void>;
+  checkInWardrobe: (parfumId: string) => Promise<WardrobeItem | null>;
+};
+```
+
+### `useShelves(uid)` — `src/hooks/useShelves.ts`
+```ts
+// Hook CRUD étagères (Firestore temps réel)
+export function useShelves(uid: string | null): {
+  shelves: Shelf[];
+  create: (name: string, icon?: string, color?: string) => Promise<void>;
+  update: (shelfId: string, data: Partial<Pick<Shelf, 'name' | 'icon' | 'color' | 'order'>>) => Promise<void>;
+  remove: (shelfId: string) => Promise<void>;
+};
+```
+
+### `useSotd(uid)` — `src/hooks/useSotd.ts`
+```ts
+// Hook Parfum du jour (lecture/écriture + état local optimiste)
+export function useSotd(uid: string | null): {
+  sotd: SotdEntry | null;
+  setTodaySotd: (item: WardrobeItem) => Promise<void>;
+  refresh: () => Promise<void>;
 };
 ```
 

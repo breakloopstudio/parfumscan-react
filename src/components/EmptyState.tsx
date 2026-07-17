@@ -6,7 +6,7 @@ import Ionicons from '@react-native-vector-icons/ionicons/static';
 import { useTheme, type Theme } from '../theme/ThemeContext';
 import Button from './Button';
 
-type Variant = 'collection' | 'wishlist' | 'favoris' | 'historique';
+type Variant = 'collection' | 'wishlist' | 'favoris' | 'historique' | 'wardrobe';
 
 const CONFIG = {
   collection: {
@@ -32,6 +32,12 @@ const CONFIG = {
     title: 'Aucun scan pour l\'instant',
     desc: 'Photographie un flacon de parfum pour commencer ton historique. Chaque scan te rapproche du meilleur prix.',
     cta: 'Scanner un flacon',
+  },
+  wardrobe: {
+    icon: 'shirt-outline',
+    title: 'Votre garde-robe vous attend',
+    desc: 'Chaque parfum raconte une histoire. La vôtre commence ici.',
+    cta: 'Explorer le catalogue',
   },
 } as const satisfies Record<Variant, { icon: string; title: string; desc: string; cta: string }>;
 

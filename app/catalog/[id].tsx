@@ -1,7 +1,7 @@
 ﻿// app/catalog/[id].tsx — Fiche détail parfum (refonte Luxe malin)
 
 import { useState, useEffect, useRef, useMemo } from 'react';
-import { View, Text, ScrollView, Pressable, ActivityIndicator, Linking, TextInput, StyleSheet, useWindowDimensions, Platform } from 'react-native';
+import { View, Text, ScrollView, Pressable, ActivityIndicator, Linking, TextInput, StyleSheet, useWindowDimensions, Platform, Alert } from 'react-native';
 import { Image } from 'expo-image';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useLocalSearchParams, useRouter } from 'expo-router';
@@ -10,8 +10,9 @@ import Animated, { useSharedValue, useAnimatedStyle, withSpring, runOnJS } from 
 import Ionicons from '@react-native-vector-icons/ionicons/static';
 import { useAuthContext } from '../../src/contexts/AuthContext';
 import { getParfumById, cacheParfumFromSearch, batchCacheParfums, updateParfum } from '../../src/services/firestore';
-import { isParfumFavori, addFavori, removeFavori, addToCollection, removeFromCollection, addToWishlist, removeFromWishlist, isInCollection, isInWishlist } from '../../src/services/user-data';
+import { isParfumFavori, addFavori, removeFavori } from '../../src/services/user-data';
 import { consumePendingParfum, setPendingParfum } from '../../src/services/catalog-bridge';
+import { isInWardrobe, addToWardrobe } from '../../src/services/wardrobe';
 import { searchFragrance, searchFragranceByQuery, getFragranceById, fragellaToParfum, getSimilarFragrances } from '../../src/services/fragella';
 import type { ParfumSearchResult } from '../../src/services/fragella';
 import { useTheme, type Theme } from '../../src/theme/ThemeContext';
@@ -190,10 +191,7 @@ export default function CatalogDetailPage() {
   const [loading, setLoading] = useState(true);
   const [isFav, setIsFav] = useState(false);
   const [favoriId, setFavoriId] = useState<string | null>(null);
-  const [isInColl, setIsInColl] = useState(false);
-  const [collItemId, setCollItemId] = useState<string | null>(null);
-  const [isInWish, setIsInWish] = useState(false);
-  const [wishItemId, setWishItemId] = useState<string | null>(null);
+  const [wardrobeItem, setWardrobeItem] = useState<import('../../src/models/wardrobe.interface').WardrobeItem | null>(null);
   const [pending] = useState<Parfum | ParfumSearchResult | null>(() => consumePendingParfum());
   const [imgFailed, setImgFailed] = useState(false);
   const [storePrice, setStorePrice] = useState('');
@@ -263,12 +261,11 @@ export default function CatalogDetailPage() {
 
     return () => { loadingRef.current = false; };
   }, [id]);
-  // Statut favori + collection + wishlist
+  // Statut favori + wardrobe
   useEffect(() => {
     if (user?.uid && id) {
       isParfumFavori(user.uid, id).then(r => { setIsFav(r.isFavori); setFavoriId(r.favoriId); });
-      isInCollection(user.uid, id).then(r => { setIsInColl(r.isInCollection); setCollItemId(r.itemId); });
-      isInWishlist(user.uid, id).then(r => { setIsInWish(r.isInWishlist); setWishItemId(r.itemId); });
+      isInWardrobe(user.uid, id).then(item => { setWardrobeItem(item); });
     }
   }, [user?.uid, id]);
 
@@ -396,42 +393,18 @@ export default function CatalogDetailPage() {
     }
   };
 
-  const toggleCollection = async () => {
+  const handleWardrobeAdd = async (ownership: import('../../src/models/wardrobe.interface').WardrobeItem['ownership']) => {
     if (!isAuthenticated) { router.push('/auth/login'); return; }
     if (!user?.uid || !id || !parfum) return;
-    if (isInColl && collItemId) {
-      const cid = collItemId;
-      setIsInColl(false); setCollItemId(null);
-      try { await removeFromCollection(user.uid, cid); } catch { setIsInColl(true); setCollItemId(cid); }
-    } else {
-      setIsInColl(true);
-      try {
-        if (!('createdAt' in parfum)) {
-          await cacheParfumFromSearch(parfum as ParfumSearchResult);
-        }
-        const itemId = await addToCollection(user.uid, id, parfum.nom, parfum.marque, parfum.imageUrl);
-        setCollItemId(itemId);
-      } catch { setIsInColl(false); }
-    }
-  };
-
-  const toggleWishlist = async () => {
-    if (!isAuthenticated) { router.push('/auth/login'); return; }
-    if (!user?.uid || !id || !parfum) return;
-    if (isInWish && wishItemId) {
-      const wid = wishItemId;
-      setIsInWish(false); setWishItemId(null);
-      try { await removeFromWishlist(user.uid, wid); } catch { setIsInWish(true); setWishItemId(wid); }
-    } else {
-      setIsInWish(true);
-      try {
-        if (!('createdAt' in parfum)) {
-          await cacheParfumFromSearch(parfum as ParfumSearchResult);
-        }
-        const itemId = await addToWishlist(user.uid, id, parfum.nom, parfum.marque, parfum.imageUrl, parfum.familleOlactive);
-        setWishItemId(itemId);
-      } catch { setIsInWish(false); }
-    }
+    try {
+      await addToWardrobe(user.uid, id, ownership, parfum.nom, parfum.marque, parfum.imageUrl, parfum.familleOlactive);
+      setWardrobeItem({
+        parfumId: id, ownership, nom: parfum.nom, marque: parfum.marque,
+        imageUrl: parfum.imageUrl ?? null, familleOlactive: parfum.familleOlactive ?? null,
+        rating: null, notes: null, shelfIds: [], sizeMl: null, sotdCount: 0,
+        addedAt: new Date(), updatedAt: new Date(),
+      });
+    } catch (e) { console.warn('[wardrobe] add failed:', (e as Error)?.message); }
   };
   const seasonData = parfum && parfum.seasonRanking ? [...parfum.seasonRanking].sort(function(a,b){return b.score-a.score}) : null;
   const seasonMax = seasonData && seasonData.length > 0 ? Math.max.apply(null, seasonData.map(function(s){return s.score})) : 0;
@@ -538,20 +511,33 @@ export default function CatalogDetailPage() {
             </View>
           ) : null}
 
-          {/* ─── 3 boutons d'action ─── */}
+          {/* ─── 2 boutons d'action ─── */}
           <View style={s.actionRow}>
             <Pressable onPress={toggleFav} style={s.actionBtn}>
               <Ionicons name={isFav ? 'heart' : 'heart-outline'} size={18} color={isFav ? t.colors.favorite : t.colors.textMuted} />
               <Text style={[s.actionLabel, isFav && { color: t.colors.favorite }]}>Favori</Text>
             </Pressable>
-            <Pressable onPress={toggleCollection} style={s.actionBtn}>
-              <Ionicons name={isInColl ? 'flask' : 'flask-outline'} size={18} color={isInColl ? t.colors.primary : t.colors.textMuted} />
-              <Text style={[s.actionLabel, isInColl && { color: t.colors.primary }]}>Collection</Text>
-            </Pressable>
-            <Pressable onPress={toggleWishlist} style={s.actionBtn}>
-              <Ionicons name={isInWish ? 'bookmark' : 'bookmark-outline'} size={18} color={isInWish ? t.colors.secondary : t.colors.textMuted} />
-              <Text style={[s.actionLabel, isInWish && { color: t.colors.secondary }]}>Wishlist</Text>
-            </Pressable>
+            {wardrobeItem ? (
+              <Pressable onPress={() => router.push(`/wardrobe/${id}`)} style={[s.actionBtn, s.actionBtnActive]}>
+                <Ionicons name="shirt" size={18} color={t.colors.primary} />
+                <Text style={[s.actionLabel, { color: t.colors.primary }]}>{wardrobeItem.ownership === 'have' ? 'Possédé' : wardrobeItem.ownership === 'want' ? 'Souhaité' : wardrobeItem.ownership === 'had' ? 'Ancien' : wardrobeItem.ownership === 'sample' ? 'Échantillon' : 'Décant'}</Text>
+              </Pressable>
+            ) : (
+              <Pressable onPress={() => {
+                if (!isAuthenticated) { router.push('/auth/login'); return; }
+                Alert.alert('Ajouter à la garde-robe', 'Choisissez l\'état :', [
+                  { text: 'Possédé', onPress: () => handleWardrobeAdd('have') },
+                  { text: 'Souhaité', onPress: () => handleWardrobeAdd('want') },
+                  { text: 'Ancien', onPress: () => handleWardrobeAdd('had') },
+                  { text: 'Échantillon', onPress: () => handleWardrobeAdd('sample') },
+                  { text: 'Décant', onPress: () => handleWardrobeAdd('decant') },
+                  { text: 'Annuler', style: 'cancel' },
+                ]);
+              }} style={s.actionBtn}>
+                <Ionicons name="shirt-outline" size={18} color={t.colors.textMuted} />
+                <Text style={s.actionLabel}>Garde-robe</Text>
+              </Pressable>
+            )}
           </View>
 
           {/* ─── Alerte prix ─── */}
@@ -710,6 +696,7 @@ function getStyles(t: Theme) {
   // ─── Boutons d'action (Collection / Wishlist / Favori) ───
   actionRow: { flexDirection: 'row', marginBottom: 24, gap: 8 },
   actionBtn: { flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6, paddingVertical: 12, borderRadius: t.radius.base, borderWidth: 1, borderColor: t.colors.border, backgroundColor: t.colors.surface2 },
+  actionBtnActive: { backgroundColor: t.colors.primarySoft, borderColor: t.colors.primary },
   actionLabel: { fontFamily: 'Inter_500Medium', fontSize: 13, color: t.colors.textMuted },
   // ─── Sections ───
   pyramidDesc: { fontSize: 13, color: t.colors.textMuted, marginBottom: 4 },

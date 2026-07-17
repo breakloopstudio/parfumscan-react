@@ -31,6 +31,15 @@ service cloud.firestore {
       match /wishlist/{docId} {
         allow read, write: if request.auth != null && request.auth.uid == userId;
       }
+      match /wardrobe/{docId} {
+        allow read, write: if request.auth != null && request.auth.uid == userId;
+      }
+      match /shelves/{docId} {
+        allow read, write: if request.auth != null && request.auth.uid == userId;
+      }
+      match /sotd/{docId} {
+        allow read, write: if request.auth != null && request.auth.uid == userId;
+      }
       match /priceAlerts/{docId} {
         allow read, write: if request.auth != null && request.auth.uid == userId;
       }

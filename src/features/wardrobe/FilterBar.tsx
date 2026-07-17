@@ -1,0 +1,224 @@
+// src/features/wardrobe/FilterBar.tsx
+
+import { useMemo } from 'react';
+import { View, Text, TextInput, ScrollView, Pressable } from 'react-native';
+import Ionicons from '@react-native-vector-icons/ionicons/static';
+import { useTheme, type Theme } from '../../theme/ThemeContext';
+import { ownershipLabel } from '../../utils/ownership';
+import type { Shelf, WardrobeItem } from '../../models/wardrobe.interface';
+
+const SORT_OPTIONS: { key: string; label: string }[] = [
+  { key: 'recent', label: 'Récents' },
+  { key: 'rating', label: 'Mieux notés' },
+  { key: 'az', label: 'A–Z' },
+  { key: 'za', label: 'Z–A' },
+];
+
+const OWNERSHIP_KEYS: WardrobeItem['ownership'][] = ['have', 'want', 'had', 'sample', 'decant'];
+
+interface Props {
+  shelves: Shelf[];
+  activeOwnership: string | null;
+  activeShelfId: string | null;
+  activeSort: string;
+  searchQuery: string;
+  ownershipCounts: Record<string, number>;
+  onOwnershipChange: (o: string | null) => void;
+  onShelfChange: (id: string | null) => void;
+  onSortChange: (s: string) => void;
+  onSearchChange: (q: string) => void;
+  onManageShelves: () => void;
+}
+
+export default function FilterBar({
+  shelves,
+  activeOwnership,
+  activeShelfId,
+  activeSort,
+  searchQuery,
+  ownershipCounts,
+  onOwnershipChange,
+  onShelfChange,
+  onSortChange,
+  onSearchChange,
+  onManageShelves,
+}: Props) {
+  const { theme } = useTheme();
+  const s = useMemo(() => getStyles(theme), [theme]);
+
+  const currentSortLabel = SORT_OPTIONS.find(o => o.key === activeSort)?.label ?? 'Tri';
+
+  const handleOwnershipTap = (key: string) => {
+    onShelfChange(null);
+    onOwnershipChange(activeOwnership === key ? null : key);
+  };
+
+  const handleShelfTap = (id: string) => {
+    onOwnershipChange(null);
+    onShelfChange(activeShelfId === id ? null : id);
+  };
+
+  const handleAllTap = () => {
+    onOwnershipChange(null);
+    onShelfChange(null);
+  };
+
+  const isAllActive = activeOwnership === null && activeShelfId === null;
+
+  return (
+    <View style={s.container}>
+      <View style={s.searchRow}>
+        <View style={s.searchWrap}>
+          <Ionicons name="search-outline" size={16} color={theme.colors.textMuted} />
+          <TextInput
+            style={s.searchInput}
+            placeholder="Rechercher dans ma garde-robe..."
+            placeholderTextColor={theme.colors.textMuted}
+            value={searchQuery}
+            onChangeText={onSearchChange}
+          />
+        </View>
+        <Pressable
+          style={s.sortBtn}
+          onPress={() => {
+            const idx = SORT_OPTIONS.findIndex(o => o.key === activeSort);
+            const next = SORT_OPTIONS[(idx + 1) % SORT_OPTIONS.length];
+            onSortChange(next.key);
+          }}
+          hitSlop={8}
+        >
+          <Ionicons name="swap-vertical-outline" size={16} color={theme.colors.primary} />
+          <Text style={s.sortLabel}>{currentSortLabel}</Text>
+        </Pressable>
+      </View>
+
+      <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={s.pillsRow}>
+        <Pressable
+          style={[s.pill, isAllActive && s.pillActive]}
+          onPress={handleAllTap}
+        >
+          <Text style={[s.pillText, isAllActive && s.pillTextActive]}>Tous</Text>
+        </Pressable>
+
+        {OWNERSHIP_KEYS.map(key => (
+          <Pressable
+            key={key}
+            style={[s.pill, activeOwnership === key && s.pillActive]}
+            onPress={() => handleOwnershipTap(key)}
+          >
+            <Text style={[s.pillText, activeOwnership === key && s.pillTextActive]}>
+              {ownershipLabel(key)} · {ownershipCounts[key] ?? 0}
+            </Text>
+          </Pressable>
+        ))}
+
+        {shelves.map(sh => (
+          <Pressable
+            key={sh.id}
+            style={[s.pill, activeShelfId === sh.id && s.pillActive]}
+            onPress={() => handleShelfTap(sh.id)}
+          >
+            {sh.icon && (
+              <Ionicons
+                name={sh.icon as never}
+                size={12}
+                color={activeShelfId === sh.id ? theme.colors.primaryInk : theme.colors.textMuted}
+              />
+            )}
+            <Text style={[s.pillText, activeShelfId === sh.id && s.pillTextActive]}>
+              {sh.name}
+            </Text>
+          </Pressable>
+        ))}
+
+        <Pressable style={s.pillManage} onPress={onManageShelves}>
+          <Ionicons name="add" size={14} color={theme.colors.textMuted} />
+        </Pressable>
+      </ScrollView>
+    </View>
+  );
+}
+
+function getStyles(t: Theme) {
+  return {
+    container: {
+      paddingHorizontal: 12,
+      paddingBottom: 4,
+    },
+    searchRow: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 8,
+      marginBottom: 8,
+    },
+    searchWrap: {
+      flex: 1,
+      flexDirection: 'row',
+      alignItems: 'center',
+      backgroundColor: t.colors.surface2,
+      borderRadius: 20,
+      paddingHorizontal: 12,
+      height: 38,
+      gap: 8,
+    },
+    searchInput: {
+      flex: 1,
+      fontFamily: 'Inter_400Regular',
+      fontSize: 14,
+      color: t.colors.text,
+    },
+    sortBtn: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 2,
+      paddingHorizontal: 8,
+      paddingVertical: 6,
+    },
+    sortLabel: {
+      fontFamily: 'Inter_500Medium',
+      fontSize: 12,
+      color: t.colors.primary,
+    },
+    pillsRow: {
+      paddingHorizontal: 4,
+      gap: 8,
+      alignItems: 'center',
+      minHeight: 36,
+    },
+    pill: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 4,
+      paddingHorizontal: 12,
+      paddingVertical: 7,
+      borderRadius: 20,
+      backgroundColor: t.colors.surface2,
+      borderWidth: 1,
+      borderColor: 'transparent',
+    },
+    pillActive: {
+      backgroundColor: t.colors.primarySoft,
+      borderColor: t.colors.primary,
+    },
+    pillText: {
+      fontFamily: 'Inter_500Medium',
+      fontSize: 12,
+      color: t.colors.textMuted,
+    },
+    pillTextActive: {
+      color: t.colors.primaryInk,
+      fontFamily: 'Inter_600SemiBold',
+    },
+    pillManage: {
+      width: 32,
+      height: 32,
+      borderRadius: 16,
+      backgroundColor: t.colors.surface2,
+      justifyContent: 'center',
+      alignItems: 'center',
+      borderWidth: 1,
+      borderColor: t.colors.border,
+      borderStyle: 'dashed',
+    },
+  } as const;
+}

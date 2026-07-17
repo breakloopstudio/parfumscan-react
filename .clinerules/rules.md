@@ -17,32 +17,34 @@ app/
 │   ├── index.tsx             # TabPager Reanimated 4 pages + DockBar + barre de recherche persistante
 │   ├── favorites.tsx         # Page Favoris (standalone, appelée depuis pager + Stack)
 │   ├── history.tsx           # Page Historique des scans
-│   ├── collection.tsx        # Page Collection + Wishlist (2 sections)
+│   ├── collection.tsx        # Page Garde-robe (grid, étagères, SOTD, quick-edit) — fichier garde le nom collection pour rétrocompatibilité expo-router
 │   ├── scan.tsx              # Scanner overlay (FAB dans le DockBar → push)
 │   └── search.tsx            # Overlay recherche plein écran (barre persistante → push)
 ├── auth/
 │   ├── login.tsx             # Connexion email + Google
 │   └── register.tsx          # Inscription
 ├── catalog/[id].tsx          # Fiche détail enrichie
+├── wardrobe/[parfumId].tsx    # Fiche personnelle (notes, notes, SOTD, étagères)
 ├── settings.tsx              # Paramètres (notifications, devise, apparence, compte)
 ├── onboarding.tsx            # 3 slides swipe + AsyncStorage
 └── admin.tsx                 # Administration
 
 src/
-├── services/     (10)        # Firebase, Firestore, Fragella (via Cloud Function), GPT-4o, user-data, theme-storage, haptics…
-├── hooks/        (8)         # useAuth, useScanReducer, useCatalog, useFavoris, useCollection, useWishlist, useScans, useNetwork
+├── services/     (11)        # Firebase, Firestore, Fragella (via Cloud Function), GPT-4o, user-data, wardrobe, theme-storage, haptics…
+├── hooks/        (11)        # useAuth, useScanReducer, useCatalog, useFavoris, useCollection, useWishlist, useScans, useWardrobe, useShelves, useSotd, useNetwork
 ├── contexts/     (1)         # AuthContext (ThemeContext est dans src/theme/)
 ├── components/   (10)        # ParfumCard, Button, PriceDisplay, SectionHeader, EmptyState, OfflineBanner, AppLoader, ErrorBoundary, AlertPriceToggle, ProfileAvatar
 ├── features/
 │   ├── scan/     (8)         # ScanScreen + 7 sous-états
 │   ├── catalog/  (2)         # CatalogPage, OlfactoryPyramid
+│   ├── wardrobe/ (8)         # StarRating, WardrobeCard, SOTDCard, SOTDPicker, FilterBar, WardrobeGrid, WardrobeQuickSheet, ShelfManager
 │   └── navigation/ (1)      # DockBar (barre flottante 5 positions + FAB, verre depoli via expo-blur, pulse ring, show/hide au scroll)
 ├── theme/        (2)         # theme.ts (Theme interface + light/dark), ThemeContext.tsx (useTheme + export Theme)
 ├── config/       (3)         # Firebase config, env (variables publiques), index
-└── utils/        (2)         # Error translator, translate-note
+└── utils/        (3)         # Error translator, translate-note, ownership
 ```
 
-> **Note v6.1** : `src/features/profile/ProfilePage.tsx` a été supprimé en v6.0. La cle API Fragella est maintenant côté serveur uniquement (Cloud Function `searchFragrance`), le client appelle via `httpsCallable`. Les doc IDs utilisateur (favoris, collection, wishlist, priceAlerts) sont déterministes (`= parfumId`).
+> **Note v6.2** : La garde-robe (`collection.tsx`) a été refondue — ownership states (have/want/had/sample/decant), étagères custom, rating 1-5, notes personnelles, SOTD (parfum du jour). Les sous-collections Firestore `wardrobe`, `shelves`, `sotd` sont ajoutées. `src/features/profile/ProfilePage.tsx` supprimé en v6.0. La cle API Fragella côté serveur uniquement.
 
 ---
 

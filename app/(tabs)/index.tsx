@@ -153,9 +153,14 @@ export default function TabPager() {
   const histStyle = makePageStyle(2);
   const colStyle = makePageStyle(3);
 
-  const searchBarAnimatedStyle = useAnimatedStyle(() => ({
-    transform: [{ translateY: searchBarTranslateY.value }],
-  }));
+  const searchBarAnimatedStyle = useAnimatedStyle(() => {
+    const t = searchBarTranslateY.value;
+    const progress = Math.min(1, Math.abs(t) / 60);
+    return {
+      transform: [{ translateY: t }],
+      opacity: 1 - progress,
+    };
+  });
 
   const m = useMemo(() => getSearchStyles(theme), [theme]);
 
@@ -218,9 +223,8 @@ function getSearchStyles(t: Theme) {
   return {
     searchWrap: {
       paddingHorizontal: t.spacing.md,
-      paddingTop: 4,
-      paddingBottom: 8,
-      zIndex: 10,
+      paddingTop: 12,
+      paddingBottom: 6,
     },
     searchBar: {
       flexDirection: 'row',

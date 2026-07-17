@@ -1,0 +1,182 @@
+// src/features/wardrobe/SOTDPicker.tsx
+
+import { useState, useMemo } from 'react';
+import { View, Text, Pressable, TextInput, FlatList } from 'react-native';
+import { Image } from 'expo-image';
+import Animated, { useSharedValue, useAnimatedStyle, withSpring, withTiming } from 'react-native-reanimated';
+import Ionicons from '@react-native-vector-icons/ionicons/static';
+import { useTheme, type Theme } from '../../theme/ThemeContext';
+import { hapticsLight } from '../../services/haptics';
+import type { WardrobeItem } from '../../models/wardrobe.interface';
+
+interface Props {
+  visible: boolean;
+  haveItems: WardrobeItem[];
+  currentSotdId: string | null;
+  onSelect: (parfumId: string) => void;
+  onClose: () => void;
+}
+
+export default function SOTDPicker({ visible, haveItems, currentSotdId, onSelect, onClose }: Props) {
+  const { theme } = useTheme();
+  const s = useMemo(() => getStyles(theme), [theme]);
+  const [query, setQuery] = useState('');
+  const translateY = useSharedValue(400);
+
+  const filtered = useMemo(() => {
+    if (!query.trim()) return haveItems;
+    const q = query.trim().toLowerCase();
+    return haveItems.filter(i =>
+      (i.nom ?? '').toLowerCase().includes(q) ||
+      (i.marque ?? '').toLowerCase().includes(q)
+    );
+  }, [haveItems, query]);
+
+  if (!visible) return null;
+
+  return (
+    <View style={s.backdrop}>
+      <Pressable style={s.backdropTouch} onPress={onClose} />
+      <View style={s.sheet}>
+        <View style={s.handle} />
+        <Text style={s.title}>Parfum du jour</Text>
+
+        <View style={s.searchWrap}>
+          <Ionicons name="search-outline" size={18} color={theme.colors.textMuted} />
+          <TextInput
+            style={s.searchInput}
+            placeholder="Rechercher..."
+            placeholderTextColor={theme.colors.textMuted}
+            value={query}
+            onChangeText={setQuery}
+          />
+        </View>
+
+        <FlatList
+          data={filtered}
+          keyExtractor={item => item.parfumId}
+          renderItem={({ item }) => {
+            const isCurrent = item.parfumId === currentSotdId;
+            return (
+              <Pressable
+                style={s.item}
+                onPress={() => {
+                  hapticsLight();
+                  onSelect(item.parfumId);
+                }}
+              >
+                <ImageOrPlaceholder imageUrl={item.imageUrl ?? undefined} t={theme} />
+                <View style={s.itemText}>
+                  <Text style={s.itemName}>{item.nom ?? item.parfumId.replace(/_/g, ' ')}</Text>
+                  {item.marque && <Text style={s.itemBrand}>{item.marque}</Text>}
+                </View>
+                {isCurrent && (
+                  <Ionicons name="checkmark-circle" size={22} color={theme.colors.primary} />
+                )}
+              </Pressable>
+            );
+          }}
+          style={s.list}
+        />
+      </View>
+    </View>
+  );
+}
+
+function ImageOrPlaceholder({ imageUrl, t }: { imageUrl?: string; t: Theme }) {
+  const [failed, setFailed] = useState(false);
+  if (!imageUrl || failed) {
+    return (
+      <View style={{ width: 44, height: 44, borderRadius: 8, backgroundColor: t.colors.surface2, justifyContent: 'center', alignItems: 'center' }}>
+        <Ionicons name="flask-outline" size={20} color={t.colors.textMuted} />
+      </View>
+    );
+  }
+  return (
+    <Image
+      source={{ uri: imageUrl }}
+      style={{ width: 44, height: 44, borderRadius: 8, backgroundColor: t.colors.surface2 }}
+      contentFit="cover"
+      transition={200}
+      onError={() => setFailed(true)}
+    />
+  );
+}
+
+function getStyles(t: Theme) {
+  return {
+    backdrop: {
+      position: 'absolute',
+      inset: 0,
+      zIndex: 100,
+      justifyContent: 'flex-end',
+    } as const,
+    backdropTouch: {
+      ...({ position: 'absolute', inset: 0, backgroundColor: 'rgba(0,0,0,0.4)' } as const),
+    },
+    sheet: {
+      backgroundColor: t.colors.surface,
+      borderTopLeftRadius: 20,
+      borderTopRightRadius: 20,
+      paddingHorizontal: 16,
+      paddingBottom: 32,
+      maxHeight: '65%',
+    },
+    handle: {
+      width: 36,
+      height: 5,
+      borderRadius: 3,
+      backgroundColor: t.colors.border,
+      alignSelf: 'center',
+      marginTop: 10,
+      marginBottom: 16,
+    },
+    title: {
+      fontFamily: 'PlayfairDisplay_600SemiBold',
+      fontSize: 20,
+      color: t.colors.text,
+      marginBottom: 12,
+    },
+    searchWrap: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      backgroundColor: t.colors.surface2,
+      borderRadius: t.radius.base,
+      paddingHorizontal: 12,
+      height: 40,
+      gap: 8,
+      marginBottom: 8,
+    },
+    searchInput: {
+      flex: 1,
+      fontFamily: 'Inter_400Regular',
+      fontSize: 14,
+      color: t.colors.text,
+    },
+    list: {
+      maxHeight: 350,
+    },
+    item: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      paddingVertical: 12,
+      gap: 12,
+      borderBottomWidth: 0.5,
+      borderBottomColor: t.colors.border,
+    },
+    itemText: {
+      flex: 1,
+    },
+    itemName: {
+      fontFamily: 'Inter_600SemiBold',
+      fontSize: 15,
+      color: t.colors.text,
+    },
+    itemBrand: {
+      fontFamily: 'Inter_400Regular',
+      fontSize: 12,
+      color: t.colors.textMuted,
+      marginTop: 1,
+    },
+  } as const;
+}
