@@ -4,8 +4,7 @@
     "AGENTS.md",
     ".clinerules/rules.md",
     ".clinerules/reference.md",
-    ".clinerules/design-guide.md",
-    ".clinerules/nav-rework-spec.md"
+    ".clinerules/design-guide.md"
   ],
   "mcp": {
     "firebase": {

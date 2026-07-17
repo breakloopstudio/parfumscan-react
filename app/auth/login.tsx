@@ -11,8 +11,9 @@ import { useAuthContext } from '../../src/contexts/AuthContext';
 import { useTheme, type Theme } from '../../src/theme/ThemeContext';
 
 export default function LoginPage() {
-  const { theme } = useTheme();
+  const { theme, resolvedMode } = useTheme();
   const s = useMemo(() => getStyles(theme), [theme]);
+  const keyboardAppearance = resolvedMode === 'dark' ? 'dark' : 'light';
   const { login, loginWithGoogle } = useAuthContext();
   const router = useRouter();
   const [email, setEmail] = useState('');
@@ -39,9 +40,18 @@ export default function LoginPage() {
 
   const isLoading = loading !== null;
 
+  const Wrapper = Platform.OS === 'ios' ? KeyboardAvoidingView : View;
+  const wrapperProps = Platform.OS === 'ios'
+    ? { behavior: 'padding' as const, style: s.bg }
+    : { style: s.bg };
+
   return (
-    <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'} style={s.bg}>
-      <ScrollView contentContainerStyle={s.scroll} keyboardShouldPersistTaps="handled">
+    <Wrapper {...wrapperProps}>
+      <ScrollView
+        contentContainerStyle={s.scroll}
+        keyboardShouldPersistTaps="handled"
+        style={Platform.OS !== 'ios' ? s.bgScroll : undefined}
+      >
         <View style={s.form}>
           <View style={s.iconCircle}>
             <Ionicons name="rose-outline" size={36} color={theme.colors.primary} />
@@ -76,6 +86,7 @@ export default function LoginPage() {
               keyboardType="email-address"
               autoCapitalize="none"
               autoComplete="email"
+              keyboardAppearance={keyboardAppearance}
             />
           </View>
           <View style={s.inputGroup}>
@@ -87,6 +98,7 @@ export default function LoginPage() {
               onChangeText={setPassword}
               secureTextEntry
               autoComplete="current-password"
+              keyboardAppearance={keyboardAppearance}
             />
           </View>
 
@@ -115,13 +127,14 @@ export default function LoginPage() {
           </Link>
         </View>
       </ScrollView>
-    </KeyboardAvoidingView>
+    </Wrapper>
   );
 }
 
 function getStyles(t: Theme) {
   return {
     bg: { flex: 1, backgroundColor: t.colors.background },
+    bgScroll: { flex: 1 },
     scroll: { flexGrow: 1, justifyContent: 'center', paddingHorizontal: 24 },
     form: { maxWidth: 400, alignSelf: 'center', width: '100%', paddingVertical: 24, paddingHorizontal: 4 },
     iconCircle: { width: 72, height: 72, borderRadius: 36, backgroundColor: t.colors.primarySoft, justifyContent: 'center', alignItems: 'center', alignSelf: 'center', marginBottom: 12 },

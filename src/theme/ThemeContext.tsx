@@ -4,6 +4,8 @@
 import { createContext, useContext, useState, useEffect, useCallback, useMemo, type ReactNode } from 'react';
 import { useColorScheme } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
+import * as SystemUI from 'expo-system-ui';
+import { NavigationBar } from 'expo-navigation-bar';
 import { lightTheme, darkTheme } from './theme';
 import type { Theme } from './theme';
 export type { Theme } from './theme';
@@ -41,6 +43,14 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
 
   const theme = resolvedMode === 'dark' ? darkTheme : lightTheme;
 
+  const systemReady = mode !== 'system' || systemScheme !== null;
+
+  useEffect(() => {
+    if (systemReady) {
+      SystemUI.setBackgroundColorAsync(theme.colors.background).catch(() => {});
+    }
+  }, [theme.colors.background, systemReady]);
+
   const value = useMemo<ThemeContextValue>(
     () => ({ theme, mode, resolvedMode, setMode }),
     [theme, mode, resolvedMode, setMode],
@@ -49,6 +59,7 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
   return (
     <ThemeContext.Provider value={value}>
       <StatusBar style={resolvedMode === 'dark' ? 'light' : 'dark'} />
+      <NavigationBar style={resolvedMode === 'dark' ? 'dark' : 'light'} />
       {ready ? children : null}
     </ThemeContext.Provider>
   );

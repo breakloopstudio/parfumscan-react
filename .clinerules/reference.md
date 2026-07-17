@@ -31,6 +31,7 @@ export function getFragranceById(id: string): Promise<FragranceResult | null>;
 export function getSimilarFragrances(marque: string, nom: string, limit?: number): Promise<FragranceResult[]>;
 export function fragellaToParfum(f: FragranceResult): ParfumSearchResult;
 export function normalize(s: string): string;
+export function normalizeId(s: string): string;
 export function buildSearchKeywords(marque: string, nom: string): string[];
 ```
 
@@ -376,9 +377,30 @@ export function translateFirebaseError(e: unknown): string;
 // Traduit les erreurs Firebase en messages FR
 ```
 
+### `src/utils/note-descriptions.ts`
+```ts
+// Descriptions détaillées des notes olfactives (FR)
+export const NOTE_DESCRIPTIONS: Record<string, string>;
+export function getNoteDescription(note: string): string | null;
+```
+
 ---
 
 ## §6 — Composants
+
+### `NoteDetailPopup` — `src/components/NoteDetailPopup.tsx`
+
+Popup affichant le détail d'une note olfactive (nom français, description, couche olfactive).
+
+```ts
+interface Props {
+  visible: boolean;
+  noteEn: string;
+  layer: 'Tête' | 'Cœur' | 'Fond';
+  color: string;
+  onClose: () => void;
+}
+```
 
 ### `DockBar` — `src/features/navigation/DockBar.tsx`
 

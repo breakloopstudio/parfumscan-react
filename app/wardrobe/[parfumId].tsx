@@ -11,6 +11,8 @@ import { useWardrobe } from '../../src/hooks/useWardrobe';
 import { useShelves } from '../../src/hooks/useShelves';
 import { useSotd } from '../../src/hooks/useSotd';
 import { getParfumById } from '../../src/services/firestore';
+import { setPendingParfum } from '../../src/services/catalog-bridge';
+import type { ParfumSearchResult } from '../../src/services/fragella';
 import StarRating from '../../src/features/wardrobe/StarRating';
 import { ownershipLabel } from '../../src/utils/ownership';
 import { hapticsLight } from '../../src/services/haptics';
@@ -26,7 +28,8 @@ export default function WardrobeDetailPage() {
   const rawId = useLocalSearchParams<{ parfumId: string }>().parfumId;
   const parfumId: string | undefined = Array.isArray(rawId) ? rawId[0] : rawId;
   const router = useRouter();
-  const { theme } = useTheme();
+  const { theme, resolvedMode } = useTheme();
+  const keyboardAppearance = resolvedMode === 'dark' ? 'dark' : 'light';
   const s = useMemo(() => getStyles(theme), [theme]);
   const { user, authReady, isAuthenticated } = useAuthContext();
   const uid = user?.uid ?? null;
@@ -153,7 +156,7 @@ export default function WardrobeDetailPage() {
               onChange={handleRatingChange}
             />
             <Text style={s.ratingLabel}>
-              {item.rating ? `Ma note : ${item.rating.toFixed(1).replace(/\.0$/, '')}/5` : 'Non noté'}
+              {item.rating && !Number.isNaN(item.rating) ? `Ma note : ${item.rating.toFixed(1).replace(/\.0$/, '')}/5` : 'Non noté'}
             </Text>
           </View>
 
@@ -256,6 +259,7 @@ export default function WardrobeDetailPage() {
                 placeholderTextColor={theme.colors.textMuted}
                 value={notesDraft}
                 onChangeText={setNotesDraft}
+                keyboardAppearance={keyboardAppearance}
                 autoFocus
               />
               <View style={s.notesActions}>
@@ -279,7 +283,25 @@ export default function WardrobeDetailPage() {
 
           <Pressable
             style={s.catalogLink}
-            onPress={() => router.push(`/catalog/${parfumId}`)}
+            onPress={() => {
+              if (parfumData) {
+                setPendingParfum(parfumData);
+              } else {
+                const bridge: ParfumSearchResult = {
+                  id: parfumId!,
+                  nom: item.nom ?? '',
+                  marque: item.marque ?? '',
+                  familleOlactive: item.familleOlactive ?? '',
+                  notesTete: [],
+                  notesCoeur: [],
+                  notesFond: [],
+                  imageUrl: item.imageUrl ?? undefined,
+                  source: 'fragella' as const,
+                };
+                setPendingParfum(bridge);
+              }
+              router.push(`/catalog/${parfumId}`);
+            }}
           >
             <Text style={s.catalogLinkText}>Voir la fiche complète</Text>
             <Ionicons name="chevron-forward" size={14} color={theme.colors.primary} />

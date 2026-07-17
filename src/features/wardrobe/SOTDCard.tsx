@@ -31,18 +31,20 @@ export default function SOTDCard({ sotd, onPress, onChangePress }: Props) {
           />
         ) : (
           <View style={s.placeholder}>
-            <Ionicons name="flask-outline" size={20} color={theme.colors.primaryInk} />
+            <Ionicons name="flask-outline" size={13} color={theme.colors.primaryInk} />
           </View>
         )}
         <View style={s.info}>
-          <Text style={s.name} numberOfLines={1}>{sotd.nom}</Text>
-          <Text style={s.brand} numberOfLines={1}>{sotd.marque}</Text>
-          <View style={s.badge}>
-            <Text style={s.badgeText}>Porté aujourd'hui</Text>
+          <View style={s.nameRow}>
+            <Ionicons name="sunny" size={12} color={theme.colors.primary} />
+            <Text style={s.name} numberOfLines={1}>{sotd.nom}</Text>
+            <Text style={s.brand} numberOfLines={1}>{sotd.marque}</Text>
           </View>
         </View>
-        <Pressable onPress={onChangePress} hitSlop={12} style={s.changeBtn}>
-          <Text style={s.changeText}>Changer</Text>
+        <Text style={s.sotdLabel}>SOTD</Text>
+        <View style={s.spacer} />
+        <Pressable onPress={onChangePress} hitSlop={10} style={s.changeBtn}>
+          <Ionicons name="swap-horizontal-outline" size={16} color={theme.colors.primary} />
         </Pressable>
       </Pressable>
     );
@@ -51,13 +53,11 @@ export default function SOTDCard({ sotd, onPress, onChangePress }: Props) {
   return (
     <Pressable style={s.card} onPress={onChangePress}>
       <View style={s.placeholder}>
-        <Ionicons name="sunny-outline" size={24} color={theme.colors.primaryInk} />
+        <Ionicons name="sunny-outline" size={15} color={theme.colors.primaryInk} />
       </View>
-      <View style={s.info}>
-        <Text style={s.emptyTitle}>Quel parfum portez-vous aujourd'hui ?</Text>
-      </View>
+      <Text style={s.emptyTitle}>SOTD</Text>
       <View style={s.changeBtn}>
-        <Text style={s.changeText}>Choisir</Text>
+        <Ionicons name="add-circle-outline" size={16} color={theme.colors.primary} />
       </View>
     </Pressable>
   );
@@ -69,22 +69,24 @@ function getStyles(t: Theme) {
       flexDirection: 'row',
       alignItems: 'center',
       backgroundColor: t.colors.primarySoft,
-      borderRadius: t.radius.card,
-      padding: 14,
+      borderRadius: t.radius.base,
+      paddingVertical: 6,
+      paddingLeft: 8,
+      paddingRight: 4,
       marginHorizontal: 16,
-      marginVertical: 8,
-      gap: 12,
+      marginVertical: 6,
+      gap: 8,
     },
     image: {
-      width: 44,
-      height: 44,
-      borderRadius: 8,
+      width: 26,
+      height: 26,
+      borderRadius: 5,
       backgroundColor: t.colors.surface2,
     },
     placeholder: {
-      width: 44,
-      height: 44,
-      borderRadius: 8,
+      width: 26,
+      height: 26,
+      borderRadius: 5,
       backgroundColor: t.colors.primarySoft,
       justifyContent: 'center',
       alignItems: 'center',
@@ -92,43 +94,45 @@ function getStyles(t: Theme) {
     info: {
       flex: 1,
     },
+    nameRow: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 5,
+    },
     name: {
       fontFamily: 'Inter_600SemiBold',
-      fontSize: 15,
+      fontSize: 12,
       color: t.colors.text,
     },
     brand: {
       fontFamily: 'Inter_400Regular',
-      fontSize: 12,
+      fontSize: 11,
       color: t.colors.textMuted,
-      marginTop: 1,
+      marginLeft: 2,
     },
     emptyTitle: {
+      flex: 1,
       fontFamily: 'Inter_500Medium',
-      fontSize: 14,
+      fontSize: 12,
       color: t.colors.primaryInk,
-    },
-    badge: {
-      marginTop: 4,
-      alignSelf: 'flex-start',
-      backgroundColor: t.colors.primary,
-      paddingHorizontal: 8,
-      paddingVertical: 2,
-      borderRadius: 8,
-    },
-    badgeText: {
-      fontFamily: 'Inter_600SemiBold',
-      fontSize: 10,
-      color: '#FFFFFF',
+      textAlign: 'right',
     },
     changeBtn: {
-      paddingHorizontal: 12,
-      paddingVertical: 8,
+      padding: 6,
     },
-    changeText: {
+    sotdLabel: {
       fontFamily: 'Inter_600SemiBold',
-      fontSize: 13,
+      fontSize: 9,
       color: t.colors.primary,
+      borderWidth: 0.5,
+      borderColor: t.colors.primary,
+      borderRadius: 4,
+      paddingHorizontal: 4,
+      paddingVertical: 1,
+      lineHeight: 13,
+    },
+    spacer: {
+      width: 4,
     },
   } as const;
 }

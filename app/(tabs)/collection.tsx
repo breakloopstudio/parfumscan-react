@@ -28,7 +28,7 @@ interface Props {
 }
 
 export default function WardrobePage({ onScroll, onSheetOpen }: Props) {
-  const { theme } = useTheme();
+  const { theme, resolvedMode } = useTheme();
   const s = useMemo(() => getStyles(theme), [theme]);
   const { user, authReady, isAuthenticated } = useAuthContext();
   const router = useRouter();
@@ -71,7 +71,7 @@ export default function WardrobePage({ onScroll, onSheetOpen }: Props) {
     }
     result.sort((a, b) => {
       switch (activeSort) {
-        case 'rating': return (b.rating ?? 0) - (a.rating ?? 0);
+        case 'rating': return (Number.isNaN(b.rating) ? 0 : b.rating ?? 0) - (Number.isNaN(a.rating) ? 0 : a.rating ?? 0);
         case 'az': return (a.nom ?? '').localeCompare(b.nom ?? '');
         case 'za': return (b.nom ?? '').localeCompare(a.nom ?? '');
         default: return b.addedAt.getTime() - a.addedAt.getTime();
@@ -180,6 +180,7 @@ export default function WardrobePage({ onScroll, onSheetOpen }: Props) {
       />
 
       <WardrobeGrid
+        key={resolvedMode}
         items={filtered}
         loading={loading}
         onItemPress={setQuickSheetItem}

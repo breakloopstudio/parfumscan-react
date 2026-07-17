@@ -36,11 +36,175 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.analyzePerfumeImage = exports.searchFragrance = exports.sendNotification = void 0;
+exports.analyzePerfumeImage = exports.searchFragrance = exports.sendNotification = exports.checkPriceAlerts = void 0;
 const functions = __importStar(require("firebase-functions"));
 const admin = __importStar(require("firebase-admin"));
+const scheduler_1 = require("firebase-functions/v2/scheduler");
 const openai_1 = __importDefault(require("openai"));
 admin.initializeApp();
+const db = admin.firestore();
+/**
+ * Cloud Function : checkPriceAlerts
+ * Scheduled every 6 hours — checks all active price alerts for drops.
+ */
+exports.checkPriceAlerts = (0, scheduler_1.onSchedule)('every 6 hours', async () => {
+    const apiKey = process.env.FRAGELLA_API_KEY;
+    if (!apiKey) {
+        console.error('[checkPriceAlerts] FRAGELLA_API_KEY not configured');
+        return;
+    }
+    const usersSnap = await db.collection('users').get();
+    let alertsChecked = 0;
+    let notificationsSent = 0;
+    const now = Date.now();
+    const STALE_MS = 24 * 60 * 60 * 1000; // 24 hours
+    for (const userDoc of usersSnap.docs) {
+        const uid = userDoc.id;
+        // Check user settings: must have priceAlerts + pushNotifs enabled
+        let settings = {};
+        try {
+            const settingsDoc = await db.doc(`users/${uid}/settings/preferences`).get();
+            settings = settingsDoc.data() ?? {};
+        }
+        catch {
+            continue;
+        }
+        if (settings.priceAlerts !== true || settings.pushNotifs !== true)
+            continue;
+        // Get user's active price alerts
+        let alertsSnap;
+        try {
+            alertsSnap = await db.collection(`users/${uid}/priceAlerts`).get();
+        }
+        catch {
+            continue;
+        }
+        if (alertsSnap.empty)
+            continue;
+        // Get user's FCM tokens
+        let tokens = [];
+        try {
+            const tokensSnap = await db.collection(`users/${uid}/fcmTokens`).get();
+            tokens = tokensSnap.docs.map(d => d.data().token).filter(Boolean);
+        }
+        catch {
+            continue;
+        }
+        if (tokens.length === 0)
+            continue;
+        for (const alertDoc of alertsSnap.docs) {
+            const alert = alertDoc.data();
+            const parfumId = alert.parfumId;
+            const lastPrice = typeof alert.lastPrice === 'number' ? alert.lastPrice : null;
+            if (!parfumId)
+                continue;
+            alertsChecked++;
+            // Get cached parfum from Firestore
+            let currentPrice = null;
+            let parfumNom = '';
+            let parfumMarque = '';
+            try {
+                const parfumDoc = await db.doc(`parfums/${parfumId}`).get();
+                if (parfumDoc.exists) {
+                    const p = parfumDoc.data();
+                    const cachedAt = p.cachedAt ? new Date(p.cachedAt).getTime() : 0;
+                    const isFresh = (now - cachedAt) < STALE_MS;
+                    if (isFresh) {
+                        currentPrice = typeof p.bestPrice === 'number' ? p.bestPrice : null;
+                        parfumNom = p.nom ?? '';
+                        parfumMarque = p.marque ?? '';
+                    }
+                    else {
+                        // Stale cache — call Fragella to refresh
+                        const fragellaId = p.fragellaId;
+                        if (fragellaId) {
+                            const fragResponse = await fetch(`https://api.fragella.com/api/v1/fragrances/${encodeURIComponent(fragellaId)}`, { headers: { 'x-api-key': apiKey } });
+                            if (fragResponse.ok) {
+                                const fragData = await fragResponse.json();
+                                const newPrice = fragData['Price'] ? parseFloat(String(fragData['Price'])) : null;
+                                currentPrice = newPrice ?? null;
+                                parfumNom = fragData['Name'] ?? p.nom;
+                                parfumMarque = fragData['Brand'] ?? p.marque;
+                                // Update cache
+                                await db.doc(`parfums/${parfumId}`).set({
+                                    bestPrice: currentPrice,
+                                    cachedAt: new Date().toISOString(),
+                                }, { merge: true });
+                            }
+                            else {
+                                // API failed, use cached regardless of staleness
+                                currentPrice = typeof p.bestPrice === 'number' ? p.bestPrice : null;
+                                parfumNom = p.nom ?? '';
+                                parfumMarque = p.marque ?? '';
+                            }
+                        }
+                        else {
+                            // No fragellaId, use cached regardless
+                            currentPrice = typeof p.bestPrice === 'number' ? p.bestPrice : null;
+                            parfumNom = p.nom ?? '';
+                            parfumMarque = p.marque ?? '';
+                        }
+                    }
+                }
+            }
+            catch (err) {
+                const msg = err instanceof Error ? err.message : String(err);
+                console.warn(`[checkPriceAlerts] Failed to fetch parfum ${parfumId}:`, msg);
+                continue;
+            }
+            // Compare prices and trigger notification if drop detected
+            if (lastPrice !== null && currentPrice !== null && currentPrice > 0) {
+                const dropPct = (lastPrice - currentPrice) / lastPrice;
+                const dropAbs = lastPrice - currentPrice;
+                const significantDrop = dropPct >= 0.10 || dropAbs >= 5;
+                if (significantDrop) {
+                    const displayName = parfumMarque && parfumNom
+                        ? `${parfumMarque} ${parfumNom}`
+                        : parfumId;
+                    const message = {
+                        tokens,
+                        notification: {
+                            title: '💰 Baisse de prix !',
+                            body: `${displayName} est passé à ${currentPrice.toFixed(0)} € (-${Math.round(dropPct * 100)}%)`,
+                        },
+                        data: {
+                            type: 'price_alert',
+                            parfumId,
+                            newPrice: String(currentPrice),
+                        },
+                        android: {
+                            notification: {
+                                channelId: 'price_alerts',
+                                priority: 'high',
+                            },
+                        },
+                    };
+                    try {
+                        const response = await admin.messaging().sendEachForMulticast(message);
+                        notificationsSent += response.successCount;
+                        console.log(`[checkPriceAlerts] Sent to ${uid}: ${displayName} ${lastPrice.toFixed(0)}€ → ${currentPrice.toFixed(0)}€`);
+                    }
+                    catch (err) {
+                        const msg = err instanceof Error ? err.message : String(err);
+                        console.warn(`[checkPriceAlerts] Failed to notify ${uid}:`, msg);
+                    }
+                }
+            }
+            // Update lastPrice and lastChecked on the alert doc
+            try {
+                await alertDoc.ref.set({
+                    lastPrice: currentPrice,
+                    lastChecked: new Date().toISOString(),
+                }, { merge: true });
+            }
+            catch (err) {
+                const msg = err instanceof Error ? err.message : String(err);
+                console.warn(`[checkPriceAlerts] Failed to update alert doc:`, msg);
+            }
+        }
+    }
+    console.log(`[checkPriceAlerts] Done — ${alertsChecked} alerts checked, ${notificationsSent} notifications sent`);
+});
 /**
  * Cloud Function : sendNotification
  * Envoie une notification push à un utilisateur ou à tous les utilisateurs.
@@ -126,10 +290,35 @@ exports.sendNotification = functions.https.onCall({ region: 'europe-west1' }, as
  * Catalogue : utilise /fragrances?search pour suggestions rapides.
  */
 exports.searchFragrance = functions.https.onCall({ region: 'europe-west1' }, async (request) => {
-    const { marque, nom, query, typeParfum } = request.data;
+    const { marque, nom, query, typeParfum, id, similarTo } = request.data;
     const uid = request.auth?.uid;
-    if (!uid) {
-        throw new functions.https.HttpsError('unauthenticated', 'Connexion requise pour utiliser la recherche Fragella.');
+    const isAuthed = !!uid;
+    // Mode getById : récupérer un parfum par son ID Fragella
+    if (id) {
+        const apiKey = process.env.FRAGELLA_API_KEY;
+        if (!apiKey)
+            throw new functions.https.HttpsError('internal', 'Clé API Fragella non configurée.');
+        const response = await fetch(`https://api.fragella.com/api/v1/fragrances/${encodeURIComponent(id)}`, {
+            headers: { 'x-api-key': apiKey },
+        });
+        if (!response.ok)
+            return null;
+        const data = await response.json();
+        return { results: [mapFragrance(data)], source: 'fragella' };
+    }
+    // Mode similarTo : récupérer des parfums similaires
+    if (similarTo) {
+        const apiKey = process.env.FRAGELLA_API_KEY;
+        if (!apiKey)
+            throw new functions.https.HttpsError('internal', 'Clé API Fragella non configurée.');
+        const response = await fetch(`https://api.fragella.com/api/v1/fragrances/similar?name=${encodeURIComponent(similarTo)}&limit=8`, {
+            headers: { 'x-api-key': apiKey },
+        });
+        if (!response.ok)
+            return null;
+        const raw = await response.json();
+        const items = Array.isArray(raw) ? raw : (raw?.data ?? []);
+        return { results: items.map(mapFragrance), source: 'fragella' };
     }
     const parts = [];
     if (marque)
@@ -144,7 +333,7 @@ exports.searchFragrance = functions.https.onCall({ region: 'europe-west1' }, asy
     }
     // Vérifier le cache Firestore avant d'appeler Fragella (mode scan uniquement)
     if (marque && nom && !query) {
-        const cacheKey = `${normalize(marque)}_${normalize(nom)}`;
+        const cacheKey = `${normalizeId(marque)}_${normalizeId(nom)}`;
         try {
             const cachedDoc = await admin.firestore().doc(`parfums/${cacheKey}`).get();
             if (cachedDoc.exists) {
@@ -162,13 +351,15 @@ exports.searchFragrance = functions.https.onCall({ region: 'europe-west1' }, asy
     if (!apiKey) {
         throw new functions.https.HttpsError('internal', 'Clé API Fragella non configurée.');
     }
-    // Rate limit utilisateur : max 10 appels Fragella / jour
+    // Rate limit : 10/jour (authed), 5/jour (anonymous)
+    const maxCalls = isAuthed ? 10 : 5;
+    const callerId = uid ?? ('anon_' + (request.rawRequest?.ip ?? 'unknown'));
     const today = new Date().toISOString().slice(0, 10);
-    const usageRef = admin.firestore().doc(`users/${uid}/_usage/${today}`);
+    const usageRef = admin.firestore().doc(`users/${callerId}/_usage/${today}`);
     const usageDoc = await usageRef.get();
     const count = usageDoc.exists ? (usageDoc.data()?.['fragellaCalls'] ?? 0) : 0;
-    if (count >= 10) {
-        throw new functions.https.HttpsError('resource-exhausted', 'Limite quotidienne atteinte (10 recherches/jour).');
+    if (count >= maxCalls) {
+        throw new functions.https.HttpsError('resource-exhausted', `Limite quotidienne atteinte (${maxCalls} recherches/jour).`);
     }
     // Plafond global : max 200 appels/jour tous utilisateurs confondus
     const globalRef = admin.firestore().doc(`rateLimits/${today}`);
@@ -200,8 +391,9 @@ exports.searchFragrance = functions.https.onCall({ region: 'europe-west1' }, asy
             console.error('Fragella API error:', response.status);
             return null;
         }
-        const data = await response.json();
-        console.log(`[Fragella] ${data.length} résultats bruts`);
+        const raw = await response.json();
+        const data = Array.isArray(raw) ? raw : (raw?.data ?? []);
+        console.log(`[Fragella] ${data.length} résultats bruts (isArray:${Array.isArray(raw)})`);
         if (!data.length)
             return null;
         let results = data.map(f => mapFragrance(f));
@@ -227,17 +419,18 @@ exports.searchFragrance = functions.https.onCall({ region: 'europe-west1' }, asy
             const fallbackUrl = `https://api.fragella.com/api/v1/fragrances?search=${encodeURIComponent(marque + ' ' + nom)}&limit=5`;
             const fbResponse = await fetch(fallbackUrl, { headers: { 'x-api-key': apiKey } });
             if (fbResponse.ok) {
-                const fbData = await fbResponse.json();
+                const fbRaw = await fbResponse.json();
+                const fbData = Array.isArray(fbRaw) ? fbRaw : (fbRaw?.data ?? []);
                 if (fbData.length)
                     results = fbData.map(f => mapFragrance(f));
             }
         }
-        // Sauvegarder dans le cache Firestore (mode scan)
-        if (marque && nom && !query) {
+        // Sauvegarder dans le cache Firestore (mode scan) — auth only
+        if (isAuthed && marque && nom && !query) {
             try {
                 const now = new Date().toISOString();
                 for (const r of results) {
-                    const key = `${normalize(String(r['marque'] ?? ''))}_${normalize(String(r['nom'] ?? ''))}`;
+                    const key = `${normalizeId(String(r['marque'] ?? ''))}_${normalizeId(String(r['nom'] ?? ''))}`;
                     const docRef = admin.firestore().doc(`parfums/${key}`);
                     const existing = await docRef.get();
                     if (existing.exists && existing.data()?.imageVerified) {
@@ -261,9 +454,14 @@ exports.searchFragrance = functions.https.onCall({ region: 'europe-west1' }, asy
         return null;
     }
 });
-/** Helper: normalise une chaîne pour comparaison insensible aux accents. */
+/** Helper: normalise une chaîne pour comparaison insensible aux accents (garde les espaces). */
 function normalize(s) {
     return s.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase();
+}
+/** Helper: normalise pour les IDs/doc keys (remplace les espaces par des underscores).
+ *  Doit correspondre exactement à la version client dans src/services/fragella.ts. */
+function normalizeId(s) {
+    return normalize(s).replace(/[^a-z0-9]+/g, '_').replace(/^_|_$/g, '');
 }
 /** Helper: mappe une entrée Fragella vers notre format */
 function mapFragrance(f) {
@@ -271,7 +469,8 @@ function mapFragrance(f) {
     const nom = String(f['Name'] ?? '');
     const marque = String(f['Brand'] ?? '');
     const raw = {
-        id: normalize(marque) + '_' + normalize(nom),
+        id: normalizeId(marque) + '_' + normalizeId(nom),
+        fragellaId: f['_id'],
         nom,
         marque,
         annee: f['Year'] ? (parseInt(String(f['Year']), 10) || undefined) : undefined,
@@ -290,8 +489,41 @@ function mapFragrance(f) {
         mainAccords: f['Main Accords'] ?? [],
         rating: f['rating'] ?? null,
         popularity: f['Popularity'] ?? null,
+        popularityScore: popScore(f['Popularity']),
+        ratingScore: rateScore(f['rating']),
+        country: f['Country'] ?? null,
+        imageUrlTransparent: f['Image URL Transparent'] ?? null,
+        mainAccordsPercentage: f['Main Accords Percentage'] ?? null,
+        generalNotes: f['General Notes'] ?? null,
+        confidence: f['Confidence'] ?? null,
+        seasonRanking: f['Season Ranking'] ?? null,
+        occasionRanking: f['Occasion Ranking'] ?? null,
+        imageFallbacks: f['Image Fallbacks'] ?? null,
     };
     return Object.fromEntries(Object.entries(raw).filter(([_, v]) => v !== undefined && v !== null && !Number.isNaN(v)));
+}
+function popScore(v) {
+    if (!v)
+        return undefined;
+    const k = v.toLowerCase().trim();
+    if (k.includes('very high') || k.includes('extremely'))
+        return 100;
+    if (k.includes('high'))
+        return 75;
+    if (k.includes('medium') || k.includes('moderate'))
+        return 50;
+    if (k.includes('low') && !k.includes('very'))
+        return 25;
+    if (k.includes('very low'))
+        return 0;
+    const n = parseFloat(k);
+    return isNaN(n) ? undefined : n;
+}
+function rateScore(v) {
+    if (!v)
+        return undefined;
+    const n = parseFloat(v);
+    return isNaN(n) ? undefined : n;
 }
 /**
  * Cloud Function : analyzePerfumeImage

@@ -1,6 +1,7 @@
 // src/services/fragella.ts — API Fragella (74K parfums) — via Cloud Function
 // La clé API Fragella est côté serveur uniquement (Cloud Functions)
 
+import { getApp } from '@react-native-firebase/app';
 import { getFunctions, httpsCallable } from '@react-native-firebase/functions';
 
 // ─── Types ─────────────────────────────────────────────────
@@ -227,7 +228,7 @@ export function fragellaToParfum(frag: FragranceResult): ParfumSearchResult {
 
 async function callFragella(data: Record<string, unknown>): Promise<Record<string, unknown> | null> {
   try {
-    const funcs = getFunctions();
+    const funcs = getFunctions(getApp(), 'europe-west1');
     const result = await httpsCallable<typeof data, Record<string, unknown> | null>(funcs, 'searchFragrance')(data);
     return result.data;
   } catch (err: unknown) {
@@ -245,8 +246,8 @@ export async function getFragranceById(id: string): Promise<FragranceResult | nu
   if (!id) return null;
   const r = await callFragella({ id });
   if (!r || !r.results) return null;
-  const results = r.results as Record<string, unknown>[];
-  return results.length > 0 ? mapFragrance(results[0]) : null;
+  const results = r.results as FragranceResult[];
+  return results.length > 0 ? results[0] : null;
 }
 
 export async function searchFragrance(marque: string, nom: string, typeParfum?: string | null): Promise<FragranceResult[]> {
@@ -254,7 +255,8 @@ export async function searchFragrance(marque: string, nom: string, typeParfum?: 
   if (!query) return [];
   const r = await callFragella({ marque, nom, typeParfum });
   if (!r || !r.results) return [];
-  let results = (r.results as Record<string, unknown>[]).map(mapFragrance);
+  let results = (r.results as FragranceResult[]);
+  if (!results || results.length === 0) return [];
 
   // Filtrer par typeParfum si fourni
   if (typeParfum && results.length > 0) {
@@ -271,7 +273,7 @@ export async function searchFragranceByQuery(query: string): Promise<FragranceRe
   if (!query || query.trim().length < 3) return [];
   const r = await callFragella({ query: query.trim() });
   if (!r || !r.results) return [];
-  return (r.results as Record<string, unknown>[]).map(mapFragrance);
+  return (r.results as FragranceResult[]);
 }
 
 export async function getSimilarFragrances(marque: string, nom: string, limit: number = 6): Promise<FragranceResult[]> {
@@ -279,5 +281,5 @@ export async function getSimilarFragrances(marque: string, nom: string, limit: n
   if (!similarTo) return [];
   const r = await callFragella({ similarTo });
   if (!r || !r.results) return [];
-  return (r.results as Record<string, unknown>[]).slice(0, limit).map(mapFragrance);
+  return (r.results as FragranceResult[]).slice(0, limit);
 }

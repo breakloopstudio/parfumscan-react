@@ -22,8 +22,9 @@ interface Props {
 export default function WardrobeAddSheet({
   visible, parfumName, parfumBrand, parfumImageUrl, onClose, onSelect,
 }: Props) {
-  const { theme } = useTheme();
+  const { theme, resolvedMode } = useTheme();
   const s = useMemo(() => getStyles(theme), [theme]);
+  const keyboardAppearance = resolvedMode === 'dark' ? 'dark' : 'light';
   const insets = useSafeAreaInsets();
   const [selected, setSelected] = useState<WardrobeItem['ownership'] | null>(null);
   const [sizeMl, setSizeMl] = useState('');
@@ -107,6 +108,7 @@ export default function WardrobeAddSheet({
               value={sizeMl}
               onChangeText={setSizeMl}
               keyboardType="numeric"
+              keyboardAppearance={keyboardAppearance}
               placeholder="Ex: 10"
               placeholderTextColor={theme.colors.textMuted}
               maxLength={5}

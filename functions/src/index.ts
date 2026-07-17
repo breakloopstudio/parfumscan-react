@@ -345,7 +345,7 @@ export const searchFragrance = functions.https.onCall(
 
     // Vérifier le cache Firestore avant d'appeler Fragella (mode scan uniquement)
     if (marque && nom && !query) {
-      const cacheKey = `${normalize(marque)}_${normalize(nom)}`;
+      const cacheKey = `${normalizeId(marque)}_${normalizeId(nom)}`;
       try {
         const cachedDoc = await admin.firestore().doc(`parfums/${cacheKey}`).get();
         if (cachedDoc.exists) {
@@ -409,8 +409,9 @@ export const searchFragrance = functions.https.onCall(
         return null;
       }
 
-      const data = await response.json() as Array<Record<string, unknown>>;
-      console.log(`[Fragella] ${data.length} résultats bruts`);
+      const raw = await response.json() as Array<Record<string, unknown>> | { data?: Array<Record<string, unknown>> };
+      const data = Array.isArray(raw) ? raw : (raw?.data ?? []);
+      console.log(`[Fragella] ${data.length} résultats bruts (isArray:${Array.isArray(raw)})`);
       if (!data.length) return null;
 
       let results = data.map(f => mapFragrance(f));
@@ -439,7 +440,8 @@ export const searchFragrance = functions.https.onCall(
         const fallbackUrl = `https://api.fragella.com/api/v1/fragrances?search=${encodeURIComponent(marque + ' ' + nom)}&limit=5`;
         const fbResponse = await fetch(fallbackUrl, { headers: { 'x-api-key': apiKey } });
         if (fbResponse.ok) {
-          const fbData = await fbResponse.json() as Array<Record<string, unknown>>;
+          const fbRaw = await fbResponse.json() as Array<Record<string, unknown>> | { data?: Array<Record<string, unknown>> };
+          const fbData = Array.isArray(fbRaw) ? fbRaw : (fbRaw?.data ?? []);
           if (fbData.length) results = fbData.map(f => mapFragrance(f));
         }
       }
@@ -449,7 +451,7 @@ export const searchFragrance = functions.https.onCall(
         try {
           const now = new Date().toISOString();
           for (const r of results) {
-            const key = `${normalize(String(r['marque'] ?? ''))}_${normalize(String(r['nom'] ?? ''))}`;
+            const key = `${normalizeId(String(r['marque'] ?? ''))}_${normalizeId(String(r['nom'] ?? ''))}`;
             const docRef = admin.firestore().doc(`parfums/${key}`);
             const existing = await docRef.get();
             if (existing.exists && existing.data()?.imageVerified) {
@@ -473,9 +475,15 @@ export const searchFragrance = functions.https.onCall(
   }
 );
 
-/** Helper: normalise une chaîne pour comparaison insensible aux accents. */
+/** Helper: normalise une chaîne pour comparaison insensible aux accents (garde les espaces). */
 function normalize(s: string): string {
   return s.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase();
+}
+
+/** Helper: normalise pour les IDs/doc keys (remplace les espaces par des underscores).
+ *  Doit correspondre exactement à la version client dans src/services/fragella.ts. */
+function normalizeId(s: string): string {
+  return normalize(s).replace(/[^a-z0-9]+/g, '_').replace(/^_|_$/g, '');
 }
 
 /** Helper: mappe une entrée Fragella vers notre format */
@@ -484,7 +492,8 @@ function mapFragrance(f: Record<string, unknown>): Record<string, unknown> {
   const nom = String(f['Name'] ?? '');
   const marque = String(f['Brand'] ?? '');
   const raw = {
-    id: normalize(marque) + '_' + normalize(nom),
+    id: normalizeId(marque) + '_' + normalizeId(nom),
+    fragellaId: f['_id'] as string | undefined,
     nom,
     marque,
     annee: f['Year'] ? (parseInt(String(f['Year']), 10) || undefined) : undefined,
@@ -503,10 +512,38 @@ function mapFragrance(f: Record<string, unknown>): Record<string, unknown> {
     mainAccords: f['Main Accords'] ?? [],
     rating: f['rating'] ?? null,
     popularity: f['Popularity'] ?? null,
+    popularityScore: popScore(f['Popularity'] as string | undefined),
+    ratingScore: rateScore(f['rating'] as string | undefined),
+    country: f['Country'] ?? null,
+    imageUrlTransparent: f['Image URL Transparent'] ?? null,
+    mainAccordsPercentage: f['Main Accords Percentage'] ?? null,
+    generalNotes: f['General Notes'] ?? null,
+    confidence: f['Confidence'] ?? null,
+    seasonRanking: f['Season Ranking'] ?? null,
+    occasionRanking: f['Occasion Ranking'] ?? null,
+    imageFallbacks: f['Image Fallbacks'] ?? null,
   };
   return Object.fromEntries(
     Object.entries(raw).filter(([_, v]) => v !== undefined && v !== null && !Number.isNaN(v))
   );
+}
+
+function popScore(v: string | undefined): number | undefined {
+  if (!v) return undefined;
+  const k = v.toLowerCase().trim();
+  if (k.includes('very high') || k.includes('extremely')) return 100;
+  if (k.includes('high')) return 75;
+  if (k.includes('medium') || k.includes('moderate')) return 50;
+  if (k.includes('low') && !k.includes('very')) return 25;
+  if (k.includes('very low')) return 0;
+  const n = parseFloat(k);
+  return isNaN(n) ? undefined : n;
+}
+
+function rateScore(v: string | undefined): number | undefined {
+  if (!v) return undefined;
+  const n = parseFloat(v);
+  return isNaN(n) ? undefined : n;
 }
 
 /**

@@ -277,7 +277,8 @@ export async function searchParfumsCached(queryStr: string): Promise<ParfumSearc
       .sort((a: ScoredDoc, b: ScoredDoc) => b._score - a._score)
       .slice(0, 15)
       .map(({ _score, ...rest }: ScoredDoc) => rest as unknown as ParfumSearchResult);
-  } catch {
+  } catch (err: unknown) {
+    console.warn('[firestore] searchParfumsCached failed:', (err as Error)?.message ?? String(err));
     return [];
   }
 }

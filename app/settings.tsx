@@ -140,9 +140,24 @@ export default function SettingsPage() {
         </View>
 
         <View style={s.section}>
+          <Text style={s.sectionTitle}>Soutenir</Text>
+
+          <View style={s.donateCard}>
+            <Ionicons name="heart" size={28} color={theme.colors.favorite} />
+            <Text style={s.donateText}>
+              Si l'app te plaît, tu peux contribuer à son développement. C'est optionnel et infiniment apprécié.
+            </Text>
+            <Pressable style={s.donateBtn} onPress={() => {}}>
+              <Text style={s.donateBtnText}>Faire un don</Text>
+            </Pressable>
+            <Text style={s.donateSoon}>Bientôt disponible</Text>
+          </View>
+        </View>
+
+        <View style={s.section}>
           <Text style={s.sectionTitle}>Légal</Text>
 
-          <Pressable style={s.row} onPress={() => {}}>
+          <Pressable style={s.row} onPress={() => router.push('/legal')}>
             <View style={s.rowLeft}>
               <Ionicons name="document-text-outline" size={20} color={theme.colors.text} />
               <Text style={s.rowLabel}>Mentions légales</Text>
@@ -150,7 +165,7 @@ export default function SettingsPage() {
             <Ionicons name="chevron-forward" size={16} color={theme.colors.textMuted} />
           </Pressable>
 
-          <Pressable style={s.row} onPress={() => {}}>
+          <Pressable style={s.row} onPress={() => router.push('/privacy')}>
             <View style={s.rowLeft}>
               <Ionicons name="shield-outline" size={20} color={theme.colors.text} />
               <Text style={s.rowLabel}>Politique de confidentialité</Text>
@@ -179,6 +194,11 @@ function getStyles(t: Theme) {
     rowLabel: { fontFamily: 'Inter_500Medium', fontSize: 15, color: t.colors.text },
     rowDesc: { fontFamily: 'Inter_400Regular', fontSize: 12, color: t.colors.textMuted, marginTop: 2 },
     version: { textAlign: 'center', fontFamily: 'Inter_400Regular', fontSize: 12, color: t.colors.textMuted, marginTop: 16 },
+    donateCard: { backgroundColor: t.colors.surface, borderRadius: t.radius.card, padding: 20, alignItems: 'center', gap: 12 },
+    donateText: { fontFamily: 'Inter_400Regular', fontSize: 14, color: t.colors.textMuted, textAlign: 'center', lineHeight: 20 },
+    donateBtn: { backgroundColor: t.colors.favoriteSoft, paddingHorizontal: 24, paddingVertical: 12, borderRadius: t.radius.base, opacity: 0.5 },
+    donateBtnText: { fontFamily: 'Inter_600SemiBold', fontSize: 15, color: t.colors.favorite },
+    donateSoon: { fontFamily: 'Inter_400Regular', fontSize: 11, color: t.colors.textMuted },
     segmentedControl: { flexDirection: 'row', backgroundColor: t.colors.surface2, borderRadius: t.radius.base, padding: 4 },
     segment: { flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6, paddingVertical: 10, borderRadius: t.radius.sm },
     segmentActive: { backgroundColor: t.colors.primarySoft },

@@ -99,7 +99,7 @@ function getStyles(t: Theme) {
     noteIcon: {
       position: 'absolute',
       bottom: 8,
-      right: 6,
+      left: 6,
       width: 22,
       height: 22,
       borderRadius: 11,
@@ -110,7 +110,7 @@ function getStyles(t: Theme) {
     signatureBadge: {
       position: 'absolute',
       bottom: 8,
-      left: 6,
+      right: 6,
       width: 22,
       height: 22,
       borderRadius: 11,

@@ -14,7 +14,7 @@ app/
 ├── index.tsx                 # Splash → redirection (onboarding ou tabs)
 ├── (tabs)/
 │   ├── _layout.tsx           # Stack wrapper (pages empilées sur le pager)
-│   ├── index.tsx             # TabPager Reanimated 4 pages + DockBar + barre de recherche persistante
+│   ├── index.tsx             # TabPager PagerView 4 pages + DockBar + barre de recherche persistante
 │   ├── favorites.tsx         # Page Favoris (standalone, appelée depuis pager + Stack)
 │   ├── history.tsx           # Page Historique des scans
 │   ├── collection.tsx        # Page Garde-robe (grid, étagères, SOTD, quick-edit) — fichier garde le nom collection pour rétrocompatibilité expo-router
@@ -23,29 +23,31 @@ app/
 ├── auth/
 │   ├── login.tsx             # Connexion email + Google
 │   └── register.tsx          # Inscription
-├── catalog/[id].tsx          # Fiche détail enrichie
+├── catalog/[id].tsx          # Fiche détail enrichie (HeroPriceOverlay, CollapsingHeader, StickyBottomBar, pyramide v5, NoteDetailPopup)
 ├── wardrobe/[parfumId].tsx    # Fiche personnelle (notes, notes, SOTD, étagères)
-├── settings.tsx              # Paramètres (notifications, devise, apparence, compte)
+├── settings.tsx              # Paramètres (notifications, devise, apparence, soutien, légal, compte)
+├── legal.tsx                 # Mentions légales
+├── privacy.tsx               # Politique de confidentialité
 ├── onboarding.tsx            # 3 slides swipe + AsyncStorage
 └── admin.tsx                 # Administration
 
 src/
-├── services/     (11)        # Firebase, Firestore, Fragella (via Cloud Function), GPT-4o, user-data, wardrobe, theme-storage, haptics…
+├── services/     (12)        # Firebase, Firestore, Fragella (via Cloud Function), GPT-4o, user-data, wardrobe, theme-storage, haptics…
 ├── hooks/        (11)        # useAuth, useScanReducer, useCatalog, useFavoris, useCollection, useWishlist, useScans, useWardrobe, useShelves, useSotd, useNetwork
 ├── contexts/     (1)         # AuthContext (ThemeContext est dans src/theme/)
-├── components/   (10)        # ParfumCard, Button, PriceDisplay, SectionHeader, EmptyState, OfflineBanner, AppLoader, ErrorBoundary, AlertPriceToggle, ProfileAvatar
+├── components/   (11)        # ParfumCard, Button, PriceDisplay, SectionHeader, EmptyState, OfflineBanner, AppLoader, ErrorBoundary, AlertPriceToggle, ProfileAvatar, NoteDetailPopup
 ├── features/
 │   ├── scan/     (8)         # ScanScreen + 7 sous-états
-│   ├── catalog/  (5)         # CatalogPage, OlfactoryPyramid, HeroPriceOverlay, CollapsingHeader, StickyBottomBar
+│   ├── catalog/  (5)         # CatalogPage, OlfactoryPyramid v5, HeroPriceOverlay, CollapsingHeader, StickyBottomBar
 │   ├── wardrobe/ (9)         # WardrobeAddSheet, WardrobeCard, WardrobeGrid, WardrobeQuickSheet, SOTDCard, SOTDPicker, FilterBar, StarRating, ShelfManager
 │   └── navigation/ (1)      # DockBar (barre flottante 5 positions + FAB, verre depoli via expo-blur, pulse ring, show/hide au scroll)
-├── theme/        (2)         # theme.ts (Theme interface + light/dark), ThemeContext.tsx (useTheme + export Theme)
+├── theme/        (2)         # theme.ts (Theme interface + light/dark), ThemeContext.tsx (useTheme + SystemUI/NavigationBar theming)
 ├── config/       (3)         # Firebase config, env (variables publiques), index
 ├── models/       (8)         # Parfum, WardrobeItem, Shelf, SotdEntry, UserFavori, UserScan, UserCollectionItem, UserWishlistItem + interfaces de scan
-└── utils/        (3)         # Error translator, translate-note, ownership (labels, helpers)
+└── utils/        (4)         # Error translator, translate-note, note-descriptions, ownership (labels, helpers)
 ```
 
-> **Note v6.4** : Refonte prix-first de la fiche détail (`app/catalog/[id].tsx`). Le prix est désormais en overlay sur l'image hero (HeroPriceOverlay) et prioritaire dans l'ordre de scroll (prix → pyramide → accords → stats → saisons → similaires). Barre sticky bas (StickyBottomBar) avec prix + favori + garde-robe + CTA, remplaçant les boutons d'action dans le header. Header collapsé (CollapsingHeader) avec marque qui disparaît et nom qui rétrécit au scroll. Doublon cœur/favori supprimé. Badges d'identification + saisons/occasions (top 2) sous l'image. Suppression du comparateur prix magasin. Section prix développée juste après les badges.
+> **Note v6.5** : Migration du pager Reanimated gesture → `react-native-pager-view` natif. Résout les conflits de swipe entre les ScrollView horizontaux (catalogue, pyramide touch) et le swipe inter-pages. Le FAB scan et le DockBar restent en Reanimated. Pyramide olfactive v5 : SVG unifié, touch-based, notes cliquables → `NoteDetailPopup`. Nouveaux écrans `/legal` et `/privacy`. `keyboardAppearance` adaptatif dark/light sur tous les TextInput. Section "Soutenir" dans les paramètres. `normalizeId()` pour les clés Firestore Fragella cohérentes.
 
 ---
 
@@ -168,6 +170,7 @@ src/
 - Cache Firestore automatique via `batchCacheParfums`
 - `fragellaId` = champ `_id` (⚠️ underscore)
 - Auth optionnelle pour les recherches (limité à 5/jour en anonyme, 10/jour connecté)
+- **v6.5** : `normalizeId()` côté serveur pour les clés Firestore cohérentes (underscores au lieu d'espaces). Parsing robuste des réponses API (supporte `{data: [...]}` wrapper). Nouveaux champs mappés : `popularityScore`, `ratingScore`, `country`, `imageUrlTransparent`, `mainAccordsPercentage`, `generalNotes`, `confidence`, `seasonRanking`, `occasionRanking`, `imageFallbacks`.
 
 ---
 

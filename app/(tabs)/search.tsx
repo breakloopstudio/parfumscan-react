@@ -24,8 +24,9 @@ const FAMILIES = [
 ];
 
 export default function SearchScreen() {
-  const { theme } = useTheme();
+  const { theme, resolvedMode } = useTheme();
   const s = useMemo(() => getStyles(theme), [theme]);
+  const keyboardAppearance = resolvedMode === 'dark' ? 'dark' : 'light';
   const router = useRouter();
   const { q: routeQuery } = useLocalSearchParams<{ q?: string }>();
   const initialQuery = routeQuery ?? consumePendingCatalogQuery();
@@ -100,6 +101,7 @@ export default function SearchScreen() {
             autoCapitalize="none"
             autoCorrect={false}
             returnKeyType="search"
+            keyboardAppearance={keyboardAppearance}
           />
           {searchText.length > 0 && (
             <Pressable onPress={() => { setSearchText(''); clear(); setActiveFamily(null); }} hitSlop={8}>

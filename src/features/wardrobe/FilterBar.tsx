@@ -43,8 +43,9 @@ export default function FilterBar({
   onSearchChange,
   onManageShelves,
 }: Props) {
-  const { theme } = useTheme();
+  const { theme, resolvedMode } = useTheme();
   const s = useMemo(() => getStyles(theme), [theme]);
+  const keyboardAppearance = resolvedMode === 'dark' ? 'dark' : 'light';
 
   const currentSortLabel = SORT_OPTIONS.find(o => o.key === activeSort)?.label ?? 'Tri';
 
@@ -76,6 +77,7 @@ export default function FilterBar({
             placeholderTextColor={theme.colors.textMuted}
             value={searchQuery}
             onChangeText={onSearchChange}
+            keyboardAppearance={keyboardAppearance}
           />
         </View>
         <Pressable

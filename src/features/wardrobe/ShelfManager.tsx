@@ -21,8 +21,9 @@ interface Props {
 }
 
 export default function ShelfManager({ visible, shelves, orphanCount, onClose, onCreate, onRename, onDelete }: Props) {
-  const { theme } = useTheme();
+  const { theme, resolvedMode } = useTheme();
   const s = useMemo(() => getStyles(theme), [theme]);
+  const keyboardAppearance = resolvedMode === 'dark' ? 'dark' : 'light';
   const [newName, setNewName] = useState('');
   const [selectedIcon, setSelectedIcon] = useState<string | null>(null);
   const [selectedColor, setSelectedColor] = useState<string | null>(null);
@@ -71,6 +72,7 @@ export default function ShelfManager({ visible, shelves, orphanCount, onClose, o
                     style={s.editInput}
                     value={editName}
                     onChangeText={setEditName}
+                    keyboardAppearance={keyboardAppearance}
                     autoFocus
                     onSubmitEditing={() => {
                       if (editName.trim()) onRename(sh.id, editName.trim());
@@ -111,6 +113,7 @@ export default function ShelfManager({ visible, shelves, orphanCount, onClose, o
             placeholderTextColor={theme.colors.textMuted}
             value={newName}
             onChangeText={setNewName}
+            keyboardAppearance={keyboardAppearance}
           />
 
           <Text style={s.miniLabel}>Icône (optionnelle)</Text>

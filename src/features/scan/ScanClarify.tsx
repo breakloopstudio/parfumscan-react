@@ -16,8 +16,9 @@ interface Props {
 }
 
 export function ScanClarify({ scanResult, reason, onSearch, onReset }: Props) {
-  const { theme } = useTheme();
+  const { theme, resolvedMode } = useTheme();
   const s = useMemo(() => getStyles(theme), [theme]);
+  const keyboardAppearance = resolvedMode === 'dark' ? 'dark' : 'light';
   const [marque, setMarque] = useState(scanResult.marque ?? '');
   const [nom, setNom] = useState(scanResult.nom ?? '');
   const [typeParfum, setTypeParfum] = useState(scanResult.typeParfum ?? '');
@@ -44,9 +45,9 @@ export function ScanClarify({ scanResult, reason, onSearch, onReset }: Props) {
 
       <View style={s.fields}>
         <Text style={s.fieldLabel}>Marque</Text>
-        <TextInput style={s.input} value={marque} onChangeText={setMarque} placeholder={scanResult.marque ?? 'ex: Dior'} placeholderTextColor={theme.colors.textMuted} />
+        <TextInput style={s.input} value={marque} onChangeText={setMarque} placeholder={scanResult.marque ?? 'ex: Dior'} placeholderTextColor={theme.colors.textMuted} keyboardAppearance={keyboardAppearance} />
         <Text style={s.fieldLabel}>Nom du parfum</Text>
-        <TextInput style={s.input} value={nom} onChangeText={setNom} placeholder={scanResult.nom ?? 'ex: Sauvage'} placeholderTextColor={theme.colors.textMuted} />
+        <TextInput style={s.input} value={nom} onChangeText={setNom} placeholder={scanResult.nom ?? 'ex: Sauvage'} placeholderTextColor={theme.colors.textMuted} keyboardAppearance={keyboardAppearance} />
         <Text style={s.fieldLabel}>Type (optionnel)</Text>
         <View style={s.picker}>
           {['', 'Parfum', 'Eau de Parfum', 'Eau de Toilette', 'Extrait', 'Eau de Cologne'].map(t => (
@@ -56,7 +57,7 @@ export function ScanClarify({ scanResult, reason, onSearch, onReset }: Props) {
           ))}
         </View>
         <Text style={s.fieldLabel}>Volume (ml) — optionnel</Text>
-        <TextInput style={s.input} value={volumeMl} onChangeText={setVolumeMl} placeholder={scanResult.volumeMl ? `${scanResult.volumeMl} ml` : 'ex: 100'} placeholderTextColor={theme.colors.textMuted} keyboardType="numeric" />
+        <TextInput style={s.input} value={volumeMl} onChangeText={setVolumeMl} placeholder={scanResult.volumeMl ? `${scanResult.volumeMl} ml` : 'ex: 100'} placeholderTextColor={theme.colors.textMuted} keyboardType="numeric" keyboardAppearance={keyboardAppearance} />
       </View>
 
       <View style={s.chips}>

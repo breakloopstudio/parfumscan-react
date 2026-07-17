@@ -1,4 +1,4 @@
-# ParfumScan React — Environment & Commands (v6.3)
+# ParfumScan React — Environment & Commands (v6.5)
 
 ## Environnement local (Windows)
 | Variable | Valeur |
@@ -85,8 +85,8 @@ npx tsc --noEmit     # vérifier la compilation (0 erreur attendu)
 react-native 0.86.0 · expo ~57 · expo-router ~57
 @react-native-firebase/* ^25 · expo-camera ~57 · expo-image ~57 · expo-splash-screen ~57
 react-native-gesture-handler ~2.32 · react-native-reanimated ~4.5 · react-native-worklets 0.10
-react-native-svg ^15 · @react-native-vector-icons/ionicons ^13
-@react-native-async-storage/async-storage · typescript ~6.0
+react-native-svg ^15 · react-native-pager-view ^8.0 · @react-native-vector-icons/ionicons ^13
+@react-native-async-storage/async-storage · expo-navigation-bar ~57 · expo-system-ui ~57 · typescript ~6.0
 
 ## Docs
 Expo SDK 57: https://docs.expo.dev/versions/v57.0.0/

@@ -1,24 +1,23 @@
 // app/(tabs)/index.tsx — Pager horizontal 4 pages (Catalogue, Favoris, Historique, Collection)
-// Dock flottant 5 positions + FAB scan avec indicateur dore
-// Barre de recherche persistante synchronisee avec le dock
-// Swipe gesture-driven avec Reanimated + animations d'interpolation
+// Dock flottant 5 positions + FAB scan avec indicateur doré
+// Barre de recherche persistante synchronisée avec le dock
+// Utilise react-native-pager-view pour la gestion native des conflits de swipe
+// (les ScrollView horizontaux dans les pages n'entrent plus en conflit avec le swipe du pager)
 
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { View, Text, Pressable, useWindowDimensions, StyleSheet, type ViewStyle } from 'react-native';
 import { useRouter, useFocusEffect } from 'expo-router';
 import Ionicons from '@react-native-vector-icons/ionicons/static';
 import { BlurView } from 'expo-blur';
-import { Gesture, GestureDetector } from 'react-native-gesture-handler';
 import Animated, {
   useSharedValue,
   useAnimatedStyle,
   useAnimatedReaction,
-  withSpring,
   withTiming,
   Easing,
-  runOnJS,
 } from 'react-native-reanimated';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import PagerView from 'react-native-pager-view';
 import { useTheme, type Theme } from '../../src/theme/ThemeContext';
 import { hapticsLight } from '../../src/services/haptics';
 import { consumePendingParfum, setPendingParfum } from '../../src/services/catalog-bridge';
@@ -28,10 +27,7 @@ import HistoryPage from './history';
 import CollectionPage from './collection';
 import DockBar from '../../src/features/navigation/DockBar';
 
-const SPRING = { damping: 28, stiffness: 300, mass: 0.8 };
 const DOCK_DURATION = 200;
-const MIN_THRESHOLD = 40;
-const THRESHOLD_RATIO = 0.5;
 const PAGES = 4;
 const SCROLL_HIDE_OFFSET = 60;
 
@@ -39,9 +35,9 @@ export default function TabPager() {
   const { theme, resolvedMode } = useTheme();
   const { width: windowWidth } = useWindowDimensions();
   const router = useRouter();
+  const pagerRef = useRef<PagerView>(null);
 
   const pageWidth = useSharedValue(windowWidth || 400);
-  const translateX = useSharedValue(0);
   const currentPage = useSharedValue(0);
   const [activePage, setActivePage] = useState(0);
 
@@ -68,7 +64,6 @@ export default function TabPager() {
   useEffect(() => {
     if (windowWidth > 0) {
       pageWidth.value = windowWidth;
-      translateX.value = -currentPage.value * windowWidth;
     }
   }, [windowWidth]);
 
@@ -93,11 +88,16 @@ export default function TabPager() {
     setSheetOpen(visible);
   }, []);
 
-  const goTo = useCallback((p: number) => {
-    'worklet';
+  const handlePageSelected = useCallback((e: { nativeEvent: { position: number } }) => {
+    const p = e.nativeEvent.position;
     currentPage.value = p;
-    runOnJS(setActivePage)(p);
-    translateX.value = withSpring(-p * pageWidth.value, SPRING);
+    setActivePage(p);
+  }, []);
+
+  const goTo = useCallback((p: number) => {
+    pagerRef.current?.setPage(p);
+    currentPage.value = p;
+    setActivePage(p);
     scrollY.value = 0;
     dockTranslateY.value = withTiming(0, { duration: DOCK_DURATION, easing: Easing.out(Easing.cubic) });
     searchBarTranslateY.value = withTiming(0, { duration: DOCK_DURATION, easing: Easing.out(Easing.cubic) });
@@ -109,56 +109,7 @@ export default function TabPager() {
     hapticsLight();
     const pagerIndex = dockIndex < 2 ? dockIndex : dockIndex - 1;
     goTo(pagerIndex);
-  }, []);
-
-  const gesture = useMemo(() => Gesture.Pan()
-    .activeOffsetX([-15, 15])
-    .failOffsetY([-15, 15])
-    .onUpdate((e) => {
-      const base = -currentPage.value * pageWidth.value;
-      const dest = base + e.translationX;
-      const leftLimit = 0;
-      const rightLimit = -(PAGES - 1) * pageWidth.value;
-      const DAMPING = 0.3;
-      if (dest > leftLimit) {
-        translateX.value = leftLimit + (dest - leftLimit) * DAMPING;
-      } else if (dest < rightLimit) {
-        translateX.value = rightLimit + (dest - rightLimit) * DAMPING;
-      } else {
-        translateX.value = dest;
-      }
-    })
-    .onEnd((e) => {
-      const swipedRight = e.translationX > 0;
-      const threshold = Math.max(pageWidth.value * THRESHOLD_RATIO, MIN_THRESHOLD);
-      if (Math.abs(e.translationX) > threshold || Math.abs(e.velocityX) > 500) {
-        let target = currentPage.value;
-        if (swipedRight && currentPage.value > 0) target = currentPage.value - 1;
-        else if (!swipedRight && currentPage.value < PAGES - 1) target = currentPage.value + 1;
-        if (target !== currentPage.value) {
-          goTo(target);
-        } else {
-          translateX.value = withSpring(-currentPage.value * pageWidth.value, SPRING);
-        }
-      } else {
-        translateX.value = withSpring(-currentPage.value * pageWidth.value, SPRING);
-      }
-    }), []);
-
-  const makePageStyle = (pageIdx: number) => useAnimatedStyle(() => {
-    const x = translateX.value + pageIdx * pageWidth.value;
-    const w = pageWidth.value;
-    const progress = Math.max(-1, Math.min(1, 1 - Math.abs(x) / w));
-    return {
-      transform: [{ translateX: x }, { scale: 0.94 + progress * 0.06 }],
-      opacity: Math.max(0, progress),
-    };
-  });
-
-  const catStyle = makePageStyle(0);
-  const favStyle = makePageStyle(1);
-  const histStyle = makePageStyle(2);
-  const colStyle = makePageStyle(3);
+  }, [goTo]);
 
   const searchBarAnimatedStyle = useAnimatedStyle(() => {
     const t = searchBarTranslateY.value;
@@ -197,30 +148,35 @@ export default function TabPager() {
         </Pressable>
       </Animated.View>
 
-      <GestureDetector gesture={gesture}>
-        <View style={s.pager}>
-          <Animated.View style={[s.page, catStyle]}>
-            <CatalogPage onScroll={handlePageScroll} />
-          </Animated.View>
-          <Animated.View style={[s.page, favStyle]}>
-            <FavoritesPage onScroll={handlePageScroll} />
-          </Animated.View>
-          <Animated.View style={[s.page, histStyle]}>
-            <HistoryPage onScroll={handlePageScroll} />
-          </Animated.View>
-          <Animated.View style={[s.page, colStyle]}>
-            <CollectionPage onScroll={handlePageScroll} onSheetOpen={handleSheetOpen} />
-          </Animated.View>
+      <PagerView
+        ref={pagerRef}
+        style={s.pager}
+        initialPage={0}
+        scrollEnabled={!sheetOpen}
+        offscreenPageLimit={PAGES - 1}
+        onPageSelected={handlePageSelected}
+      >
+        <View key="0" style={s.page}>
+          <CatalogPage onScroll={handlePageScroll} />
         </View>
-      </GestureDetector>
+        <View key="1" style={s.page}>
+          <FavoritesPage onScroll={handlePageScroll} />
+        </View>
+        <View key="2" style={s.page}>
+          <HistoryPage onScroll={handlePageScroll} />
+        </View>
+        <View key="3" style={s.page}>
+          <CollectionPage onScroll={handlePageScroll} onSheetOpen={handleSheetOpen} />
+        </View>
+      </PagerView>
 
       <Animated.View style={dockFadeStyle} pointerEvents={sheetOpen ? 'none' : 'box-none'}>
         <DockBar
-        activeIndex={dockActiveIndex}
-        pageWidth={pageWidth}
-        dockTranslateY={dockTranslateY}
-        onTabPress={onTabPress}
-      />
+          activeIndex={dockActiveIndex}
+          pageWidth={pageWidth}
+          dockTranslateY={dockTranslateY}
+          onTabPress={onTabPress}
+        />
       </Animated.View>
     </SafeAreaView>
   );
@@ -228,8 +184,8 @@ export default function TabPager() {
 
 const s = StyleSheet.create({
   root: { flex: 1 },
-  pager: { flex: 1, overflow: 'hidden' },
-  page: { position: 'absolute', top: 0, left: 0, right: 0, bottom: 0 },
+  pager: { flex: 1 },
+  page: { flex: 1 },
 });
 
 function getSearchStyles(t: Theme) {

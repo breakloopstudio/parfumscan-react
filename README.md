@@ -22,16 +22,17 @@
 | 📸 **Scan intelligent** | Burst 3 photos → GPT-4o Vision (adaptatif : 70% en 1 appel, 30% en cross-ref 2 photos) → API Fragella |
 | 🖼️ **Import galerie** | Photo existante → même pipeline IA, sans permissions supplémentaires |
 | 📚 **Catalogue** | Recherche cache-first (Firestore → Fragella), navigation par famille olfactive, tri (prix/pertinence), suggestions personnalisées |
-| 🗂️ **Garde-robe** | Parfums possédés/souhaités/échantillons/décants, étagères custom, parfum signature (max 3) |
+| 🗂️ **Garde-robe** | Parfums possédés/souhaités/échantillons/décants, étagères custom, parfum signature (max 3), SOTD compact |
 | 🧪 **Décants & échantillons** | Tailles dédiées 2–30ml, distinctes des formats full-size (30–200ml) |
 | ⭐ **Wishlist** | Parfums à acheter, alertes prix |
 | ❤️ **Favoris** | Coups de cœur, sans obligation d'achat |
 | ⚙️ **Paramètres** | Alertes prix, devise EUR, notifs push, mentions légales |
-| 🧠 **Fiche détail** | Hub d'actions (3 boutons), PriceDisplay animé, tendance prix, comparateur magasin vs ligne, pyramide olfactive |
+| 🧠 **Fiche détail** | Hub d'actions (3 boutons), HeroPriceOverlay, CollapsingHeader, StickyBottomBar, pyramide olfactive v5 interactive, note detail popup |
 | 🚀 **Onboarding** | 3 slides au premier lancement, swipe navigation, sans auth (⏸️ désactivé temporairement) |
 | 🔐 **Auth optionnelle** | App utilisable sans compte, login demandé uniquement quand nécessaire |
 | 📴 **Mode hors-ligne** | Bannière réseau, contenu dégradé via cache Firestore local |
-| 🌓 **Dark Mode** | 3 modes (système/clair/sombre), persistance AsyncStorage, accessible sans authentification, palette « Luxe profond » |
+| 🌓 **Dark Mode** | 3 modes (système/clair/sombre), persistance AsyncStorage, SystemUI + NavigationBar theming, keyboardAppearance adaptatif |
+| ⚖️ **Légal** | Mentions légales, politique de confidentialité, section soutien (à venir) |
 
 ---
 
@@ -41,7 +42,7 @@
 |---|---|
 | **Frontend** | React Native 0.86, Expo SDK 57, Expo Router 57 |
 | **Langage** | TypeScript 6.0 (strict) |
-| **Navigation** | Expo Router (file-based) + Reanimated pager |
+| **Navigation** | Expo Router (file-based) + react-native-pager-view (native pan) |
 | **Animations** | React Native Reanimated 4, Gesture Handler 2, react-native-svg |
 | **Backend** | Firebase Auth, Firestore, Storage, Cloud Functions (europe-west1) |
 | **IA** | GPT-4o Vision (analyse photo), Fragella API (catalogue) |
@@ -128,7 +129,7 @@ app/
 ├── index.tsx                 # Splash → redirection
 ├── (tabs)/
 │   ├── _layout.tsx           # Stack (pages sur le pager)
-│   ├── index.tsx             # TabPager Reanimated 4 pages + DockBar flottant
+│   ├── index.tsx             # TabPager PagerView 4 pages + DockBar flottant + barre de recherche persistante
 │   ├── favorites.tsx         # Favoris (page standalone)
 │   ├── history.tsx           # Historique des scans
 │   ├── collection.tsx        # Garde-robe (grid, étagères, SOTD, parfum signature)
@@ -137,29 +138,31 @@ app/
 ├── auth/
 │   ├── login.tsx             # Connexion email + Google
 │   └── register.tsx          # Inscription
-├── catalog/[id].tsx          # Détail enrichi : PriceDisplay, 3 boutons, tendance prix, pyramide, accords, saisons, occasions
+├── catalog/[id].tsx          # Détail enrichi : HeroPriceOverlay, CollapsingHeader, StickyBottomBar, pyramide v5, accords, saisons
 ├── wardrobe/[parfumId].tsx    # Fiche personnelle (notes, notes, SOTD, étagères, signature)
-├── settings.tsx              # Paramètres : alertes prix, devise, apparence, déconnexion
+├── settings.tsx              # Paramètres : alertes prix, apparence, soutien, mentions légales, confidentialité
+├── legal.tsx                 # Mentions légales
+├── privacy.tsx               # Politique de confidentialité
 ├── onboarding.tsx            # 3 slides swipe + AsyncStorage (⏸️ désactivé temporairement)
 └── admin.tsx                 # Administration (seed + reset cache + upload)
 
 src/
-├── services/     (11)        # Firebase, Firestore (upsert intelligent), Fragella, GPT-4o, user-data, wardrobe, theme-storage…
+├── services/     (12)        # Firebase, Firestore (upsert intelligent), Fragella, GPT-4o, user-data, wardrobe, theme-storage…
 ├── hooks/        (11)        # useAuth, useScanReducer, useCatalog, useFavoris, useCollection, useWishlist, useScans, useWardrobe, useShelves, useSotd, useNetwork
 ├── contexts/     (1)         # AuthContext (ThemeContext est dans src/theme/)
-├── components/   (10)        # ParfumCard, Button, PriceDisplay, SectionHeader, EmptyState, OfflineBanner, AlertPriceToggle, AppLoader, ErrorBoundary, ProfileAvatar
-├── theme/        (2)         # theme.ts (double palette light/dark), ThemeContext.tsx
+├── components/   (11)        # ParfumCard, Button, PriceDisplay, SectionHeader, EmptyState, OfflineBanner, AlertPriceToggle, AppLoader, ErrorBoundary, ProfileAvatar, NoteDetailPopup
+├── theme/        (2)         # theme.ts (double palette light/dark), ThemeContext.tsx (SystemUI + NavigationBar theming)
 ├── features/
 │   ├── scan/     (8)         # ScanScreen + 7 sous-états
-│   ├── catalog/  (2)         # CatalogPage (navigation par famille + tri), OlfactoryPyramid
-│   ├── wardrobe/ (9)         # WardrobeAddSheet, WardrobeCard, WardrobeGrid, WardrobeQuickSheet, SOTDCard, SOTDPicker, FilterBar, StarRating, ShelfManager
+│   ├── catalog/  (5)         # CatalogPage, OlfactoryPyramid v5 (SVG unifié, touch, onNotePress), HeroPriceOverlay, CollapsingHeader, StickyBottomBar
+│   ├── wardrobe/ (9)         # WardrobeAddSheet, WardrobeCard, WardrobeGrid, WardrobeQuickSheet, SOTDCard (compact redesign), SOTDPicker, FilterBar, StarRating, ShelfManager
 │   └── navigation/ (1)       # DockBar (barre flottante 5 positions + FAB, indicateur doré, pulse ring, show/hide)
 ├── models/       (8)         # Parfum, WardrobeItem, Shelf, SotdEntry, UserFavori, UserScan, UserCollectionItem, UserWishlistItem
 ├── config/       (3)         # Firebase config, env, index
-└── utils/        (3)         # Error translator, translate-note, ownership (labels)
+└── utils/        (4)         # Error translator, translate-note, note-descriptions, ownership (labels)
 
 functions/                    # Cloud Functions Firebase
-├── src/index.ts              # Analyse GPT-4o Vision
+├── src/index.ts              # Analyse GPT-4o Vision + Fragella proxy (normalizeId, nouveaux champs)
 └── lib/                      # Build JavaScript
 ```
 
@@ -189,7 +192,7 @@ Import galerie : expo-image-picker → 1 photo → pipeline burst (single-photo 
 La page `app/catalog/[id].tsx` affiche les métadonnées de l'API Fragella :
 - Longévité & Sillage (jauges visuelles avec labels)
 - Prix, réduction, lien affilié
-- Pyramide olfactive (timeline interactive avec mini-pyramide 3 triangles superposes vert/ambre/violet 50x36px, pastilles differenciees ○/●/◆, accordeon exclusif Reanimated, coeur ouvert par defaut, traduite FR)
+- Pyramide olfactive v5 (SVG unifié interactif au touch, légende 3 boutons avec compteurs, notes cliquables → popup détail)
 - Accords principaux (barres triees par score decroissant - traduits en francais)
 - Saisonnalite
 - Occasions
@@ -279,6 +282,18 @@ dénormalisés → affichage direct sans appel API Firestore ni Fragella.
 - **0 fontWeight** : migration complète de tout le code vers `fontFamily`
 - **Firebase modular API** : migration namespaced → modular (v25+)
 - **Onboarding** : 3 slides swipe au 1er lancement, AsyncStorage `@parfumscan_onboarding_done` (⏸️ désactivé temporairement)
+
+## v6.5 — PagerView natif + Pyramide v5 + Dark mode system (18/07/2026)
+
+- **Pager natif** : `react-native-pager-view` remplace le swipe gesture Reanimated — résout les conflits de scroll horizontal (ScrollView, pyramide touch). Swipe inter-pages natif, `scrollEnabled={!sheetOpen}` pour éviter les conflits avec les bottom sheets.
+- **OlfactoryPyramid v5** : SVG unifié (triangle complet), touch-based (tap sur le triangle pour sélectionner une couche), design premium avec dégradé d'opacité. Nouvelle props `onNotePress` → ouvre `NoteDetailPopup`. Suppression des animations par couche (entry/scale/pulse).
+- **NoteDetailPopup** : nouveau composant affichant le détail d'une note olfactive (nom, description, couche). Utilise `src/utils/note-descriptions.ts` pour les descriptions.
+- **SOTDCard compact** : redesign complet — miniature 26×26, icône soleil inline, label "SOTD" pill, boutons icônes (swap/add) remplaçant les boutons texte "Changer"/"Choisir". Intégration plus discrète au-dessus de la grille.
+- **Dark mode system UI** : `expo-system-ui` pour le fond d'écran, `expo-navigation-bar` pour la barre Android (suit le thème). Tous les `TextInput` reçoivent `keyboardAppearance` basé sur `resolvedMode`.
+- **Settings "Soutenir"** : section don (cœur + description + bouton désactivé "Bientôt disponible"). Routes `/legal` et `/privacy` fonctionnelles (nouveaux écrans `legal.tsx`, `privacy.tsx`).
+- **Fragella API** : `normalizeId()` côté serveur (Firestore doc keys cohérentes), parsing robuste des réponses (supporte `{data: [...]}` wrapper), nouveaux champs : `popularityScore`, `ratingScore`, `country`, `imageUrlTransparent`, `mainAccordsPercentage`, `generalNotes`, `confidence`, `seasonRanking`, `occasionRanking`, `imageFallbacks`.
+- **Bug fixes** : NaN dans les tris rating, couleurs de fond derrière les images ParfumCard, positions badge note/signature inversées sur WardrobeCard, `contentStyle.backgroundColor` sur tous les écrans Stack, `key={resolvedMode}` sur WardrobeGrid pour re-render au changement de thème.
+- **Deps** : `react-native-pager-view ^8.0.2`, `expo-navigation-bar ~57`, `expo-system-ui ~57`
 
 ## v6.4 — Refonte fiche détail prix-first (17/07/2026)
 

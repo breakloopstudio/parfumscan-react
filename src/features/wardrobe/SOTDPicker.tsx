@@ -18,8 +18,9 @@ interface Props {
 }
 
 export default function SOTDPicker({ visible, haveItems, currentSotdId, onSelect, onClose }: Props) {
-  const { theme } = useTheme();
+  const { theme, resolvedMode } = useTheme();
   const s = useMemo(() => getStyles(theme), [theme]);
+  const keyboardAppearance = resolvedMode === 'dark' ? 'dark' : 'light';
   const [query, setQuery] = useState('');
   const translateY = useSharedValue(400);
 
@@ -49,6 +50,7 @@ export default function SOTDPicker({ visible, haveItems, currentSotdId, onSelect
             placeholderTextColor={theme.colors.textMuted}
             value={query}
             onChangeText={setQuery}
+            keyboardAppearance={keyboardAppearance}
           />
         </View>
 

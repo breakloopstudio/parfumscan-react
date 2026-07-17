@@ -50,7 +50,7 @@ function RootLayoutInner() {
       <AuthProvider>
         <AuthGuard>
           <ErrorBoundary>
-          <Stack screenOptions={{ headerShown: false }}>
+          <Stack screenOptions={{ headerShown: false, contentStyle: { backgroundColor: theme.colors.background } }}>
             <Stack.Screen name="(tabs)" />
             <Stack.Screen name="auth/login" options={{ animation: 'fade' }} />
             <Stack.Screen name="auth/register" options={{ animation: 'fade' }} />

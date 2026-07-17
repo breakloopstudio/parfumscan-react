@@ -1,24 +1,18 @@
-﻿// src/features/catalog/OlfactoryPyramid.tsx — Pyramide olfactive v4 (SVG, vrai triangle)
+﻿// src/features/catalog/OlfactoryPyramid.tsx — Pyramide olfactive v5 (SVG unifié, design premium)
 
 import { useState, useEffect, useMemo } from 'react';
-import { View, Text, Pressable } from 'react-native';
+import { View, Text, Pressable, useWindowDimensions } from 'react-native';
 import Svg, { Polygon, G } from 'react-native-svg';
-import Animated, {
-  useSharedValue,
-  useAnimatedStyle,
-  withTiming,
-  withSequence,
-  withDelay,
-  withSpring,
-  withRepeat,
-} from 'react-native-reanimated';
+import Animated, { useSharedValue, useAnimatedStyle, withTiming } from 'react-native-reanimated';
 import { useTheme, type Theme } from '../../theme/ThemeContext';
 import { translateNote } from '../../utils/translate-note';
+import { hapticsLight } from '../../services/haptics';
 
 interface Props {
   topNotes: string[];
   heartNotes: string[];
   baseNotes: string[];
+  onNotePress?: (note: string) => void;
 }
 
 type LayerKey = 'top' | 'heart' | 'base';
@@ -32,227 +26,228 @@ interface LayerDef {
   ink: string;
 }
 
-const TRI_W = 180;
-const TRI_H = 156;
-const CONTAINER_TOP = 22;
-
-function bandPoints(k: number, N: number, bandH: number): string {
-  const hw0 = TRI_W / 2 * k / N;
-  const hw1 = TRI_W / 2 * (k + 1) / N;
-  const cx = TRI_W / 2;
-  return [
-    `${cx - hw0},0`,
-    `${cx + hw0},0`,
-    `${cx + hw1},${bandH}`,
-    `${cx - hw1},${bandH}`,
-  ].join(' ');
+interface Geo {
+  w: number;
+  h: number;
+  bh: number;
+  cx: number;
+  outline: string;
+  bandPoly(k: number): string;
 }
 
-export default function OlfactoryPyramid({ topNotes, heartNotes, baseNotes }: Props) {
+export default function OlfactoryPyramid({ topNotes, heartNotes, baseNotes, onNotePress }: Props) {
   const { theme } = useTheme();
-  const colors = theme.colors;
-  const [activeLayer, setActiveLayer] = useState<LayerKey | null>('heart');
+  const c = theme.colors;
+  const { width: screenWidth } = useWindowDimensions();
 
-  const layers: LayerDef[] = useMemo(() => [
-    { key: 'base' as LayerKey, label: 'Fond', notes: baseNotes, color: colors.pyramidBase, soft: colors.pyramidBaseSoft, ink: colors.pyramidBaseInk },
-    { key: 'heart' as LayerKey, label: 'Cœur', notes: heartNotes, color: colors.pyramidHeart, soft: colors.pyramidHeartSoft, ink: colors.pyramidHeartInk },
-    { key: 'top' as LayerKey, label: 'Tête', notes: topNotes, color: colors.pyramidTop, soft: colors.pyramidTopSoft, ink: colors.pyramidTopInk },
-  ].filter(l => l.notes.length > 0), [baseNotes, heartNotes, topNotes, colors]);
+  const layers: LayerDef[] = useMemo(
+    () => [
+      { key: 'top', label: 'Tête', notes: topNotes, color: c.pyramidTop, soft: c.pyramidTopSoft, ink: c.pyramidTopInk },
+      { key: 'heart', label: 'Cœur', notes: heartNotes, color: c.pyramidHeart, soft: c.pyramidHeartSoft, ink: c.pyramidHeartInk },
+      { key: 'base', label: 'Fond', notes: baseNotes, color: c.pyramidBase, soft: c.pyramidBaseSoft, ink: c.pyramidBaseInk },
+    ],
+    [topNotes, heartNotes, baseNotes, c],
+  );
 
-  const entryScales = [useSharedValue(0), useSharedValue(0), useSharedValue(0)];
-  const activeScales = [useSharedValue(1), useSharedValue(1), useSharedValue(1)];
-  const activeOpacities = [useSharedValue(0.3), useSharedValue(0.3), useSharedValue(0.3)];
-  const pulseAnims = [useSharedValue(1), useSharedValue(1), useSharedValue(1)];
+  const geo: Geo = useMemo(() => {
+    const w = Math.min(270, screenWidth - 60);
+    const h = Math.round(w * 0.85);
+    const bh = h / 3;
+    const cx = w / 2;
+    const outline = `${cx},0 0,${h} ${w},${h}`;
+    const bandPoly = (k: number) => {
+      const y0 = k * bh;
+      const y1 = (k + 1) * bh;
+      const w0 = w * k / 3;
+      const w1 = w * (k + 1) / 3;
+      return `${cx - w0 / 2},${y0} ${cx + w0 / 2},${y0} ${cx + w1 / 2},${y1} ${cx - w1 / 2},${y1}`;
+    };
+    return { w, h, bh, cx, outline, bandPoly };
+  }, [screenWidth]);
 
+  const [active, setActive] = useState<LayerKey | null>('heart');
+
+  const entryOpacity = useSharedValue(0);
   useEffect(() => {
-    entryScales.forEach((sv, i) => {
-      sv.value = withDelay(i * 140, withSequence(
-        withTiming(1.08, { duration: 180 }),
-        withTiming(1, { duration: 240 }),
-      ));
-    });
+    entryOpacity.value = withTiming(1, { duration: 500 });
   }, []);
 
-  useEffect(() => {
-    layers.forEach((layer, i) => {
-      const isActive = activeLayer === layer.key;
-      activeScales[i].value = withSpring(isActive ? 1.04 : 1, { damping: 14, stiffness: 160 });
-      activeOpacities[i].value = withTiming(isActive ? 1 : 0.3, { duration: 280 });
-    });
-  }, [activeLayer, layers]);
+  const fadeIn = useAnimatedStyle(() => ({ opacity: entryOpacity.value }));
 
-  useEffect(() => {
-    layers.forEach((layer, i) => {
-      const isActive = activeLayer === layer.key;
-      if (isActive) {
-        pulseAnims[i].value = withRepeat(
-          withSequence(
-            withTiming(0.93, { duration: 1600 }),
-            withTiming(1, { duration: 1600 }),
-          ),
-          -1,
-          true,
-        );
-      } else {
-        pulseAnims[i].value = withTiming(1, { duration: 250 });
-      }
-    });
-  }, [activeLayer, layers]);
+  const hasAnyNotes = layers.some(l => l.notes.length > 0);
+  if (!hasAnyNotes) return null;
 
-  const animatedStyles = [
-    useAnimatedStyle(() => ({
-      transform: [{ scale: entryScales[0].value * activeScales[0].value }],
-      opacity: activeOpacities[0].value * pulseAnims[0].value,
-    })),
-    useAnimatedStyle(() => ({
-      transform: [{ scale: entryScales[1].value * activeScales[1].value }],
-      opacity: activeOpacities[1].value * pulseAnims[1].value,
-    })),
-    useAnimatedStyle(() => ({
-      transform: [{ scale: entryScales[2].value * activeScales[2].value }],
-      opacity: activeOpacities[2].value * pulseAnims[2].value,
-    })),
-  ];
-
-  const s = useMemo(() => getStyles(theme), [theme]);
-  const N = layers.length;
-  const bandH = N > 0 ? TRI_H / N : 0;
-
-  if (N === 0) return null;
-
-  const activeDef = activeLayer ? layers.find(l => l.key === activeLayer) : null;
+  const s = getStyles(theme);
 
   return (
-    <View style={s.root}>
+    <Animated.View style={[s.root, fadeIn]}>
       <Text style={s.title}>Pyramide olfactive</Text>
-      <Text style={s.subtitle}>Découvrez son évolution sur la peau</Text>
+      <Text style={s.subtitle}>Touchez une section pour explorer les notes</Text>
 
-      <View style={s.triangleStage}>
-        <View style={s.pyramid}>
-          {layers.map((layer, i) => {
-            const bandIdx = N - 1 - i;
-            const points = bandPoints(bandIdx, N, bandH);
-            const bandTop = CONTAINER_TOP + bandIdx * bandH;
+      <Pressable
+        onPress={(e) => {
+          const { locationX, locationY } = e.nativeEvent;
+          if (locationY == null || locationX == null) return;
+          if (locationY < 0 || locationY > geo.h) return;
+          const halfW = (geo.w / 2) * (locationY / geo.h);
+          if (Math.abs(locationX - geo.cx) > halfW) return;
+          const idx = Math.min(2, Math.floor(locationY / geo.bh));
+          const key = layers[idx]?.key;
+          if (key) setActive(prev => (prev === key ? null : key));
+        }}
+        style={s.triangleStage}
+      >
+        <View pointerEvents="none">
+          <Svg width={geo.w} height={geo.h} viewBox={`0 0 ${geo.w} ${geo.h}`}>
+            <Polygon points={geo.outline} fill={c.text} opacity={0.04} transform="translate(0, 3)" />
 
-            return (
-              <Animated.View
-                key={`vis-${layer.key}`}
-                style={[
-                  { width: TRI_W, height: bandH, marginTop: bandIdx === 0 ? CONTAINER_TOP : 0 },
-                  animatedStyles[i],
-                ]}
-              >
-                <Svg width={TRI_W} height={bandH} viewBox={`0 0 ${TRI_W} ${bandH}`}>
-                  <G onPress={() => setActiveLayer(prev => prev === layer.key ? null : layer.key)}>
-                    <Polygon points={points} fill={layer.color} />
-                  </G>
-                </Svg>
-              </Animated.View>
-            );
-          })}
+            {layers.map((layer, i) => {
+              const hasActive = active !== null;
+              const isActive = active === layer.key;
+              const isDimmed = hasActive && !isActive;
+              const fill = isActive ? layer.color : isDimmed ? layer.soft : layer.color;
+              const alpha = isActive ? 1 : isDimmed ? 0.38 : 0.88;
+
+              return (
+                <G key={layer.key}>
+                  <Polygon points={geo.bandPoly(i)} fill={fill} opacity={alpha} />
+                </G>
+              );
+            })}
+
+            <Polygon
+              points={geo.outline}
+              fill="none"
+              stroke={c.border}
+              strokeWidth={2}
+              strokeLinejoin="round"
+            />
+          </Svg>
         </View>
+      </Pressable>
 
-        {activeDef && (
-          <View style={[s.activeBadge, { backgroundColor: activeDef.soft }]}>
-            <Text style={[s.activeBadgeText, { color: activeDef.ink }]}>
-              Notes de {activeDef.label.toLowerCase()}
-            </Text>
-          </View>
-        )}
-      </View>
-
-      <View style={s.selector}>
+      {/* Légende interactive */}
+      <View style={s.legend}>
         {layers.map(layer => {
-          const isActive = activeLayer === layer.key;
+          const isActive = active === layer.key;
           return (
             <Pressable
               key={layer.key}
-              style={[s.selectorBtn, isActive && { backgroundColor: layer.soft, borderColor: layer.color }]}
-              onPress={() => setActiveLayer(prev => prev === layer.key ? null : layer.key)}
+              style={[
+                s.legendItem,
+                isActive && { backgroundColor: layer.soft, borderColor: layer.color },
+              ]}
+              onPress={() => setActive(prev => (prev === layer.key ? null : layer.key))}
             >
-              <View style={[s.selectorDot, { backgroundColor: layer.color }]} />
-              <Text style={[s.selectorLabel, isActive && { color: layer.ink, fontFamily: 'Inter_700Bold' }]}>
+              <View style={[s.legendDot, { backgroundColor: layer.color }]} />
+              <Text
+                style={[
+                  s.legendLabel,
+                  isActive && { color: layer.ink, fontFamily: 'Inter_700Bold' },
+                ]}
+              >
                 {layer.label}
               </Text>
-              <Text style={[s.selectorCount, { color: layer.ink, backgroundColor: layer.soft }]}>
-                {layer.notes.length}
-              </Text>
+              <View
+                style={[
+                  s.legendCount,
+                  { backgroundColor: isActive ? layer.color : layer.soft },
+                ]}
+              >
+                <Text
+                  style={[
+                    s.legendCountText,
+                    { color: isActive ? '#FFFFFF' : layer.ink },
+                  ]}
+                >
+                  {layer.notes.length}
+                </Text>
+              </View>
             </Pressable>
           );
         })}
       </View>
 
-      {activeLayer && (() => {
-        const layer = layers.find(l => l.key === activeLayer);
-        if (!layer) return null;
-        return (
-          <View style={[s.notesWrap, { backgroundColor: layer.soft }]}>
-            {layer.notes.map((note, idx) => (
-              <View key={`${layer.key}-${idx}`} style={[s.chip, { backgroundColor: layer.color }]}>
-                <Text style={s.chipText}>{translateNote(note)}</Text>
+      {/* Notes de la couche active */}
+      {active &&
+        (() => {
+          const layer = layers.find(l => l.key === active);
+          if (!layer) return null;
+          if (layer.notes.length === 0) {
+            return (
+              <View style={[s.notesWrap, { backgroundColor: layer.soft }]}>
+                <Text style={[s.emptyText, { color: layer.ink }]}>
+                  Aucune note de {layer.label.toLowerCase()} renseignée
+                </Text>
               </View>
-            ))}
-          </View>
-        );
-      })()}
-    </View>
+            );
+          }
+          return (
+            <View style={[s.notesWrap, { backgroundColor: layer.soft }]}>
+              <Text style={[s.notesLabel, { color: layer.ink }]}>
+                Notes de {layer.label.toLowerCase()}
+              </Text>
+              <View style={s.chipRow}>
+                {layer.notes.map((note, idx) => (
+                  <Pressable
+                    key={`${layer.key}-${idx}`}
+                    style={({ pressed }) => [
+                      s.chip,
+                      { backgroundColor: layer.color },
+                      pressed && { opacity: 0.75, transform: [{ scale: 0.96 }] },
+                    ]}
+                    onPress={() => {
+                      hapticsLight();
+                      onNotePress?.(note);
+                    }}
+                  >
+                    <Text style={s.chipText}>{translateNote(note)}</Text>
+                  </Pressable>
+                ))}
+              </View>
+            </View>
+          );
+        })()}
+    </Animated.View>
   );
 }
 
 function getStyles(t: Theme) {
   const c = t.colors;
   return {
-    root: { marginTop: 24, marginBottom: 4, alignItems: 'center' },
+    root: { marginTop: 24, marginBottom: 4, alignItems: 'center' as const },
     title: { fontFamily: 'PlayfairDisplay_600SemiBold', fontSize: 15, color: c.text, marginBottom: 2 },
-    subtitle: { fontFamily: 'Inter_400Regular', fontSize: 12, color: c.textMuted, marginBottom: 20 },
-    triangleStage: {
-      alignItems: 'center',
-      marginBottom: 16,
-    },
-    pyramid: {
-      width: TRI_W,
-    },
-    activeBadge: {
-      marginTop: 10,
-      paddingHorizontal: 12,
-      paddingVertical: 4,
-      borderRadius: 10,
-    },
-    activeBadgeText: {
-      fontFamily: 'Inter_600SemiBold',
-      fontSize: 11,
-      letterSpacing: 0.3,
-    },
-    selector: {
-      flexDirection: 'row',
-      gap: 8,
-      marginBottom: 12,
-    },
-    selectorBtn: {
-      flexDirection: 'row',
-      alignItems: 'center',
+    subtitle: { fontFamily: 'Inter_400Regular', fontSize: 12, color: c.textMuted, marginBottom: 22 },
+    triangleStage: { alignItems: 'center' as const, marginBottom: 18 },
+    legend: { flexDirection: 'row' as const, gap: 8, marginBottom: 14, width: '100%' as const },
+    legendItem: {
+      flex: 1,
+      flexDirection: 'row' as const,
+      alignItems: 'center' as const,
+      justifyContent: 'center' as const,
       gap: 6,
-      paddingHorizontal: 14,
-      paddingVertical: 8,
-      borderRadius: 20,
-      backgroundColor: c.surface2,
-      borderWidth: 1,
+      paddingVertical: 10,
+      paddingHorizontal: 8,
+      borderRadius: t.radius.base,
+      borderWidth: 1.5,
       borderColor: 'transparent',
+      backgroundColor: c.surface2,
     },
-    selectorDot: { width: 8, height: 8, borderRadius: 4 },
-    selectorLabel: { fontFamily: 'Inter_500Medium', fontSize: 13, color: c.textMuted },
-    selectorCount: { fontFamily: 'Inter_700Bold', fontSize: 11, paddingHorizontal: 6, paddingVertical: 2, borderRadius: 8, overflow: 'hidden' },
+    legendDot: { width: 10, height: 10, borderRadius: 5 },
+    legendLabel: { fontFamily: 'Inter_500Medium', fontSize: 13, color: c.textMuted },
+    legendCount: { minWidth: 22, paddingHorizontal: 7, paddingVertical: 3, borderRadius: 10, alignItems: 'center' as const },
+    legendCountText: { fontFamily: 'Inter_700Bold', fontSize: 11 },
     notesWrap: {
-      flexDirection: 'row',
-      flexWrap: 'wrap',
-      gap: 6,
-      justifyContent: 'center',
+      width: '100%' as const,
       paddingHorizontal: 16,
-      paddingVertical: 14,
+      paddingVertical: 16,
       borderRadius: t.radius.card,
-      width: '100%',
+      alignItems: 'center' as const,
     },
-    chip: { paddingHorizontal: 12, paddingVertical: 5, borderRadius: 14 },
+    notesLabel: { fontFamily: 'Inter_600SemiBold', fontSize: 12, letterSpacing: 0.3, marginBottom: 10 },
+    chipRow: { flexDirection: 'row' as const, flexWrap: 'wrap' as const, gap: 6, justifyContent: 'center' as const },
+    emptyText: { fontFamily: 'Inter_400Regular', fontSize: 13, fontStyle: 'italic' as const },
+    chip: { paddingHorizontal: 12, paddingVertical: 6, borderRadius: 14 },
     chipText: { fontSize: 12, fontFamily: 'Inter_500Medium', color: '#FFFFFF' },
   } as const;
 }

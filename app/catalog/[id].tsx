@@ -331,7 +331,7 @@ export default function CatalogDetailPage() {
       cacheParfumFromSearch(enriched).catch(() => {});
     };
     enrich().catch(() => {});
-  }, [id]);
+  }, [id, parfum]);
 
   // Parfums similaires — cache-first (Firestore free → Fragella paid)
   useEffect(() => {
@@ -437,8 +437,8 @@ export default function CatalogDetailPage() {
   const ratingDisplay: number | undefined = (() => {
     const p = parfum as ParfumSearchResult | null;
     if (!p) return undefined;
-    if ('ratingScore' in p && typeof p.ratingScore === 'number') return p.ratingScore;
-    if ('rating' in p && typeof p.rating === 'string') return parseFloat(p.rating);
+    if ('ratingScore' in p && typeof p.ratingScore === 'number') return Number.isNaN(p.ratingScore) ? undefined : p.ratingScore;
+    if ('rating' in p && typeof p.rating === 'string') { const v = parseFloat(p.rating); return Number.isNaN(v) ? undefined : v; }
     return undefined;
   })();
 
