@@ -1,17 +1,18 @@
-// app/(tabs)/catalog.tsx — Catalogue avec navigation par famille olfactive
+// src/features/catalog/CatalogPage.tsx — Catalogue avec navigation par famille olfactive
+// La recherche est geree par la barre persistante (index.tsx) et l'ecran de recherche (search.tsx)
 
 import { useState, useEffect, useMemo } from 'react';
-import { View, Text, TextInput, FlatList, ActivityIndicator, Pressable, ScrollView } from 'react-native';
+import { View, Text, FlatList, ActivityIndicator, Pressable, ScrollView } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { Link, useLocalSearchParams } from 'expo-router';
+import { Link, useRouter } from 'expo-router';
 import Ionicons from '@react-native-vector-icons/ionicons/static';
 import { useAuthContext } from '../../contexts/AuthContext';
-import { useCatalog } from '../../hooks/useCatalog';
 import ParfumCard from '../../components/ParfumCard';
+import ProfileAvatar from '../../components/ProfileAvatar';
 import { getPopularParfums, getPersonalizedSuggestions } from '../../services/firestore';
+import { setPendingCatalogQuery, consumePendingCatalogQuery } from '../../services/catalog-bridge';
 import { useTheme, type Theme } from '../../theme/ThemeContext';
 import type { ParfumSearchResult } from '../../services/fragella';
-import { consumePendingCatalogQuery } from '../../services/catalog-bridge';
 
 const FAMILIES = [
   { label: 'Tous',    icon: 'apps-outline',       query: null },
@@ -40,16 +41,19 @@ export default function CatalogPage({ onScroll }: Props) {
   const { theme } = useTheme();
   const s = useMemo(() => getStyles(theme), [theme]);
   const { user, authReady, isAuthenticated } = useAuthContext();
-  const { q: routeQuery } = useLocalSearchParams<{ q?: string }>();
-  const initialQuery = routeQuery ?? consumePendingCatalogQuery();
-  const [searchText, setSearchText] = useState(initialQuery ?? '');
-  const { parfums, searching, search, clear } = useCatalog();
+  const router = useRouter();
+  const [activeFamily, setActiveFamily] = useState<string | null>(null);
   const [suggestionParfums, setSuggestionParfums] = useState<ParfumSearchResult[]>([]);
   const [suggestionLabel, setSuggestionLabel] = useState('Parfums populaires');
   const [suggestionLoading, setSuggestionLoading] = useState(true);
-  const [activeFamily, setActiveFamily] = useState<string | null>(null);
-  const [sortBy, setSortBy] = useState<'relevant' | 'price-asc' | 'price-desc'>('relevant');
-  const handleSearch = (t: string) => { setSearchText(t); t.trim().length >= 3 ? search(t) : clear(); };
+
+  useEffect(() => {
+    const pending = consumePendingCatalogQuery();
+    if (pending && pending.trim().length >= 3) {
+      setPendingCatalogQuery(pending);
+      router.push(`/(tabs)/search?q=${encodeURIComponent(pending)}`);
+    }
+  }, []);
 
   useEffect(() => {
     let cancelled = false;
@@ -81,19 +85,6 @@ export default function CatalogPage({ onScroll }: Props) {
     return () => { cancelled = true; };
   }, [authReady, isAuthenticated, user?.uid]);
 
-  useEffect(() => {
-    if (initialQuery && initialQuery.trim().length >= 3) {
-      setSearchText(initialQuery);
-      search(initialQuery.trim());
-    }
-  }, [initialQuery]);
-
-  const sortedParfums = [...parfums].sort((a, b) => {
-    if (sortBy === 'price-asc') return (a.bestPrice ?? Infinity) - (b.bestPrice ?? Infinity);
-    if (sortBy === 'price-desc') return (b.bestPrice ?? Infinity) - (a.bestPrice ?? Infinity);
-    return 0;
-  });
-
   return (
     <SafeAreaView edges={['top', 'bottom']} style={s.container}>
       {authReady && !isAuthenticated && (
@@ -105,114 +96,57 @@ export default function CatalogPage({ onScroll }: Props) {
           </Link>
         </View>
       )}
-      {!searchText && (
-        <View style={s.hero}>
-          <Ionicons name="sparkles-outline" size={32} color={theme.colors.primary} />
+
+      <View style={s.headerBar}>
+        <View style={{ flex: 1 }}>
           <Text style={s.heroTitle}>ParfumScan</Text>
           <Text style={s.heroSub}>Trouve ton parfum au meilleur prix</Text>
         </View>
-      )}
-      <View style={s.searchWrap}>
-        <TextInput
-          style={s.searchInput}
-          placeholder="Rechercher un parfum..."
-          placeholderTextColor={theme.colors.textMuted}
-          value={searchText}
-          onChangeText={handleSearch}
-          autoCapitalize="none"
-          autoCorrect={false}
-        />
+        <ProfileAvatar />
       </View>
 
-      {!searchText && (
-        <ScrollView horizontal showsHorizontalScrollIndicator={false} style={s.familyScroll} contentContainerStyle={s.familyChips}>
-          {FAMILIES.map(f => (
-              <Pressable
-                key={f.label}
-                style={[s.chip, activeFamily === f.query && s.chipActive]}
-                onPress={() => {
-                  setActiveFamily(f.query);
-                  if (f.query) handleSearch(f.query);
-                  else { setSearchText(''); clear(); }
-                }}
-              >
-              <Ionicons
-                name={f.icon as never}
-                size={14}
-                color={activeFamily === f.query ? theme.colors.primaryInk : theme.colors.textMuted}
-              />
-              <Text style={[s.chipText, activeFamily === f.query && s.chipTextActive]}>
-                {f.label}
-              </Text>
-            </Pressable>
-          ))}
-        </ScrollView>
-      )}
+      <ScrollView horizontal showsHorizontalScrollIndicator={false} style={s.familyScroll} contentContainerStyle={s.familyChips}>
+        {FAMILIES.map(f => (
+          <Pressable
+            key={f.label}
+            style={[s.chip, activeFamily === f.query && s.chipActive]}
+            onPress={() => {
+              setActiveFamily(f.query);
+              if (f.query) {
+                router.push(`/(tabs)/search?q=${encodeURIComponent(f.query)}`);
+              }
+            }}
+          >
+            <Ionicons
+              name={f.icon as never}
+              size={14}
+              color={activeFamily === f.query ? theme.colors.primaryInk : theme.colors.textMuted}
+            />
+            <Text style={[s.chipText, activeFamily === f.query && s.chipTextActive]}>
+              {f.label}
+            </Text>
+          </Pressable>
+        ))}
+      </ScrollView>
 
-      {searchText && (
-        <View style={s.sortRow}>
-          <Text style={s.resultsCount}>{parfums.length} parfum(s)</Text>
-          <View style={s.sortBtns}>
-            {(['relevant', 'price-asc', 'price-desc'] as const).map(sort => (
-              <Pressable
-                key={sort}
-                style={[s.sortBtn, sortBy === sort && s.sortBtnActive]}
-                onPress={() => setSortBy(sort)}
-              >
-                <Text style={[s.sortBtnText, sortBy === sort && s.sortBtnTextActive]}>
-                  {sort === 'relevant' ? 'Pertinence' : sort === 'price-asc' ? 'Prix ↑' : 'Prix ↓'}
-                </Text>
-              </Pressable>
-            ))}
-          </View>
-        </View>
-      )}
-
-      {!searchText ? (
-        suggestionLoading ? (
-          <View style={s.ghostSection}><Text style={s.ghostLabel}>{suggestionLabel}</Text><ActivityIndicator style={{ marginTop: 20 }} color={theme.colors.primary} /></View>
-        ) : (
-          <FlatList
-            data={suggestionParfums}
-            numColumns={2}
-            keyExtractor={p => p.id}
-            renderItem={({ item }) => (
-              <View style={s.popularCardWrap}><ParfumCard parfum={item} compact /></View>
-            )}
-            columnWrapperStyle={s.popularRow}
-            ListHeaderComponent={<Text style={s.ghostLabel}>{suggestionLabel}</Text>}
-            contentContainerStyle={{ paddingHorizontal: 16, paddingBottom: 16 }}
-            style={{ flex: 1 }}
-            showsVerticalScrollIndicator={false}
-            onScroll={onScroll ? (e) => onScroll(e.nativeEvent.contentOffset.y) : undefined}
-            scrollEventThrottle={16}
-          />
-        )
+      {suggestionLoading ? (
+        <View style={s.ghostSection}><Text style={s.ghostLabel}>{suggestionLabel}</Text><ActivityIndicator style={{ marginTop: 20 }} color={theme.colors.primary} /></View>
       ) : (
-        <>
-          {searching && <ActivityIndicator style={{ marginTop: 12 }} color={theme.colors.primary} />}
-          <FlatList
-            data={sortedParfums}
-            keyExtractor={(p, i) => `${p.id}_${i}`}
-            renderItem={({ item }) => <ParfumCard parfum={item} showDeal />}
-            contentContainerStyle={{ paddingBottom: 16 }}
-            showsVerticalScrollIndicator={false}
-            onScroll={onScroll ? (e) => onScroll(e.nativeEvent.contentOffset.y) : undefined}
-            scrollEventThrottle={16}
-            ListEmptyComponent={
-              !searching ? (
-                <View style={s.empty}>
-                  <Ionicons name="search-outline" size={64} color={theme.colors.primary} style={{ opacity: 0.5 }} />
-                  <Text style={s.emptyTitle}>Aucun résultat</Text>
-                  <Text style={s.emptyDesc}>Essaie une autre orthographe{'\n'}ou scanne un flacon !</Text>
-                  <Link href="/(tabs)/scan" style={s.emptyScanBtn}>
-                    <Text style={s.emptyScanText}>Scanner un flacon</Text>
-                  </Link>
-                </View>
-              ) : null
-            }
-          />
-        </>
+        <FlatList
+          data={suggestionParfums}
+          numColumns={2}
+          keyExtractor={p => p.id}
+          renderItem={({ item }) => (
+            <View style={s.popularCardWrap}><ParfumCard parfum={item} compact /></View>
+          )}
+          columnWrapperStyle={s.popularRow}
+          ListHeaderComponent={<Text style={s.ghostLabel}>{suggestionLabel}</Text>}
+          contentContainerStyle={{ paddingHorizontal: 16, paddingBottom: 16 }}
+          style={{ flex: 1 }}
+          showsVerticalScrollIndicator={false}
+          onScroll={onScroll ? (e) => onScroll(e.nativeEvent.contentOffset.y) : undefined}
+          scrollEventThrottle={16}
+        />
       )}
     </SafeAreaView>
   );
@@ -225,31 +159,17 @@ function getStyles(t: Theme) {
     bannerText: { flex: 1, fontFamily: 'Inter_400Regular', fontSize: 13, color: t.colors.primaryInk },
     bannerLink: { backgroundColor: t.colors.primary, paddingHorizontal: 12, paddingVertical: 6, borderRadius: t.radius.sm },
     bannerLinkText: { color: '#FFFFFF', fontFamily: 'Inter_600SemiBold', fontSize: 13 },
-    hero: { alignItems: 'center', paddingTop: 20, paddingBottom: 12 },
+    headerBar: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 16, paddingTop: 16, paddingBottom: 12 },
     heroTitle: { fontFamily: 'PlayfairDisplay_700Bold', fontSize: 28, color: t.colors.text },
     heroSub: { fontFamily: 'Inter_400Regular', fontSize: 14, color: t.colors.textMuted, marginTop: 4 },
-    searchWrap: { paddingHorizontal: 16, paddingBottom: 8 },
-    searchInput: { borderRadius: t.radius.base, backgroundColor: t.colors.surface, borderWidth: 1, borderColor: t.colors.border, paddingHorizontal: 14, height: 44, fontFamily: 'Inter_400Regular', fontSize: 15, color: t.colors.text },
     familyScroll: { maxHeight: 44, marginBottom: 4 },
     familyChips: { paddingHorizontal: 16, gap: 8, alignItems: 'center' },
     chip: { flexDirection: 'row', alignItems: 'center', gap: 4, paddingHorizontal: 14, paddingVertical: 8, borderRadius: 20, backgroundColor: t.colors.surface2, borderWidth: 1, borderColor: 'transparent' },
     chipActive: { backgroundColor: t.colors.primarySoft, borderColor: t.colors.primary },
     chipText: { fontFamily: 'Inter_500Medium', fontSize: 13, color: t.colors.textMuted },
     chipTextActive: { color: t.colors.primaryInk },
-    sortRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingHorizontal: 16, paddingTop: 4, paddingBottom: 4 },
-    sortBtns: { flexDirection: 'row', gap: 4 },
-    sortBtn: { paddingHorizontal: 10, paddingVertical: 4, borderRadius: 6, backgroundColor: t.colors.surface2 },
-    sortBtnActive: { backgroundColor: t.colors.primarySoft },
-    sortBtnText: { fontFamily: 'Inter_500Medium', fontSize: 12, color: t.colors.textMuted },
-    sortBtnTextActive: { color: t.colors.primary },
-    resultsCount: { fontFamily: 'Inter_400Regular', fontSize: 13, color: t.colors.textMuted },
     ghostSection: { padding: 16 },
     ghostLabel: { fontFamily: 'Inter_600SemiBold', fontSize: 13, textTransform: 'uppercase', letterSpacing: 1.5, color: t.colors.textMuted, marginBottom: 12 },
-    empty: { alignItems: 'center', paddingTop: 48 },
-    emptyTitle: { fontFamily: 'PlayfairDisplay_600SemiBold', fontSize: 20, color: t.colors.text, marginTop: 12 },
-    emptyDesc: { fontFamily: 'Inter_400Regular', fontSize: 14, color: t.colors.textMuted, textAlign: 'center', lineHeight: 20, marginTop: 8 },
-    emptyScanBtn: { marginTop: 20, backgroundColor: t.colors.primary, paddingHorizontal: 20, paddingVertical: 12, borderRadius: t.radius.base, ...t.shadow.button },
-    emptyScanText: { color: '#FFFFFF', fontFamily: 'Inter_600SemiBold', fontSize: 16 },
     popularRow: { gap: 8, marginBottom: 8 },
     popularCardWrap: { flex: 1, maxWidth: '50%' },
   } as const;

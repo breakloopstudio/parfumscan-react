@@ -1,10 +1,13 @@
 // app/(tabs)/index.tsx — Pager horizontal 4 pages (Catalogue, Favoris, Historique, Collection)
 // Dock flottant 5 positions + FAB scan avec indicateur dore
+// Barre de recherche persistante synchronisee avec le dock
 // Swipe gesture-driven avec Reanimated + animations d'interpolation
 
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import { View, useWindowDimensions, StyleSheet } from 'react-native';
+import { View, Text, Pressable, useWindowDimensions, StyleSheet, type ViewStyle } from 'react-native';
 import { useRouter, useFocusEffect } from 'expo-router';
+import Ionicons from '@react-native-vector-icons/ionicons/static';
+import { BlurView } from 'expo-blur';
 import { Gesture, GestureDetector } from 'react-native-gesture-handler';
 import Animated, {
   useSharedValue,
@@ -16,7 +19,7 @@ import Animated, {
   runOnJS,
 } from 'react-native-reanimated';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { useTheme } from '../../src/theme/ThemeContext';
+import { useTheme, type Theme } from '../../src/theme/ThemeContext';
 import { hapticsLight } from '../../src/services/haptics';
 import { consumePendingParfum, setPendingParfum } from '../../src/services/catalog-bridge';
 import CatalogPage from '../../src/features/catalog/CatalogPage';
@@ -33,7 +36,7 @@ const PAGES = 4;
 const SCROLL_HIDE_OFFSET = 60;
 
 export default function TabPager() {
-  const { theme } = useTheme();
+  const { theme, resolvedMode } = useTheme();
   const { width: windowWidth } = useWindowDimensions();
   const router = useRouter();
 
@@ -44,6 +47,7 @@ export default function TabPager() {
 
   const scrollY = useSharedValue(0);
   const dockTranslateY = useSharedValue(0);
+  const searchBarTranslateY = useSharedValue(0);
 
   useAnimatedReaction(
     () => scrollY.value,
@@ -51,8 +55,10 @@ export default function TabPager() {
       if (prev === null) return;
       if (current > prev! && current > SCROLL_HIDE_OFFSET) {
         dockTranslateY.value = withTiming(120, { duration: DOCK_DURATION, easing: Easing.out(Easing.cubic) });
+        searchBarTranslateY.value = withTiming(-70, { duration: DOCK_DURATION, easing: Easing.out(Easing.cubic) });
       } else if (current < prev!) {
         dockTranslateY.value = withTiming(0, { duration: DOCK_DURATION, easing: Easing.out(Easing.cubic) });
+        searchBarTranslateY.value = withTiming(0, { duration: DOCK_DURATION, easing: Easing.out(Easing.cubic) });
       }
     },
   );
@@ -87,6 +93,7 @@ export default function TabPager() {
     translateX.value = withSpring(-p * pageWidth.value, SPRING);
     scrollY.value = 0;
     dockTranslateY.value = withTiming(0, { duration: DOCK_DURATION, easing: Easing.out(Easing.cubic) });
+    searchBarTranslateY.value = withTiming(0, { duration: DOCK_DURATION, easing: Easing.out(Easing.cubic) });
   }, []);
 
   const dockActiveIndex = activePage < 2 ? activePage : activePage + 1;
@@ -146,12 +153,34 @@ export default function TabPager() {
   const histStyle = makePageStyle(2);
   const colStyle = makePageStyle(3);
 
+  const searchBarAnimatedStyle = useAnimatedStyle(() => ({
+    transform: [{ translateY: searchBarTranslateY.value }],
+  }));
+
+  const m = useMemo(() => getSearchStyles(theme), [theme]);
+
   if (windowWidth === 0) {
     return <View style={[s.root, { backgroundColor: theme.colors.background }]} />;
   }
 
   return (
     <SafeAreaView style={[s.root, { backgroundColor: theme.colors.background }]}>
+      <Animated.View style={[m.searchWrap, m.searchBarShadow, searchBarAnimatedStyle]}>
+        <Pressable
+          style={({ pressed }) => [m.searchBar, pressed && m.searchBarPressed]}
+          onPress={() => router.push('/(tabs)/search')}
+        >
+          <BlurView
+            intensity={20}
+            tint={resolvedMode === 'dark' ? 'dark' : 'light'}
+            style={StyleSheet.absoluteFill}
+          />
+          <View style={[StyleSheet.absoluteFill, m.searchBarOverlay]} />
+          <Ionicons name="search-outline" size={18} color={theme.colors.textMuted} />
+          <Text style={m.searchPlaceholder}>Rechercher un parfum...</Text>
+        </Pressable>
+      </Animated.View>
+
       <GestureDetector gesture={gesture}>
         <View style={s.pager}>
           <Animated.View style={[s.page, catStyle]}>
@@ -184,3 +213,37 @@ const s = StyleSheet.create({
   pager: { flex: 1, overflow: 'hidden' },
   page: { position: 'absolute', top: 0, left: 0, right: 0, bottom: 0 },
 });
+
+function getSearchStyles(t: Theme) {
+  return {
+    searchWrap: {
+      paddingHorizontal: t.spacing.md,
+      paddingTop: 4,
+      paddingBottom: 8,
+      zIndex: 10,
+    },
+    searchBar: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      borderRadius: 20,
+      paddingHorizontal: 14,
+      height: 44,
+      gap: 10,
+      overflow: 'hidden',
+      borderWidth: StyleSheet.hairlineWidth,
+      borderColor: t.colors.border,
+    },
+    searchBarPressed: {
+      borderColor: t.colors.primary,
+    } as ViewStyle,
+    searchBarOverlay: {
+      backgroundColor: t.colors.background + 'E0',
+    },
+    searchBarShadow: { ...t.shadow.card },
+    searchPlaceholder: {
+      fontFamily: 'Inter_400Regular',
+      fontSize: 15,
+      color: t.colors.textMuted,
+    },
+  } as const;
+}

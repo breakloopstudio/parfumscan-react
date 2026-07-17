@@ -11,6 +11,7 @@ export default function TabsLayout() {
       <Stack.Screen name="history" options={{ animation: 'fade' }} />
       <Stack.Screen name="collection" options={{ animation: 'fade' }} />
       <Stack.Screen name="scan" options={{ animation: 'fade' }} />
+      <Stack.Screen name="search" options={{ animation: 'fade' }} />
     </Stack>
   );
 }

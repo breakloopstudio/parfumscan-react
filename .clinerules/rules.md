@@ -14,11 +14,12 @@ app/
 ├── index.tsx                 # Splash → redirection (onboarding ou tabs)
 ├── (tabs)/
 │   ├── _layout.tsx           # Stack wrapper (pages empilées sur le pager)
-│   ├── index.tsx             # TabPager Reanimated 4 pages + DockBar (Catalog, Favoris, Historique, Collection)
+│   ├── index.tsx             # TabPager Reanimated 4 pages + DockBar + barre de recherche persistante
 │   ├── favorites.tsx         # Page Favoris (standalone, appelée depuis pager + Stack)
 │   ├── history.tsx           # Page Historique des scans
 │   ├── collection.tsx        # Page Collection + Wishlist (2 sections)
-│   └── scan.tsx              # Scanner overlay (FAB dans le DockBar → push)
+│   ├── scan.tsx              # Scanner overlay (FAB dans le DockBar → push)
+│   └── search.tsx            # Overlay recherche plein écran (barre persistante → push)
 ├── auth/
 │   ├── login.tsx             # Connexion email + Google
 │   └── register.tsx          # Inscription

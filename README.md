@@ -235,8 +235,11 @@ Les documents `UserFavori` et `UserScan` stockent `imageUrl` et `familleOlactive
 dénormalisés → affichage direct sans appel API Firestore ni Fragella.
 
 ---
-## v6.2 — Bugfixes & Polish (17/07/2026)
+## v6.2 — Bugfixes & Search Bar (17/07/2026)
 
+- **Barre de recherche persistante** : visible sur les 4 onglets, verre dépoli (BlurView), show/hide synchronisé avec le DockBar, navigation vers overlay recherche plein écran
+- **Overlay recherche** (`search.tsx`) : autofocus, live filtering (cache-first Firestore → Fragella), 6 filtres famille, recherches récentes persistantes
+- **Catalogue simplifié** : search bar inline retirée, chips famille redirigent vers l'overlay recherche, avatar header ajouté
 - **ProfileAvatar** : composant partagé (photo Google ou initiale), dédupliqué sur Favoris/Historique/Collection
 - **ThemeContext** : fix crash si AsyncStorage échoue (écran blanc → fallback system)
 - **DockBar** : ombres migrées vers `t.shadow` (invisibles en dark mode → bordures adaptatives)
