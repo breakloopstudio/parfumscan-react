@@ -15,9 +15,9 @@ app/
 ├── (tabs)/
 │   ├── _layout.tsx           # Stack wrapper (pages empilées sur le pager)
 │   ├── index.tsx             # TabPager PagerView 4 pages + DockBar + barre de recherche persistante
-│   ├── favorites.tsx         # Page Favoris (standalone, appelée depuis pager + Stack)
-│   ├── history.tsx           # Page Historique des scans
-│   ├── collection.tsx        # Page Garde-robe (grid, étagères, SOTD, quick-edit) — fichier garde le nom collection pour rétrocompatibilité expo-router
+│   ├── favorites.tsx         # Page Favoris — moodboard olfactif, grille 2 colonnes, filtres famille, tri, ActionSheet
+│   ├── history.tsx           # Journal olfactif — historique des scans groupé par période, cartes avec dots statut, prix, répétitions
+│   ├── collection.tsx        # Page Parfumerie (grid, étagères, SOTD, quick-edit) — fichier garde le nom collection pour rétrocompatibilité expo-router
 │   ├── scan.tsx              # Scanner overlay (FAB dans le DockBar → push)
 │   └── search.tsx            # Overlay recherche plein écran (barre persistante → push)
 ├── auth/
@@ -35,7 +35,7 @@ src/
 ├── services/     (12)        # Firebase, Firestore, Fragella (via Cloud Function), GPT-4o, user-data, wardrobe, theme-storage, haptics…
 ├── hooks/        (11)        # useAuth, useScanReducer, useCatalog, useFavoris, useCollection, useWishlist, useScans, useWardrobe, useShelves, useSotd, useNetwork
 ├── contexts/     (1)         # AuthContext (ThemeContext est dans src/theme/)
-├── components/   (11)        # ParfumCard, Button, PriceDisplay, SectionHeader, EmptyState, OfflineBanner, AppLoader, ErrorBoundary, AlertPriceToggle, ProfileAvatar, NoteDetailPopup
+├── components/   (12)        # ParfumCard, Button, PriceDisplay, SectionHeader, EmptyState, OfflineBanner, AppLoader, ErrorBoundary, AlertPriceToggle, ProfileAvatar, NoteDetailPopup, ActionSheet
 ├── features/
 │   ├── scan/     (8)         # ScanScreen + 7 sous-états
 │   ├── catalog/  (5)         # CatalogPage, OlfactoryPyramid v5, HeroPriceOverlay, CollapsingHeader, StickyBottomBar
@@ -47,7 +47,7 @@ src/
 └── utils/        (4)         # Error translator, translate-note, note-descriptions, ownership (labels, helpers)
 ```
 
-> **Note v6.5** : Migration du pager Reanimated gesture → `react-native-pager-view` natif. Résout les conflits de swipe entre les ScrollView horizontaux (catalogue, pyramide touch) et le swipe inter-pages. Le FAB scan et le DockBar restent en Reanimated. Pyramide olfactive v5 : SVG unifié, touch-based, notes cliquables → `NoteDetailPopup`. Nouveaux écrans `/legal` et `/privacy`. `keyboardAppearance` adaptatif dark/light sur tous les TextInput. Section "Soutenir" dans les paramètres. `normalizeId()` pour les clés Firestore Fragella cohérentes.
+> **Note v6.6** : Parfumerie (ex « Garde-robe ») — icône `flask`. Favoris en grille (filtres famille, tri, ActionSheet). Historique groupé par période (Aujourd'hui/Hier/Cette semaine...), scans sauvegardés dans tous les états (no-result, error). `ActionSheet` bottom sheet custom. Dénormalisation `bestPrice`/`referencePrice`/`annee` dans UserFavori/UserScan. Back gesture edge-pan (40px strip gauche) sur fiche détail catalog. SOTDPicker ancré au-dessus de la carte (position absolute, sans Reanimated).
 
 ---
 

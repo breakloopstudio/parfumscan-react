@@ -1,7 +1,7 @@
-// app/(tabs)/collection.tsx — Garde-robe principale
+// app/(tabs)/collection.tsx — Parfumerie (garde-robe personnelle)
 
-import { useState, useMemo, useEffect } from 'react';
-import { View, Text, ScrollView, Pressable, ActivityIndicator, Alert, StyleSheet } from 'react-native';
+import { useRef, useState, useMemo, useEffect } from 'react';
+import { View, Text, ScrollView, Pressable, ActivityIndicator, Alert, StyleSheet, type LayoutChangeEvent } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import Ionicons from '@react-native-vector-icons/ionicons/static';
@@ -39,6 +39,7 @@ export default function WardrobePage({ onScroll, onSheetOpen }: Props) {
   const { sotd, setTodaySotd } = useSotd(uid);
 
   const haveItems = useMemo(() => items.filter(i => i.ownership === 'have'), [items]);
+  const sotdEligible = useMemo(() => items.filter(i => i.ownership !== 'want'), [items]);
 
   const ownershipCounts = useMemo(() => {
     const counts: Record<string, number> = {};
@@ -53,10 +54,16 @@ export default function WardrobePage({ onScroll, onSheetOpen }: Props) {
   const [quickSheetItem, setQuickSheetItem] = useState<WardrobeItem | null>(null);
   const [shelfManagerVisible, setShelfManagerVisible] = useState(false);
   const [sotdPickerVisible, setSotdPickerVisible] = useState(false);
+  const [sotdCardAnchor, setSotdCardAnchor] = useState<number>(0);
+  const sotdCardRef = useRef<View>(null);
+
+  const handleSotdCardLayout = (e: LayoutChangeEvent) => {
+    setSotdCardAnchor(e.nativeEvent.layout.y + e.nativeEvent.layout.height);
+  };
 
   useEffect(() => {
-    onSheetOpen?.(quickSheetItem !== null);
-  }, [quickSheetItem, onSheetOpen]);
+    onSheetOpen?.(quickSheetItem !== null || sotdPickerVisible);
+  }, [quickSheetItem, sotdPickerVisible, onSheetOpen]);
 
   const filtered = useMemo(() => {
     let result = [...items];
@@ -115,7 +122,7 @@ export default function WardrobePage({ onScroll, onSheetOpen }: Props) {
 
   const handleQuickRemove = () => {
     if (!quickSheetItem) return;
-    Alert.alert('Retirer', 'Retirer ce parfum de la garde-robe ?', [
+    Alert.alert('Retirer', 'Retirer ce parfum de la parfumerie ?', [
       { text: 'Annuler', style: 'cancel' },
       { text: 'Retirer', style: 'destructive', onPress: () => { remove(quickSheetItem.parfumId); setQuickSheetItem(null); } },
     ]);
@@ -127,9 +134,9 @@ export default function WardrobePage({ onScroll, onSheetOpen }: Props) {
     return (
       <SafeAreaView edges={['bottom']} style={s.container}>
         <View style={s.center}>
-          <Ionicons name="shirt-outline" size={64} color={theme.colors.textMuted} />
+          <Ionicons name="flask-outline" size={64} color={theme.colors.textMuted} />
           <Text style={s.authTitle}>Connectez-vous</Text>
-          <Text style={s.authDesc}>Accédez à votre garde-robe.</Text>
+          <Text style={s.authDesc}>Accédez à votre parfumerie.</Text>
         </View>
       </SafeAreaView>
     );
@@ -139,7 +146,7 @@ export default function WardrobePage({ onScroll, onSheetOpen }: Props) {
     return (
       <SafeAreaView edges={['bottom']} style={s.container}>
         <View style={s.header}>
-          <Text style={s.title}>Ma Garde-robe</Text>
+          <Text style={s.title}>Ma Parfumerie</Text>
           <ProfileAvatar />
         </View>
         <EmptyState variant="wardrobe" onAction={() => router.replace('/(tabs)')} />
@@ -155,15 +162,17 @@ export default function WardrobePage({ onScroll, onSheetOpen }: Props) {
   return (
     <SafeAreaView edges={['bottom']} style={s.container}>
       <View style={s.header}>
-        <Text style={s.title}>Ma Garde-robe · {items.length}</Text>
+        <Text style={s.title}>Ma Parfumerie · {items.length}</Text>
         <ProfileAvatar />
       </View>
 
-      <SOTDCard
-        sotd={sotd}
-        onPress={() => sotd && router.push(`/wardrobe/${sotd.parfumId}`)}
-        onChangePress={() => setSotdPickerVisible(true)}
-      />
+      <View ref={sotdCardRef} onLayout={handleSotdCardLayout}>
+        <SOTDCard
+          sotd={sotd}
+          onPress={() => sotd && router.push(`/wardrobe/${sotd.parfumId}`)}
+          onChangePress={() => setSotdPickerVisible(true)}
+        />
+      </View>
 
       <FilterBar
         shelves={shelves}
@@ -217,10 +226,11 @@ export default function WardrobePage({ onScroll, onSheetOpen }: Props) {
 
       <SOTDPicker
         visible={sotdPickerVisible}
-        haveItems={haveItems}
+        haveItems={sotdEligible}
         currentSotdId={sotd?.parfumId ?? null}
+        anchorTop={sotdCardAnchor}
         onSelect={(parfumId) => {
-          const item = haveItems.find(i => i.parfumId === parfumId);
+          const item = sotdEligible.find(i => i.parfumId === parfumId);
           if (item) {
             hapticsLight();
             setTodaySotd(item);

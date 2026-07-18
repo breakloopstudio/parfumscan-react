@@ -1,4 +1,4 @@
-// app/(tabs)/index.tsx — Pager horizontal 4 pages (Catalogue, Favoris, Historique, Collection)
+// app/(tabs)/index.tsx — Pager horizontal 4 pages (Catalogue, Favoris, Historique, Parfumerie)
 // Dock flottant 5 positions + FAB scan avec indicateur doré
 // Barre de recherche persistante synchronisée avec le dock
 // Utilise react-native-pager-view pour la gestion native des conflits de swipe

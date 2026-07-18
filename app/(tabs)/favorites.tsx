@@ -1,8 +1,7 @@
-// app/(tabs)/favorites.tsx — Écran Favoris
+// app/(tabs)/favorites.tsx — Moodboard olfactif : favoris en grille
 
-import { useState, useMemo } from 'react';
-import { View, Text, ScrollView, Pressable, ActivityIndicator, Alert, StyleSheet } from 'react-native';
-import { Image } from 'expo-image';
+import { useState, useMemo, useEffect, useRef } from 'react';
+import { View, Text, ScrollView, Pressable, ActivityIndicator, FlatList, Animated, Easing, LayoutAnimation, TextInput, RefreshControl } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import Ionicons from '@react-native-vector-icons/ionicons/static';
@@ -10,22 +9,145 @@ import { useAuthContext } from '../../src/contexts/AuthContext';
 import { useFavoris } from '../../src/hooks/useFavoris';
 import { getParfumById } from '../../src/services/firestore';
 import { moveToCollection, moveToWishlist } from '../../src/services/user-data';
+import { addToWardrobe } from '../../src/services/wardrobe';
 import { setPendingParfum } from '../../src/services/catalog-bridge';
+import { translateNote } from '../../src/utils/translate-note';
 import { useTheme, type Theme } from '../../src/theme/ThemeContext';
 import EmptyState from '../../src/components/EmptyState';
 import ProfileAvatar from '../../src/components/ProfileAvatar';
+import ActionSheet, { type ActionItem } from '../../src/components/ActionSheet';
+import ParfumCard from '../../src/components/ParfumCard';
+import type { UserFavori } from '../../src/models/user-favori.interface';
+import type { Parfum } from '../../src/models';
 
 interface Props {
   onScroll?: (y: number) => void;
 }
 
+function favoriToCardItem(f: UserFavori): Parfum {
+  return {
+    id: f.parfumId,
+    nom: f.nom ?? '',
+    marque: f.marque ?? '',
+    imageUrl: f.imageUrl ?? null,
+    familleOlactive: f.familleOlactive ?? '',
+    bestPrice: f.bestPrice ?? undefined,
+    referencePrice: f.referencePrice ?? undefined,
+    annee: f.annee ?? undefined,
+  } as Parfum;
+}
+
 export default function FavoritesPage({ onScroll }: Props) {
-  const { theme } = useTheme();
+  const { theme, resolvedMode } = useTheme();
   const s = useMemo(() => getStyles(theme), [theme]);
   const { user, authReady, isAuthenticated } = useAuthContext();
   const router = useRouter();
   const uid = user?.uid ?? null;
   const { favoris, loading, removeFavori } = useFavoris(uid);
+  const keyboardAppearance = resolvedMode === 'dark' ? 'dark' : 'light';
+
+  const [searchQuery, setSearchQuery] = useState('');
+  const [activeFamily, setActiveFamily] = useState<string | null>(null);
+  const [sortMode, setSortMode] = useState<'recent' | 'az' | 'za' | 'price'>('recent');
+  const [refreshing, setRefreshing] = useState(false);
+  const [selectedItem, setSelectedItem] = useState<UserFavori | null>(null);
+
+  const animatedValues = useRef<Map<string, Animated.Value>>(new Map());
+  const prevFilterKey = useRef<string | null>(null);
+  const hasAnimated = useRef(false);
+
+  const hasBestPrice = useMemo(() => favoris.some(f => typeof f.bestPrice === 'number'), [favoris]);
+
+  const familyCounts = useMemo(() => {
+    const m = new Map<string, number>();
+    for (const f of favoris) {
+      if (f.familleOlactive) {
+        m.set(f.familleOlactive, (m.get(f.familleOlactive) ?? 0) + 1);
+      }
+    }
+    return [...m.entries()].sort((a, b) => b[1] - a[1]);
+  }, [favoris]);
+
+  const filtered = useMemo(() => {
+    let result = [...favoris];
+    if (activeFamily) {
+      result = result.filter(f => f.familleOlactive === activeFamily);
+    }
+    if (searchQuery.trim()) {
+      const q = searchQuery.trim().toLowerCase();
+      result = result.filter(f =>
+        (f.nom ?? '').toLowerCase().includes(q) ||
+        (f.marque ?? '').toLowerCase().includes(q)
+      );
+    }
+    result.sort((a, b) => {
+      switch (sortMode) {
+        case 'az': return (a.nom ?? '').localeCompare(b.nom ?? '');
+        case 'za': return (b.nom ?? '').localeCompare(a.nom ?? '');
+        case 'price': {
+          const pa = a.bestPrice ?? Infinity;
+          const pb = b.bestPrice ?? Infinity;
+          return pa - pb;
+        }
+        default: {
+          const da = a.addedAt instanceof Date ? a.addedAt.getTime() : 0;
+          const db = b.addedAt instanceof Date ? b.addedAt.getTime() : 0;
+          return db - da;
+        }
+      }
+    });
+    return result;
+  }, [favoris, activeFamily, searchQuery, sortMode]);
+
+  const showFilterBar = favoris.length > 5;
+
+  const getSortCycle = useMemo(() => {
+    const base: { key: typeof sortMode; label: string }[] = [
+      { key: 'recent', label: 'Récents' },
+      { key: 'az', label: 'A–Z' },
+      { key: 'za', label: 'Z–A' },
+    ];
+    if (hasBestPrice) base.push({ key: 'price', label: 'Moins chers' });
+    return base;
+  }, [hasBestPrice]);
+
+  const cycleSort = () => {
+    const idx = getSortCycle.findIndex(o => o.key === sortMode);
+    const next = getSortCycle[(idx + 1) % getSortCycle.length];
+    setSortMode(next.key);
+  };
+
+  const currentSortLabel = getSortCycle.find(o => o.key === sortMode)?.label ?? 'Tri';
+
+  const handleRefresh = () => {
+    setRefreshing(true);
+    setTimeout(() => setRefreshing(false), 800);
+  };
+
+  const filterKey = `${activeFamily ?? ''}|${searchQuery}|${sortMode}`;
+
+  useEffect(() => {
+    const needsAnim = (!hasAnimated.current || prevFilterKey.current !== filterKey) && filtered.length >= 4;
+    if (!needsAnim) {
+      prevFilterKey.current = filterKey;
+      return;
+    }
+    hasAnimated.current = true;
+    prevFilterKey.current = filterKey;
+
+    animatedValues.current = new Map();
+    filtered.forEach((item, i) => {
+      const val = new Animated.Value(0);
+      animatedValues.current.set(item.id, val);
+      Animated.timing(val, {
+        toValue: 1,
+        duration: 250,
+        delay: i * 60,
+        easing: Easing.out(Easing.cubic),
+        useNativeDriver: true,
+      }).start();
+    });
+  }, [filterKey, filtered.length]);
 
   const goToDetail = async (parfumId: string) => {
     try {
@@ -35,84 +157,325 @@ export default function FavoritesPage({ onScroll }: Props) {
     router.push(`/catalog/${parfumId}`);
   };
 
-  const showContextMenu = (itemId: string, nom: string | null, marque: string | null, imageUrl: string | null, parfumId: string, familleOlactive?: string | null) => {
-    if (!uid) return;
-    Alert.alert('Actions', undefined, [
-      { text: 'Deplacer vers Collection', onPress: () => moveToCollection(uid, 'favoris', itemId, parfumId, nom, marque, imageUrl) },
-      { text: 'Deplacer vers Wishlist', onPress: () => moveToWishlist(uid, 'favoris', itemId, parfumId, nom, marque, imageUrl, familleOlactive) },
-      { text: 'Retirer', style: 'destructive', onPress: () => removeFavori(itemId) },
-      { text: 'Annuler', style: 'cancel' },
-    ]);
+  const showContextMenu = (item: UserFavori) => {
+    setSelectedItem(item);
   };
 
-  if (!authReady) return <View style={s.center}><ActivityIndicator size="large" color={theme.colors.primary} /></View>;
+  const sheetActions: ActionItem[] = useMemo(() => {
+    if (!selectedItem || !uid) return [];
+    const item = selectedItem;
+    return [
+      {
+        icon: 'eye-outline',
+        label: 'Voir le detail',
+        onPress: () => { setSelectedItem(null); goToDetail(item.parfumId); },
+      },
+      {
+        icon: 'shirt-outline',
+        label: 'Ajouter a ma garde-robe',
+        onPress: () => {
+          setSelectedItem(null);
+          addToWardrobe(uid, item.parfumId, 'have', item.nom ?? undefined, item.marque ?? undefined, item.imageUrl ?? undefined);
+        },
+      },
+      {
+        icon: 'swap-horizontal-outline',
+        label: 'Deplacer vers Garde-robe',
+        onPress: () => {
+          setSelectedItem(null);
+          moveToCollection(uid, 'favoris', item.id, item.parfumId, item.nom ?? null, item.marque ?? null, item.imageUrl ?? null);
+        },
+      },
+      {
+        icon: 'bookmark-outline',
+        label: 'Deplacer vers Wishlist',
+        onPress: () => {
+          setSelectedItem(null);
+          moveToWishlist(uid, 'favoris', item.id, item.parfumId, item.nom ?? null, item.marque ?? null, item.imageUrl ?? null, item.familleOlactive ?? null);
+        },
+      },
+      {
+        icon: 'trash-outline',
+        label: 'Retirer des favoris',
+        destructive: true,
+        onPress: () => {
+          setSelectedItem(null);
+          LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
+          removeFavori(item.id);
+        },
+      },
+    ];
+  }, [selectedItem, uid]);
+
+  if (!authReady) {
+    return (
+      <View style={s.center}>
+        <ActivityIndicator size="large" color={theme.colors.primary} />
+      </View>
+    );
+  }
+
   if (!isAuthenticated) {
     return (
       <SafeAreaView edges={['bottom']} style={s.container}>
         <View style={s.center}>
           <Ionicons name="heart-outline" size={64} color={theme.colors.textMuted} />
-          <Text style={s.emptyTitle}>Connectez-vous</Text>
-          <Text style={s.emptyDesc}>Accedez a vos favoris.</Text>
+          <Text style={s.authTitle}>Connectez-vous</Text>
+          <Text style={s.authDesc}>Accédez à vos favoris.</Text>
+          <Pressable style={s.authBtn} onPress={() => router.push('/auth/login')}>
+            <Text style={s.authBtnText}>Se connecter</Text>
+          </Pressable>
         </View>
       </SafeAreaView>
     );
   }
 
-  return (
-    <SafeAreaView edges={['bottom']} style={s.container}>
-      <ScrollView
-        contentContainerStyle={s.scroll}
-        onScroll={onScroll ? (e) => onScroll(e.nativeEvent.contentOffset.y) : undefined}
-        scrollEventThrottle={16}
-      >
+  if (loading) {
+    return (
+      <SafeAreaView edges={['bottom']} style={s.container}>
         <View style={s.headerBar}>
-          <Text style={s.title}>Favoris . {favoris.length}</Text>
+          <Text style={s.title}>Favoris</Text>
           <ProfileAvatar />
         </View>
-
-        {loading ? <ActivityIndicator style={{ marginTop: 24 }} color={theme.colors.primary} /> :
-         favoris.length === 0 ? <EmptyState variant="favoris" onAction={() => router.replace('/(tabs)')} /> :
-         favoris.map(f => (
-           <Pressable key={f.id} style={s.listItem} onPress={() => goToDetail(f.parfumId)}>
-             <View style={s.itemLeft}>
-               <ListItemImage imageUrl={f.imageUrl ?? undefined} t={theme} />
-               <View>
-                 <Text style={s.itemName}>{f.nom ?? f.parfumId.replace(/_/g, ' ')}</Text>
-                 {f.marque ? <Text style={s.itemBrand}>{f.marque}</Text> : null}
-                 {f.familleOlactive ? <Text style={s.itemFamily}>{f.familleOlactive}</Text> : null}
-               </View>
-             </View>
-             <Pressable onPress={() => showContextMenu(f.id, f.nom ?? null, f.marque ?? null, f.imageUrl ?? null, f.parfumId, f.familleOlactive ?? null)} hitSlop={12}>
-               <Ionicons name="ellipsis-horizontal" size={20} color={theme.colors.textMuted} />
-             </Pressable>
-           </Pressable>
-         ))}
-      </ScrollView>
-    </SafeAreaView>
-  );
-}
-
-function ListItemImage({ imageUrl, t }: { imageUrl?: string; t: Theme }) {
-  const [failed, setFailed] = useState(false);
-  if (!imageUrl || failed) {
-    return <Ionicons name="heart-outline" size={20} color={t.colors.primary} />;
+        <ActivityIndicator style={{ marginTop: 24 }} color={theme.colors.primary} />
+      </SafeAreaView>
+    );
   }
-  return <Image source={{ uri: imageUrl }} style={{ width: 44, height: 44, borderRadius: 8, backgroundColor: t.colors.surface2 }} contentFit="cover" transition={200} onError={() => setFailed(true)} />;
+
+  if (favoris.length === 0) {
+    return (
+      <SafeAreaView edges={['bottom']} style={s.container}>
+        <FlatList
+          data={[]}
+          renderItem={() => null}
+          ListHeaderComponent={
+            <View>
+              <View style={s.headerBar}>
+                <Text style={s.title}>Favoris</Text>
+                <ProfileAvatar />
+              </View>
+              <EmptyState variant="favoris" onAction={() => router.replace('/(tabs)')} />
+            </View>
+          }
+          onScroll={onScroll ? (e) => onScroll(e.nativeEvent.contentOffset.y) : undefined}
+          scrollEventThrottle={16}
+          refreshControl={
+            <RefreshControl refreshing={refreshing} onRefresh={handleRefresh} tintColor={theme.colors.primary} />
+          }
+          contentContainerStyle={{ flexGrow: 1 }}
+        />
+      </SafeAreaView>
+    );
+  }
+
+  const ListHeader = (
+    <View>
+      <View style={s.headerBar}>
+        <Text style={s.title}>Favoris{'\u00A0'}·{'\u00A0'}{favoris.length}</Text>
+        <ProfileAvatar />
+      </View>
+
+      {showFilterBar && (
+        <View style={s.filterContainer}>
+          <View style={s.searchRow}>
+            <View style={s.searchWrap}>
+              <Ionicons name="search-outline" size={16} color={theme.colors.textMuted} />
+              <TextInput
+                style={s.searchInput}
+                placeholder="Rechercher dans mes favoris..."
+                placeholderTextColor={theme.colors.textMuted}
+                value={searchQuery}
+                onChangeText={setSearchQuery}
+                keyboardAppearance={keyboardAppearance}
+              />
+            </View>
+            <Pressable style={s.sortBtn} onPress={cycleSort} hitSlop={8}>
+              <Ionicons name="swap-vertical-outline" size={16} color={theme.colors.primary} />
+              <Text style={s.sortLabel}>{currentSortLabel}</Text>
+            </Pressable>
+          </View>
+
+          {familyCounts.length >= 2 && (
+            <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={s.chipsRow}>
+              <Pressable
+                style={[s.chip, activeFamily === null && s.chipActive]}
+                onPress={() => setActiveFamily(null)}
+              >
+                <Text style={[s.chipText, activeFamily === null && s.chipTextActive]}>Tous</Text>
+              </Pressable>
+              {familyCounts.map(([family, count]) => (
+                <Pressable
+                  key={family}
+                  style={[s.chip, activeFamily === family && s.chipActive]}
+                  onPress={() => setActiveFamily(activeFamily === family ? null : family)}
+                >
+                  <Text style={[s.chipText, activeFamily === family && s.chipTextActive]}>
+                    {translateNote(family)} · {count}
+                  </Text>
+                </Pressable>
+              ))}
+            </ScrollView>
+          )}
+        </View>
+      )}
+
+      {filtered.length === 0 && activeFamily && (
+        <View style={s.emptyFilter}>
+          <Text style={s.emptyFilterText}>Aucun favori dans cette famille</Text>
+        </View>
+      )}
+    </View>
+  );
+
+  const renderItem = ({ item }: { item: UserFavori }) => {
+    const cardData = favoriToCardItem(item);
+    const animVal = animatedValues.current.get(item.id);
+    const opacity = animVal ?? 1;
+
+    return (
+      <Animated.View style={{ flex: 0.5, opacity }}>
+        <Pressable onLongPress={() => showContextMenu(item)} delayLongPress={400} style={{ flex: 1 }}>
+          <ParfumCard
+            parfum={cardData}
+            compact
+            onPressOverride={() => goToDetail(item.parfumId)}
+          />
+        </Pressable>
+      </Animated.View>
+    );
+  };
+
+  return (
+    <>
+      <SafeAreaView edges={['bottom']} style={s.container}>
+        <FlatList
+          data={filtered}
+          keyExtractor={item => item.id}
+          renderItem={renderItem}
+          numColumns={2}
+          columnWrapperStyle={s.row}
+          contentContainerStyle={s.content}
+          ListHeaderComponent={ListHeader}
+          showsVerticalScrollIndicator={false}
+          onScroll={onScroll ? (e) => onScroll(e.nativeEvent.contentOffset.y) : undefined}
+          scrollEventThrottle={16}
+          refreshControl={
+            <RefreshControl refreshing={refreshing} onRefresh={handleRefresh} tintColor={theme.colors.primary} />
+          }
+          windowSize={5}
+          maxToRenderPerBatch={10}
+        />
+      </SafeAreaView>
+      <ActionSheet
+        visible={selectedItem !== null}
+        title={selectedItem?.nom ?? undefined}
+        actions={sheetActions}
+        onClose={() => setSelectedItem(null)}
+      />
+    </>
+  );
 }
 
 function getStyles(t: Theme) {
   return {
     container: { flex: 1, backgroundColor: t.colors.background },
     center: { flex: 1, justifyContent: 'center', alignItems: 'center', padding: 32 },
-    scroll: { paddingBottom: 40 },
-    title: { fontFamily: 'PlayfairDisplay_700Bold', fontSize: 22, color: t.colors.text, flex: 1 },
-    headerBar: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 16, paddingTop: 8, paddingBottom: 8 },
-    listItem: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingVertical: 14, paddingHorizontal: 16, borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: t.colors.border },
-    itemLeft: { flexDirection: 'row', alignItems: 'center', gap: 12, flex: 1 },
-    itemName: { fontFamily: 'Inter_600SemiBold', fontSize: 15, color: t.colors.text },
-    itemBrand: { fontFamily: 'Inter_400Regular', fontSize: 12, color: t.colors.textMuted, marginTop: 1 },
-    itemFamily: { fontFamily: 'Inter_400Regular', fontSize: 11, color: t.colors.primary, marginTop: 2 },
-    emptyTitle: { fontFamily: 'PlayfairDisplay_600SemiBold', fontSize: 20, color: t.colors.text, marginTop: 12 },
-    emptyDesc: { fontFamily: 'Inter_400Regular', fontSize: 14, color: t.colors.textMuted, textAlign: 'center', lineHeight: 20, marginTop: 6 },
+    headerBar: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 16, paddingTop: 8, paddingBottom: 4 },
+    title: { fontFamily: 'PlayfairDisplay_700Bold', fontSize: 28, color: t.colors.text, flex: 1 },
+    authTitle: { fontFamily: 'PlayfairDisplay_600SemiBold', fontSize: 20, color: t.colors.text, marginTop: 12 },
+    authDesc: { fontFamily: 'Inter_400Regular', fontSize: 14, color: t.colors.textMuted, textAlign: 'center', lineHeight: 20, marginTop: 6 },
+    authBtn: {
+      marginTop: 20,
+      borderWidth: 1.5,
+      borderColor: t.colors.primary,
+      borderRadius: t.radius.base,
+      paddingHorizontal: 32,
+      paddingVertical: 12,
+    },
+    authBtnText: {
+      fontFamily: 'Inter_600SemiBold',
+      fontSize: 15,
+      color: t.colors.primary,
+    },
+    filterContainer: {
+      paddingHorizontal: 12,
+      paddingBottom: 4,
+    },
+    searchRow: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 8,
+      marginBottom: 4,
+    },
+    searchWrap: {
+      flex: 1,
+      flexDirection: 'row',
+      alignItems: 'center',
+      backgroundColor: t.colors.surface2,
+      borderRadius: 20,
+      paddingHorizontal: 12,
+      height: 38,
+      gap: 8,
+    },
+    searchInput: {
+      flex: 1,
+      fontFamily: 'Inter_400Regular',
+      fontSize: 14,
+      color: t.colors.text,
+    },
+    sortBtn: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 2,
+      paddingHorizontal: 8,
+      paddingVertical: 6,
+    },
+    sortLabel: {
+      fontFamily: 'Inter_500Medium',
+      fontSize: 12,
+      color: t.colors.primary,
+    },
+    chipsRow: {
+      paddingVertical: 4,
+      gap: 8,
+    },
+    chip: {
+      paddingHorizontal: 12,
+      paddingVertical: 7,
+      borderRadius: 20,
+      backgroundColor: t.colors.surface2,
+    },
+    chipActive: {
+      backgroundColor: t.colors.primarySoft,
+      borderWidth: 1,
+      borderColor: t.colors.primary,
+    },
+    chipText: {
+      fontFamily: 'Inter_500Medium',
+      fontSize: 12,
+      color: t.colors.textMuted,
+    },
+    chipTextActive: {
+      fontFamily: 'Inter_600SemiBold',
+      fontSize: 12,
+      color: t.colors.primaryInk,
+    },
+    emptyFilter: {
+      paddingVertical: 24,
+      alignItems: 'center',
+    },
+    emptyFilterText: {
+      fontFamily: 'Inter_400Regular',
+      fontSize: 14,
+      color: t.colors.textMuted,
+    },
+    row: {
+      gap: 8,
+      marginBottom: 8,
+    },
+    content: {
+      paddingHorizontal: 16,
+      paddingBottom: 40,
+    },
   } as const;
 }

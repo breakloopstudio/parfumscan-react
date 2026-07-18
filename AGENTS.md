@@ -1,4 +1,4 @@
-# ParfumScan React — Environment & Commands (v6.5)
+# ParfumScan React — Environment & Commands (v6.6)
 
 ## Environnement local (Windows)
 | Variable | Valeur |
@@ -87,6 +87,9 @@ react-native 0.86.0 · expo ~57 · expo-router ~57
 react-native-gesture-handler ~2.32 · react-native-reanimated ~4.5 · react-native-worklets 0.10
 react-native-svg ^15 · react-native-pager-view ^8.0 · @react-native-vector-icons/ionicons ^13
 @react-native-async-storage/async-storage · expo-navigation-bar ~57 · expo-system-ui ~57 · typescript ~6.0
+
+## Notes v6.6
+Parfumerie (ex « Garde-robe ») — icône `flask`. Favoris en grille (filtres famille, tri, ActionSheet). Historique groupé par période (Aujourd'hui/Hier/Cette semaine...), scans sauvegardés dans tous les états (no-result, error). `ActionSheet` bottom sheet custom. Dénormalisation `bestPrice`/`referencePrice`/`annee` dans UserFavori/UserScan. Back gesture edge-pan (40px strip gauche) sur fiche détail catalog. SOTDPicker ancré au-dessus de la carte (position absolute, sans Reanimated).
 
 ## Docs
 Expo SDK 57: https://docs.expo.dev/versions/v57.0.0/

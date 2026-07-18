@@ -55,7 +55,7 @@ export default function SOTDCard({ sotd, onPress, onChangePress }: Props) {
       <View style={s.placeholder}>
         <Ionicons name="sunny-outline" size={15} color={theme.colors.primaryInk} />
       </View>
-      <Text style={s.emptyTitle}>SOTD</Text>
+      <Text style={s.emptyTitle}>Parfum du jour ?</Text>
       <View style={s.changeBtn}>
         <Ionicons name="add-circle-outline" size={16} color={theme.colors.primary} />
       </View>
@@ -115,7 +115,6 @@ function getStyles(t: Theme) {
       fontFamily: 'Inter_500Medium',
       fontSize: 12,
       color: t.colors.primaryInk,
-      textAlign: 'right',
     },
     changeBtn: {
       padding: 6,

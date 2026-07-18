@@ -60,7 +60,7 @@ export default function WardrobeDetailPage() {
     return (
       <SafeAreaView edges={['top', 'bottom']} style={s.container}>
         <View style={s.center}>
-          <Text style={s.notFoundText}>Parfum introuvable dans votre garde-robe.</Text>
+          <Text style={s.notFoundText}>Parfum introuvable dans votre parfumerie.</Text>
         </View>
       </SafeAreaView>
     );
@@ -112,7 +112,7 @@ export default function WardrobeDetailPage() {
   };
 
   const handleRemove = () => {
-    Alert.alert('Retirer de la garde-robe', 'Ce parfum sera retiré de votre garde-robe.', [
+    Alert.alert('Retirer de la parfumerie', 'Ce parfum sera retiré de votre parfumerie.', [
       { text: 'Annuler', style: 'cancel' },
       {
         text: 'Retirer',
@@ -309,7 +309,7 @@ export default function WardrobeDetailPage() {
 
           <Pressable style={s.removeBtn} onPress={handleRemove}>
             <Ionicons name="trash-outline" size={16} color={theme.colors.overpriced} />
-            <Text style={s.removeText}>Retirer de la garde-robe</Text>
+            <Text style={s.removeText}>Retirer de la parfumerie</Text>
           </Pressable>
         </View>
       </ScrollView>

@@ -14,4 +14,7 @@ export interface UserScan {
   parfumId?: string;
   imageUrl?: string;      // dénormalisé pour affichage sans appel API
   familleOlactive?: string; // dénormalisé pour affichage sans appel API
+  annee?: number;          // dénormalisé — année de sortie
+  bestPrice?: number;      // dénormalisé — meilleur prix trouvé lors du scan
+  status?: 'success' | 'no-result' | 'error'; // résultat du scan
 }

@@ -1,5 +1,5 @@
 // app/(tabs)/_layout.tsx
-// Layout tabs : pager (index.tsx) + écrans overlay (favorites, history, collection, scan)
+// Layout tabs : pager (index.tsx) + écrans overlay (favorites, history, collection/parfumerie, scan)
 
 import { useMemo } from 'react';
 import { Stack } from 'expo-router';

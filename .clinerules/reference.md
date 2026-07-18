@@ -40,7 +40,7 @@ export function buildSearchKeywords(marque: string, nom: string): string[];
 // Firestore — données utilisateur (favoris, collection, wishlist, scans, settings)
 // Doc IDs = parfumId (déterministes, pas de doublons possibles)
 export function onFavoris(uid: string, cb: (f: UserFavori[]) => void): () => void;
-export function addFavori(uid: string, parfumId: string, nom?: string, marque?: string, imageUrl?: string, familleOlactive?: string): Promise<string>;
+export function addFavori(uid: string, parfumId: string, nom?: string, marque?: string, imageUrl?: string, familleOlactive?: string, bestPrice?: number, referencePrice?: number, annee?: number): Promise<string>;
 export function removeFavori(uid: string, parfumId: string): Promise<void>;
 export function isParfumFavori(uid: string, parfumId: string): Promise<{ isFavori: boolean; favoriId: string | null }>;
 export function onCollection(uid: string, cb: (items: UserCollectionItem[]) => void): () => void;
@@ -50,7 +50,7 @@ export function onWishlist(uid: string, cb: (items: UserWishlistItem[]) => void)
 export function addToWishlist(uid: string, parfumId: string, nom?: string, marque?: string, imageUrl?: string, familleOlactive?: string): Promise<string>;
 export function removeFromWishlist(uid: string, parfumId: string): Promise<void>;
 export function onScans(uid: string, cb: (s: UserScan[]) => void): () => void;
-export function saveScan(uid: string, data: Omit<UserScan, 'id' | 'scannedAt'>): Promise<void>;
+export function saveScan(uid: string, data: Omit<UserScan, 'id' | 'scannedAt'> & { status?: 'success' | 'no-result' | 'error'; bestPrice?: number; annee?: number }): Promise<void>;
 export function removeScan(uid: string, scanId: string): Promise<void>;
 export function getUserSettings(uid: string): Promise<{ priceAlerts: boolean; pushNotifs: boolean }>;
 export function updateUserSetting(uid: string, key: 'priceAlerts' | 'pushNotifs', value: boolean): Promise<void>;
@@ -317,6 +317,41 @@ interface UserWishlistItem {
 }
 ```
 
+### `src/models/user-favori.interface.ts`
+```ts
+interface UserFavori {
+  id: string;
+  parfumId: string;
+  nom?: string;
+  marque?: string;
+  imageUrl?: string;
+  familleOlactive?: string;
+  bestPrice?: number;       // dénormalisé — badge promo
+  referencePrice?: number;   // dénormalisé — calcul remise
+  annee?: number;            // dénormalisé — chip année
+  addedAt: Date;
+}
+```
+
+### `src/models/user-scan.interface.ts`
+```ts
+interface UserScan {
+  id: string;
+  marque?: string;
+  nom?: string;
+  typeParfum?: string;
+  volumeMl?: number;
+  rawText?: string;
+  parfumId?: string;
+  imageUrl?: string;
+  familleOlactive?: string;
+  annee?: number;            // dénormalisé
+  bestPrice?: number;        // dénormalisé
+  status?: 'success' | 'no-result' | 'error';
+  scannedAt: Date;
+}
+```
+
 ### `src/models/wardrobe.interface.ts`
 ```ts
 interface WardrobeItem {
@@ -402,9 +437,29 @@ interface Props {
 }
 ```
 
+### `ActionSheet` — `src/components/ActionSheet.tsx`
+
+Bottom sheet custom pour les menus contextuels (long-press sur favoris/scans). Animation spring + backdrop avec `withTiming`.
+
+```ts
+interface ActionItem {
+  icon: string;
+  label: string;
+  onPress: () => void;
+  destructive?: boolean;
+}
+
+interface Props {
+  visible: boolean;
+  title?: string;
+  actions: ActionItem[];
+  onClose: () => void;
+}
+```
+
 ### `DockBar` — `src/features/navigation/DockBar.tsx`
 
-Barre de navigation flottante 5 positions (Catalogue, Favoris, Scan, Historique, Collection) + FAB central.
+Barre de navigation flottante 5 positions (Catalogue, Favoris, Scan, Historique, Parfumerie) + FAB central.
 
 ```ts
 interface Props {

@@ -34,9 +34,9 @@ const CONFIG = {
     cta: 'Scanner un flacon',
   },
   wardrobe: {
-    icon: 'shirt-outline',
-    title: 'Votre garde-robe vous attend',
-    desc: 'Chaque parfum raconte une histoire. La vôtre commence ici.',
+    icon: 'flask-outline',
+    title: 'Votre parfumerie est vide',
+    desc: 'Ajoutez vos premiers flacons pour constituer votre collection personnelle.',
     cta: 'Explorer le catalogue',
   },
 } as const satisfies Record<Variant, { icon: string; title: string; desc: string; cta: string }>;

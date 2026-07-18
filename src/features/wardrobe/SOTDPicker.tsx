@@ -1,9 +1,8 @@
 // src/features/wardrobe/SOTDPicker.tsx
 
 import { useState, useMemo } from 'react';
-import { View, Text, Pressable, TextInput, FlatList } from 'react-native';
+import { View, Text, Pressable, TextInput, FlatList, useWindowDimensions } from 'react-native';
 import { Image } from 'expo-image';
-import Animated, { useSharedValue, useAnimatedStyle, withSpring, withTiming } from 'react-native-reanimated';
 import Ionicons from '@react-native-vector-icons/ionicons/static';
 import { useTheme, type Theme } from '../../theme/ThemeContext';
 import { hapticsLight } from '../../services/haptics';
@@ -13,23 +12,27 @@ interface Props {
   visible: boolean;
   haveItems: WardrobeItem[];
   currentSotdId: string | null;
+  anchorTop: number;
   onSelect: (parfumId: string) => void;
   onClose: () => void;
 }
 
-export default function SOTDPicker({ visible, haveItems, currentSotdId, onSelect, onClose }: Props) {
+export default function SOTDPicker({ visible, haveItems, currentSotdId, anchorTop, onSelect, onClose }: Props) {
   const { theme, resolvedMode } = useTheme();
+  const { height: windowHeight } = useWindowDimensions();
   const s = useMemo(() => getStyles(theme), [theme]);
   const keyboardAppearance = resolvedMode === 'dark' ? 'dark' : 'light';
   const [query, setQuery] = useState('');
-  const translateY = useSharedValue(400);
+
+  const maxSheetHeight = Math.min(360, windowHeight - anchorTop - 80);
 
   const filtered = useMemo(() => {
     if (!query.trim()) return haveItems;
     const q = query.trim().toLowerCase();
     return haveItems.filter(i =>
       (i.nom ?? '').toLowerCase().includes(q) ||
-      (i.marque ?? '').toLowerCase().includes(q)
+      (i.marque ?? '').toLowerCase().includes(q) ||
+      (i.parfumId ?? '').replace(/_/g, ' ').toLowerCase().includes(q)
     );
   }, [haveItems, query]);
 
@@ -38,7 +41,7 @@ export default function SOTDPicker({ visible, haveItems, currentSotdId, onSelect
   return (
     <View style={s.backdrop}>
       <Pressable style={s.backdropTouch} onPress={onClose} />
-      <View style={s.sheet}>
+      <View style={[s.sheet, { top: anchorTop + 4, maxHeight: maxSheetHeight }]}>
         <View style={s.handle} />
         <Text style={s.title}>Parfum du jour</Text>
 
@@ -111,18 +114,19 @@ function getStyles(t: Theme) {
       position: 'absolute',
       inset: 0,
       zIndex: 100,
-      justifyContent: 'flex-end',
     } as const,
     backdropTouch: {
       ...({ position: 'absolute', inset: 0, backgroundColor: 'rgba(0,0,0,0.4)' } as const),
     },
     sheet: {
+      position: 'absolute',
+      left: 16,
+      right: 16,
       backgroundColor: t.colors.surface,
-      borderTopLeftRadius: 20,
-      borderTopRightRadius: 20,
-      paddingHorizontal: 16,
-      paddingBottom: 32,
-      maxHeight: '65%',
+      borderRadius: t.radius.card,
+      paddingHorizontal: 12,
+      paddingBottom: 8,
+      ...t.shadow.elevated,
     },
     handle: {
       width: 36,
@@ -131,13 +135,13 @@ function getStyles(t: Theme) {
       backgroundColor: t.colors.border,
       alignSelf: 'center',
       marginTop: 10,
-      marginBottom: 16,
+      marginBottom: 12,
     },
     title: {
       fontFamily: 'PlayfairDisplay_600SemiBold',
-      fontSize: 20,
+      fontSize: 18,
       color: t.colors.text,
-      marginBottom: 12,
+      marginBottom: 10,
     },
     searchWrap: {
       flexDirection: 'row',
@@ -147,7 +151,7 @@ function getStyles(t: Theme) {
       paddingHorizontal: 12,
       height: 40,
       gap: 8,
-      marginBottom: 8,
+      marginBottom: 6,
     },
     searchInput: {
       flex: 1,
@@ -156,12 +160,12 @@ function getStyles(t: Theme) {
       color: t.colors.text,
     },
     list: {
-      maxHeight: 350,
+      maxHeight: 260,
     },
     item: {
       flexDirection: 'row',
       alignItems: 'center',
-      paddingVertical: 12,
+      paddingVertical: 10,
       gap: 12,
       borderBottomWidth: 0.5,
       borderBottomColor: t.colors.border,
@@ -171,7 +175,7 @@ function getStyles(t: Theme) {
     },
     itemName: {
       fontFamily: 'Inter_600SemiBold',
-      fontSize: 15,
+      fontSize: 14,
       color: t.colors.text,
     },
     itemBrand: {

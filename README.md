@@ -22,7 +22,7 @@
 | 📸 **Scan intelligent** | Burst 3 photos → GPT-4o Vision (adaptatif : 70% en 1 appel, 30% en cross-ref 2 photos) → API Fragella |
 | 🖼️ **Import galerie** | Photo existante → même pipeline IA, sans permissions supplémentaires |
 | 📚 **Catalogue** | Recherche cache-first (Firestore → Fragella), navigation par famille olfactive, tri (prix/pertinence), suggestions personnalisées |
-| 🗂️ **Garde-robe** | Parfums possédés/souhaités/échantillons/décants, étagères custom, parfum signature (max 3), SOTD compact |
+| 🧪 **Parfumerie** | Parfums possédés/souhaités/échantillons/décants, étagères custom, parfum signature (max 3), SOTD compact |
 | 🧪 **Décants & échantillons** | Tailles dédiées 2–30ml, distinctes des formats full-size (30–200ml) |
 | ⭐ **Wishlist** | Parfums à acheter, alertes prix |
 | ❤️ **Favoris** | Coups de cœur, sans obligation d'achat |
@@ -132,7 +132,7 @@ app/
 │   ├── index.tsx             # TabPager PagerView 4 pages + DockBar flottant + barre de recherche persistante
 │   ├── favorites.tsx         # Favoris (page standalone)
 │   ├── history.tsx           # Historique des scans
-│   ├── collection.tsx        # Garde-robe (grid, étagères, SOTD, parfum signature)
+│   ├── collection.tsx        # Parfumerie (grid, étagères, SOTD, parfum signature) — ex « Garde-robe »
 │   ├── scan.tsx              # Scanner overlay (push FAB)
 │   └── search.tsx            # Overlay recherche plein écran (barre persistante → push)
 ├── auth/
@@ -282,6 +282,16 @@ dénormalisés → affichage direct sans appel API Firestore ni Fragella.
 - **0 fontWeight** : migration complète de tout le code vers `fontFamily`
 - **Firebase modular API** : migration namespaced → modular (v25+)
 - **Onboarding** : 3 slides swipe au 1er lancement, AsyncStorage `@parfumscan_onboarding_done` (⏸️ désactivé temporairement)
+
+## v6.6 — Parfumerie, Favoris moodboard, Historique journal (18/07/2026)
+
+- **Parfumerie (rebrand)** : « Garde-robe » devient « Parfumerie » — icône `flask`, labels, placeholders, empty states, fiches personnelles, privacy policy. Nom de fichier `collection.tsx` conservé pour rétrocompatibilité expo-router.
+- **Favoris refonte** : moodboard olfactif en grille 2 colonnes (`ParfumCard` compact), filtres famille olfactive avec compteurs, barre de recherche + toggle tri (date/A-Z/Z-A/prix), animation stagge fade-in, menu contextuel enrichi via `ActionSheet` (long-press → 5 options), pull-to-refresh. Dénormalisation `bestPrice`/`referencePrice`/`annee` dans `UserFavori` pour le badge promo.
+- **Historique refonte** : journal olfactif groupé par période (Aujourd'hui/Hier/Cette semaine/Ce mois/mois année). Carte `ScanHistoryCard` avec dot statut (vert/gris/rouge), compteur répétitions `×N`, prix si capturé. Barre recherche + tri (récents/anciens), prompt "Scanner aujourd'hui ?", animation stagger, `ActionSheet` menu contextuel. Scans sauvegardés dans tous les états (`no-result`, `error`) via `saveScan()`.
+- **ActionSheet** : nouveau composant bottom sheet custom (spring + backdrop `withTiming`), remplace les `Alert.alert` sur favoris et historique. Supporte actions iconées, titre optionnel, variante destructive. Utilisé par Favoris et Historique.
+- **Dénormalisation étendue** : `UserFavori` (+ `bestPrice`, `referencePrice`, `annee`) et `UserScan` (+ `annee`, `bestPrice`, `status`) pour affichage direct sans appels Firestore supplémentaires.
+- **Back gesture edge-pan** : gesture de retour restreint à une strip de 40px à gauche sur la fiche détail catalogue (évite les conflits avec le swipe horizontal de la pyramide).
+- **SOTDPicker ancré** : positionné en `absolute` au-dessus de la carte SOTD (ancré par `anchorTop` prop), suppression de Reanimated. Hauteur max dynamique basée sur `windowHeight`.
 
 ## v6.5 — PagerView natif + Pyramide v5 + Dark mode system (18/07/2026)
 

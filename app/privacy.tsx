@@ -41,7 +41,7 @@ export default function PrivacyPage() {
             Dans le cadre de l'utilisation des fonctionnalités, nous stockons :{'\n'}
             {'\u2022'} Vos parfums favoris{'\n'}
             {'\u2022'} Votre collection et wishlist{'\n'}
-            {'\u2022'} Votre garde-robe (états de possession, notes personnelles, étagères){'\n'}
+            {'\u2022'} Votre parfumerie (états de possession, notes personnelles, étagères){'\n'}
             {'\u2022'} Votre parfum du jour (SOTD){'\n'}
             {'\u2022'} L'historique de vos scans{'\n'}
             {'\u2022'} Vos préférences (notifications, alertes prix)
@@ -65,7 +65,7 @@ export default function PrivacyPage() {
           <Text style={s.body}>
             Les traitements reposent sur les bases légales suivantes :{'\n'}
             {'\u2022'} <Text style={s.bold}>Consentement</Text> : création de compte, connexion Google, scan caméra, notifications push{'\n'}
-            {'\u2022'} <Text style={s.bold}>Exécution du contrat</Text> : sauvegarde de vos favoris, collection, wishlist, garde-robe{'\n'}
+            {'\u2022'} <Text style={s.bold}>Exécution du contrat</Text> : sauvegarde de vos favoris, collection, wishlist, parfumerie{'\n'}
             {'\u2022'} <Text style={s.bold}>Intérêt légitime</Text> : préférence de thème (stockage local uniquement)
           </Text>
         </View>
@@ -107,7 +107,7 @@ export default function PrivacyPage() {
           <Text style={s.sectionTitle}>6. Durée de conservation</Text>
           <Text style={s.body}>
             {'\u2022'} Données du compte : jusqu'à la suppression du compte{'\n'}
-            {'\u2022'} Favoris, collection, wishlist, garde-robe : jusqu'à suppression manuelle ou suppression du compte{'\n'}
+            {'\u2022'} Favoris, collection, wishlist, parfumerie : jusqu'à suppression manuelle ou suppression du compte{'\n'}
             {'\u2022'} Historique des scans : jusqu'à suppression manuelle ou suppression du compte{'\n'}
             {'\u2022'} Photos transmises à OpenAI : non conservées (traitement immédiat, pas de stockage){'\n'}
             {'\u2022'} Token FCM : jusqu'à désactivation des notifications ou suppression du compte{'\n'}

@@ -59,7 +59,7 @@ export default function WardrobeAddSheet({
       onClose();
     } catch (e) {
       hapticsError();
-      setError((e as Error)?.message ?? 'Impossible d\'ajouter à la garde-robe.');
+      setError((e as Error)?.message ?? 'Impossible d\'ajouter à la parfumerie.');
     } finally {
       setLoading(false);
     }
@@ -126,7 +126,7 @@ export default function WardrobeAddSheet({
           {loading ? (
             <ActivityIndicator size="small" color="#FFFFFF" />
           ) : (
-            <Text style={s.confirmBtnText}>Ajouter à ma garde-robe</Text>
+            <Text style={s.confirmBtnText}>Ajouter à ma parfumerie</Text>
           )}
         </Pressable>
 

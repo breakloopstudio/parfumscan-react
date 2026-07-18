@@ -106,7 +106,7 @@ export default function DockBar({ activeIndex, pageWidth, dockTranslateY, onTabP
     { index: 1, iconActive: 'heart', iconInactive: 'heart-outline', label: 'Favoris' },
     { index: 2, iconActive: 'camera', iconInactive: 'camera-outline', label: 'Scan', isFab: true },
     { index: 3, iconActive: 'time', iconInactive: 'time-outline', label: 'Historique' },
-    { index: 4, iconActive: 'shirt', iconInactive: 'shirt-outline', label: 'Garde-robe' },
+    { index: 4, iconActive: 'flask', iconInactive: 'flask-outline', label: 'Parfumerie' },
   ] as const;
 
   return (

@@ -169,18 +169,15 @@ export default function CatalogDetailPage() {
   const MIN_SWIPE_THRESHOLD = 50;
   const SWIPE_THRESHOLD_RATIO = 0.5;
 
-  const backGesture = Gesture.Pan()
-    .activeOffsetX(20)
+  const edgePanGesture = Gesture.Pan()
+    .activeOffsetX([20, Infinity])
     .failOffsetY([-15, 15])
     .onUpdate((e) => {
-      if (e.translationX > 0) {
-        translateX.value = e.translationX * 0.85;
-      }
+      translateX.value = Math.max(0, e.translationX * 0.85);
     })
     .onEnd((e) => {
       const threshold = Math.max((windowWidth || 400) * SWIPE_THRESHOLD_RATIO, MIN_SWIPE_THRESHOLD);
       if (e.translationX > threshold || e.velocityX > 500) {
-        translateX.value = withSpring(0, { damping: 20, stiffness: 300, mass: 0.5 });
         runOnJS(router.back)();
       } else {
         translateX.value = withSpring(0, SWIPE_SPRING);
@@ -394,7 +391,7 @@ export default function CatalogDetailPage() {
         if (!('createdAt' in parfum)) {
           await cacheParfumFromSearch(parfum as ParfumSearchResult);
         }
-        const fid = await addFavori(user.uid, id, parfum.nom, parfum.marque, parfum.imageUrl, parfum.familleOlactive);
+        const fid = await addFavori(user.uid, id, parfum.nom, parfum.marque, parfum.imageUrl, parfum.familleOlactive, parfum.bestPrice, parfum.referencePrice, parfum.annee);
         setFavoriId(fid);
       } catch (e) {
         console.warn('[fav] Failed:', (e as Error)?.message);
@@ -713,11 +710,23 @@ export default function CatalogDetailPage() {
 
   if (Platform.OS === 'android') {
     return (
-      <GestureDetector gesture={backGesture}>
-        <Animated.View style={[{ flex: 1, backgroundColor: t.colors.background }, swipeStyle]}>
+      <View style={{ flex: 1, backgroundColor: t.colors.background }}>
+        <Animated.View style={[{ flex: 1 }, swipeStyle]}>
           {content}
         </Animated.View>
-      </GestureDetector>
+        <GestureDetector gesture={edgePanGesture}>
+          <Animated.View
+            style={{
+              position: 'absolute',
+              left: 0,
+              top: 0,
+              bottom: 0,
+              width: 40,
+              zIndex: 10,
+            }}
+          />
+        </GestureDetector>
+      </View>
     );
   }
 

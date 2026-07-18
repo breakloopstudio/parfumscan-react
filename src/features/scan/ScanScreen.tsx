@@ -140,6 +140,9 @@ export function ScanScreen() {
             parfumId: top?.id,
             imageUrl: top?.imageUrl,
             familleOlactive: top?.familleOlactive,
+            annee: top?.annee,
+            bestPrice: top?.bestPrice,
+            status: 'success',
           }).catch(() => {});
         }
         // Cache automatique pour les futures recherches
@@ -154,9 +157,18 @@ export function ScanScreen() {
         const noResult = scanResult.marque
           ? scanResult
           : { marque: scanResult.marque, nom: scanResult.nom ?? null, volumeMl: null, typeParfum: scanResult.typeParfum ?? null };
+        if (user?.uid) {
+          saveScan(user.uid, {
+            rawText: JSON.stringify({ marque: scanResult.marque, nom: scanResult.nom, typeParfum: scanResult.typeParfum }),
+            marque: scanResult.marque ?? undefined,
+            nom: scanResult.nom ?? undefined,
+            typeParfum: scanResult.typeParfum ?? undefined,
+            status: 'no-result',
+          }).catch(() => {});
+        }
         dispatch({ type: 'SCAN_NO_RESULT', scanResult: noResult as ScanResult });
       }
-    } catch { dispatch({ type: 'SCAN_ERROR', message: 'Erreur recherche.' }); hapticsError(); }
+    } catch { if (user?.uid) { saveScan(user.uid, { rawText: JSON.stringify(scanResult), marque: scanResult.marque ?? undefined, nom: scanResult.nom ?? undefined, status: 'error' }).catch(() => {}); } dispatch({ type: 'SCAN_ERROR', message: 'Erreur recherche.' }); hapticsError(); }
   };
 
   const trySearch = async (m: string | null, n: string | null, t?: string | null): Promise<FragranceResult[]> => {

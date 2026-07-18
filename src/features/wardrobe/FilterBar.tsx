@@ -73,7 +73,7 @@ export default function FilterBar({
           <Ionicons name="search-outline" size={16} color={theme.colors.textMuted} />
           <TextInput
             style={s.searchInput}
-            placeholder="Rechercher dans ma garde-robe..."
+            placeholder="Rechercher dans ma parfumerie..."
             placeholderTextColor={theme.colors.textMuted}
             value={searchQuery}
             onChangeText={onSearchChange}

@@ -19,9 +19,9 @@ export function onFavoris(uid: string, cb: (favoris: UserFavori[]) => void): () 
   }, (err) => { console.warn('[user-data] onFavoris error:', err.message); cb([]); });
 }
 
-export async function addFavori(uid: string, parfumId: string, nom?: string, marque?: string, imageUrl?: string, familleOlactive?: string): Promise<string> {
+export async function addFavori(uid: string, parfumId: string, nom?: string, marque?: string, imageUrl?: string, familleOlactive?: string, bestPrice?: number, referencePrice?: number, annee?: number): Promise<string> {
   const dRef = doc(favCol(uid), parfumId);
-  await setDoc(dRef, { parfumId, nom: nom ?? null, marque: marque ?? null, imageUrl: imageUrl ?? null, familleOlactive: familleOlactive ?? null, addedAt: new Date() }, { merge: true });
+  await setDoc(dRef, { parfumId, nom: nom ?? null, marque: marque ?? null, imageUrl: imageUrl ?? null, familleOlactive: familleOlactive ?? null, bestPrice: bestPrice ?? null, referencePrice: referencePrice ?? null, annee: annee ?? null, addedAt: new Date() }, { merge: true });
   return dRef.id;
 }
 
