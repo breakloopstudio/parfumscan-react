@@ -10,9 +10,7 @@ service cloud.firestore {
     }
     match /parfums/{docId} {
       allow read: if true;
-      // Cache : les utilisateurs connectés peuvent écrire (set+merge via batchCacheParfums)
-      allow create, update: if request.auth != null;
-      allow delete: if request.auth != null && exists(/databases/$(database)/documents/admins/$(request.auth.uid));
+      allow create, update, delete: if request.auth != null && exists(/databases/$(database)/documents/admins/$(request.auth.uid));
     }
     match /users/{userId} {
       allow read, write: if request.auth != null && request.auth.uid == userId;

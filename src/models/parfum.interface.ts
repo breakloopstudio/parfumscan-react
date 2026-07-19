@@ -24,17 +24,14 @@ export interface Parfum {
   // --- Comparateur de prix ---
   bestPrice?: number;
   referencePrice?: number;
-  discountPct?: number;
   offers?: PriceOffer[];
 
-  // --- Cache Fragella ---
-  source?: 'fragella' | 'fragella-cached' | 'seed' | 'manual';
+  // --- Métadonnées du catalogue (seed Firestore) ---
+  source?: 'seed' | 'manual';
   cachedAt?: Date;
   imageVerified?: boolean;
   typeParfum?: string | null;
-  searchKeywords?: string[];  // tokens normalisés pour cache-first (ex: ["creed","aventus","creed_aventus"])
-  fragellaId?: string;       // ID original Fragella (pour endpoint /:id)
-  // Métadonnées étendues collectées via l'API Fragella
+  searchKeywords?: string[];
   purchaseUrl?: string | null;
   mainAccords?: string[];
   longevity?: string | null;
@@ -46,12 +43,10 @@ export interface Parfum {
   ratingScore?: number;
   priceValue?: string | null;
   country?: string;
-  imageUrlTransparent?: string;
   mainAccordsPercentage?: Record<string, string>;
   generalNotes?: string[];
   confidence?: string;
   seasonRanking?: { name: string; score: number }[];
   occasionRanking?: { name: string; score: number }[];
-  imageFallbacks?: string[];
   similarIds?: string[];
 }

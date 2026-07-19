@@ -12,7 +12,7 @@ import ProfileAvatar from '../../components/ProfileAvatar';
 import { getPopularParfums, getPersonalizedSuggestions } from '../../services/firestore';
 import { setPendingCatalogQuery, consumePendingCatalogQuery } from '../../services/catalog-bridge';
 import { useTheme, type Theme } from '../../theme/ThemeContext';
-import type { ParfumSearchResult } from '../../services/fragella';
+import type { Parfum } from '../../models';
 
 const FAMILIES = [
   { label: 'Tous',    icon: 'apps-outline',       query: null },
@@ -43,7 +43,7 @@ export default function CatalogPage({ onScroll }: Props) {
   const { user, authReady, isAuthenticated } = useAuthContext();
   const router = useRouter();
   const [activeFamily, setActiveFamily] = useState<string | null>(null);
-  const [suggestionParfums, setSuggestionParfums] = useState<ParfumSearchResult[]>([]);
+  const [suggestionParfums, setSuggestionParfums] = useState<Parfum[]>([]);
   const [suggestionLabel, setSuggestionLabel] = useState('Parfums populaires');
   const [suggestionLoading, setSuggestionLoading] = useState(true);
 

@@ -58,7 +58,7 @@ export default function LegalPage() {
           <Text style={s.body}>
             L'ensemble du code source, du design, des textes et des éléments graphiques de l'application ParfumScan est la propriété exclusive de l'éditeur, sauf mention contraire.{'\n\n'}
             Toute reproduction, représentation, modification ou adaptation, partielle ou totale, est interdite sans autorisation préalable.{'\n\n'}
-            La base de données de parfums est issue du service Fragella et reste la propriété de ses auteurs respectifs.
+            La base de données de parfums est constituée à partir de données publiques et reste la propriété de leurs auteurs respectifs.
           </Text>
         </View>
 

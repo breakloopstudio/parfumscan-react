@@ -3,7 +3,6 @@
 
 import { useReducer } from 'react';
 import type { ScanResult, Parfum } from '../models';
-import type { ParfumSearchResult } from '../services/fragella';
 
 // ─── Types ────────────────────────────────────────────────
 
@@ -12,7 +11,7 @@ export type ScanState =
   | { kind: 'camera' }
   | { kind: 'scanning'; step: number }
   | { kind: 'clarify'; scanResult: ScanResult; reason: 'low-confidence' | 'empty-response' | 'manual' }
-  | { kind: 'results'; parfums: ParfumSearchResult[] }
+  | { kind: 'results'; parfums: Parfum[] }
   | { kind: 'no-result'; scanResult: ScanResult }
   | { kind: 'error'; message: string };
 
@@ -22,7 +21,7 @@ export type ScanAction =
   | { type: 'START_SCAN' }
   | { type: 'STEP_1' }
   | { type: 'STEP_2' }
-  | { type: 'SCAN_SUCCESS'; parfums: ParfumSearchResult[] }
+  | { type: 'SCAN_SUCCESS'; parfums: Parfum[] }
   | { type: 'SCAN_CLARIFY'; scanResult: ScanResult; reason: 'low-confidence' | 'empty-response' }
   | { type: 'SCAN_NO_RESULT'; scanResult: ScanResult }
   | { type: 'SCAN_ERROR'; message: string }

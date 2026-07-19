@@ -12,13 +12,12 @@ import { useShelves } from '../../src/hooks/useShelves';
 import { useSotd } from '../../src/hooks/useSotd';
 import { getParfumById } from '../../src/services/firestore';
 import { setPendingParfum } from '../../src/services/catalog-bridge';
-import type { ParfumSearchResult } from '../../src/services/fragella';
+import type { Parfum } from '../../src/models';
 import StarRating from '../../src/features/wardrobe/StarRating';
 import { ownershipLabel } from '../../src/utils/ownership';
 import { hapticsLight } from '../../src/services/haptics';
 import { useTheme, type Theme } from '../../src/theme/ThemeContext';
 import type { WardrobeItem } from '../../src/models/wardrobe.interface';
-import type { Parfum } from '../../src/models';
 
 const OWNERSHIP_OPTIONS: WardrobeItem['ownership'][] = ['have', 'want', 'had', 'sample', 'decant'];
 const SIZE_OPTIONS = [30, 50, 75, 100, 125, 200];
@@ -67,7 +66,7 @@ export default function WardrobeDetailPage() {
   }
 
   const isSotd = sotd?.parfumId === parfumId;
-  const imageUrl = parfumData?.imageUrl ?? item.imageUrl ?? parfumData?.imageUrlTransparent ?? undefined;
+  const imageUrl = parfumData?.imageUrl ?? item.imageUrl ?? undefined;
 
   const handleOwnershipChange = (o: WardrobeItem['ownership']) => {
     hapticsLight();
@@ -287,7 +286,7 @@ export default function WardrobeDetailPage() {
               if (parfumData) {
                 setPendingParfum(parfumData);
               } else {
-                const bridge: ParfumSearchResult = {
+                const bridge: Parfum = {
                   id: parfumId!,
                   nom: item.nom ?? '',
                   marque: item.marque ?? '',
@@ -296,7 +295,9 @@ export default function WardrobeDetailPage() {
                   notesCoeur: [],
                   notesFond: [],
                   imageUrl: item.imageUrl ?? undefined,
-                  source: 'fragella' as const,
+                  source: 'seed' as const,
+                  createdAt: new Date(),
+                  updatedAt: new Date(),
                 };
                 setPendingParfum(bridge);
               }

@@ -82,10 +82,10 @@ export default function PrivacyPage() {
             Les photos de flacons sont transmises à OpenAI pour analyse visuelle. OpenAI ne reçoit aucune donnée d'identification personnelle. Les images envoyées ne sont pas utilisées pour entraîner les modèles d'OpenAI et sont supprimées après traitement.{'\n\n'}
             La clé API OpenAI est exclusivement stockée côté serveur (Cloud Functions) et n'est jamais exposée au client.
           </Text>
-          <Text style={s.subtitle}>4.3 Fragella</Text>
+          <Text style={s.subtitle}>4.3 Catalogue de parfums</Text>
           <Text style={s.body}>
-            Les recherches de parfums sont effectuées via l'API Fragella (catalogue de 74 000 parfums). Seuls le nom de la marque et le nom du parfum sont transmis — aucune donnée personnelle.{'\n\n'}
-            La clé API Fragella est exclusivement stockée côté serveur.
+            Les données des parfums (marque, nom, notes olfactives, prix) sont hébergées dans notre base de données interne (Firestore). Aucune donnée personnelle n'est transmise à un service tiers pour les recherches de parfums.{"\n\n"}
+            Les recherches sont effectuées localement dans notre catalogue de 21 000+ parfums.
           </Text>
           <Text style={s.subtitle}>4.4 Google Sign-In</Text>
           <Text style={s.body}>

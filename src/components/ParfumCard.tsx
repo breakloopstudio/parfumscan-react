@@ -7,15 +7,13 @@ import { useRouter } from 'expo-router';
 import Ionicons from "@react-native-vector-icons/ionicons/static";
 import { useTheme, type Theme } from '../theme/ThemeContext';
 import type { Parfum } from '../models';
-import type { ParfumSearchResult } from '../services/fragella';
 import { setPendingParfum } from '../services/catalog-bridge';
 import { translateNote } from '../utils/translate-note';
 
-interface Props { parfum: Parfum | ParfumSearchResult; showDeal?: boolean; compact?: boolean; onPressOverride?: () => void; }
+interface Props { parfum: Parfum; showDeal?: boolean; compact?: boolean; onPressOverride?: () => void; }
 
-function getDiscount(p: Parfum | ParfumSearchResult): number | null {
-  if (typeof p.discountPct === 'number') return Math.round(p.discountPct);
-  if (typeof p.bestPrice === 'number' && typeof p.referencePrice === 'number' && p.referencePrice > 0) {
+function getDiscount(p: Parfum): number | null {
+  if (typeof p.referencePrice === 'number' && p.referencePrice > 0 && typeof p.bestPrice === 'number') {
     return Math.round((1 - p.bestPrice / p.referencePrice) * 100);
   }
   return null;
@@ -29,11 +27,8 @@ function brandColor(brand: string): string {
   return PALETTE[Math.abs(hash) % PALETTE.length];
 }
 
-function resolveImageUrl(p: Parfum | ParfumSearchResult): string | null {
-  if (p.imageUrl) return p.imageUrl;
-  if (p.imageUrlTransparent) return p.imageUrlTransparent;
-  if (p.imageFallbacks && p.imageFallbacks.length > 0) return p.imageFallbacks[0];
-  return null;
+function resolveImageUrl(p: Parfum): string | null {
+  return p.imageUrl ?? null;
 }
 
 export default function ParfumCard({ parfum, showDeal = false, compact = false, onPressOverride }: Props) {

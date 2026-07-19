@@ -10,26 +10,19 @@ export function isFirebaseReady(): boolean;
 
 ### `src/services/firestore.ts`
 ```ts
-// CRUD Firestore avec upsert intelligent
+// CRUD Firestore — catalogue 100% autonome
 export function onParfums(cb: (p: Parfum[]) => void): () => void;
-export function getParfumById(id: string): Promise<Parfum | null>;
+export function getParfumById(id: string): Promise<Parfum | undefined>;
 export function updateParfum(id: string, data: Partial<Parfum>): Promise<void>;
-export function cacheParfumFromSearch(p: ParfumSearchResult): Promise<void>;
-export function batchCacheParfums(parfums: Parfum[]): Promise<number>;
-export function getPopularParfums(limit: number): Promise<ParfumSearchResult[]>;
-export function getPersonalizedSuggestions(uid: string, limit: number): Promise<ParfumSearchResult[]>;
-export function searchParfumsCached(query: string): Promise<ParfumSearchResult[]>;
+export function getPopularParfums(limit: number): Promise<Parfum[]>;
+export function getPersonalizedSuggestions(uid: string, limit: number): Promise<Parfum[]>;
+export function searchParfumsCached(query: string): Promise<Parfum[]>;
+export function getSimilarParfums(familleOlactive: string, excludeId: string, limit?: number): Promise<Parfum[]>;
 ```
 
-### `src/services/fragella.ts`
+### `src/utils/normalize.ts`
 ```ts
-// API Fragella — catalogue de parfums, via Cloud Function (clé API côté serveur uniquement)
-export const FRAGELLA_BASE: string; // non utilisé (proxy Cloud Function)
-export function searchFragrance(marque: string, nom: string, typeParfum?: string | null): Promise<FragranceResult[]>;
-export function searchFragranceByQuery(query: string): Promise<FragranceResult[]>;
-export function getFragranceById(id: string): Promise<FragranceResult | null>;
-export function getSimilarFragrances(marque: string, nom: string, limit?: number): Promise<FragranceResult[]>;
-export function fragellaToParfum(f: FragranceResult): ParfumSearchResult;
+// Utilitaires de normalisation — extraits de l'ancien fragella.ts
 export function normalize(s: string): string;
 export function normalizeId(s: string): string;
 export function buildSearchKeywords(marque: string, nom: string): string[];

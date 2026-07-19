@@ -8,13 +8,12 @@ import * as ImagePicker from 'expo-image-picker';
 import { useAuthContext } from '../../contexts/AuthContext';
 import { useScanReducer } from '../../hooks/useScanReducer';
 import { analyzeImage, analyzeMultipleImages } from '../../services/openai-vision';
-import { searchFragrance, fragellaToParfum, type FragranceResult } from '../../services/fragella';
+import { searchParfumsCached } from '../../services/firestore';
 import { saveScan } from '../../services/user-data';
-import { batchCacheParfums } from '../../services/firestore';
 import { hapticsSuccess, hapticsError } from '../../services/haptics';
 import { setPendingCatalogQuery } from '../../services/catalog-bridge';
 import { translateFirebaseError } from '../../utils/error-translator';
-import type { ScanResult } from '../../models';
+import type { ScanResult, Parfum } from '../../models';
 import { ScanIdle } from './ScanIdle';
 import { ScanCamera } from './ScanCamera';
 import { ScanLoading } from './ScanLoading';
@@ -125,10 +124,9 @@ export function ScanScreen() {
 
   const searchAndShow = async (scanResult: ScanResult) => {
     try {
-      const frag = await trySearch(scanResult.marque, scanResult.nom, scanResult.typeParfum);
-      if (frag.length > 0) {
+      const parfums = await trySearch(scanResult.marque, scanResult.nom);
+      if (parfums.length > 0) {
         hapticsSuccess();
-        const parfums = frag.map(f => fragellaToParfum(f));
         // Sauvegarder le scan dans l'historique (non-bloquant)
         if (user?.uid) {
           const top = parfums[0];
@@ -144,13 +142,6 @@ export function ScanScreen() {
             bestPrice: top?.bestPrice,
             status: 'success',
           }).catch(() => {});
-        }
-        // Cache automatique pour les futures recherches
-        try {
-          const cached = await batchCacheParfums(parfums);
-          if (__DEV__) console.log('[scan] batchCacheParfums OK, cached:', cached);
-        } catch (e) {
-          console.warn('[scan] batchCacheParfums FAILED:', e instanceof Error ? e.message : String(e));
         }
         dispatch({ type: 'SCAN_SUCCESS', parfums });
       } else {
@@ -171,9 +162,11 @@ export function ScanScreen() {
     } catch { if (user?.uid) { saveScan(user.uid, { rawText: JSON.stringify(scanResult), marque: scanResult.marque ?? undefined, nom: scanResult.nom ?? undefined, status: 'error' }).catch(() => {}); } dispatch({ type: 'SCAN_ERROR', message: 'Erreur recherche.' }); hapticsError(); }
   };
 
-  const trySearch = async (m: string | null, n: string | null, t?: string | null): Promise<FragranceResult[]> => {
+  const trySearch = async (m: string | null, n: string | null): Promise<Parfum[]> => {
     if (!m && !n) return [];
-    try { return await searchFragrance(m ?? '', n ?? '', t); } catch { return []; }
+    const query = [m, n].filter(Boolean).join(' ');
+    if (query.length < 2) return [];
+    try { return await searchParfumsCached(query); } catch { return []; }
   };
 
   const reset = () => { pendingAnalysis.current = null; dispatch({ type: 'RESET' }); };

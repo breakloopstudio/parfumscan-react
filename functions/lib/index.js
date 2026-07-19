@@ -36,7 +36,7 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.analyzePerfumeImage = exports.searchFragrance = exports.sendNotification = exports.checkPriceAlerts = void 0;
+exports.analyzePerfumeImage = exports.sendNotification = exports.checkPriceAlerts = void 0;
 const functions = __importStar(require("firebase-functions"));
 const admin = __importStar(require("firebase-admin"));
 const scheduler_1 = require("firebase-functions/v2/scheduler");
@@ -46,18 +46,13 @@ const db = admin.firestore();
 /**
  * Cloud Function : checkPriceAlerts
  * Scheduled every 6 hours — checks all active price alerts for drops.
+ * Utilise uniquement les données Firestore (bestPrice) — plus de dépendance à l'API Fragella.
  */
 exports.checkPriceAlerts = (0, scheduler_1.onSchedule)('every 6 hours', async () => {
-    const apiKey = process.env.FRAGELLA_API_KEY;
-    if (!apiKey) {
-        console.error('[checkPriceAlerts] FRAGELLA_API_KEY not configured');
-        return;
-    }
     const usersSnap = await db.collection('users').get();
     let alertsChecked = 0;
     let notificationsSent = 0;
     const now = Date.now();
-    const STALE_MS = 24 * 60 * 60 * 1000; // 24 hours
     for (const userDoc of usersSnap.docs) {
         const uid = userDoc.id;
         // Check user settings: must have priceAlerts + pushNotifs enabled
@@ -99,7 +94,7 @@ exports.checkPriceAlerts = (0, scheduler_1.onSchedule)('every 6 hours', async ()
             if (!parfumId)
                 continue;
             alertsChecked++;
-            // Get cached parfum from Firestore
+            // Get parfum from Firestore
             let currentPrice = null;
             let parfumNom = '';
             let parfumMarque = '';
@@ -107,44 +102,9 @@ exports.checkPriceAlerts = (0, scheduler_1.onSchedule)('every 6 hours', async ()
                 const parfumDoc = await db.doc(`parfums/${parfumId}`).get();
                 if (parfumDoc.exists) {
                     const p = parfumDoc.data();
-                    const cachedAt = p.cachedAt ? new Date(p.cachedAt).getTime() : 0;
-                    const isFresh = (now - cachedAt) < STALE_MS;
-                    if (isFresh) {
-                        currentPrice = typeof p.bestPrice === 'number' ? p.bestPrice : null;
-                        parfumNom = p.nom ?? '';
-                        parfumMarque = p.marque ?? '';
-                    }
-                    else {
-                        // Stale cache — call Fragella to refresh
-                        const fragellaId = p.fragellaId;
-                        if (fragellaId) {
-                            const fragResponse = await fetch(`https://api.fragella.com/api/v1/fragrances/${encodeURIComponent(fragellaId)}`, { headers: { 'x-api-key': apiKey } });
-                            if (fragResponse.ok) {
-                                const fragData = await fragResponse.json();
-                                const newPrice = fragData['Price'] ? parseFloat(String(fragData['Price'])) : null;
-                                currentPrice = newPrice ?? null;
-                                parfumNom = fragData['Name'] ?? p.nom;
-                                parfumMarque = fragData['Brand'] ?? p.marque;
-                                // Update cache
-                                await db.doc(`parfums/${parfumId}`).set({
-                                    bestPrice: currentPrice,
-                                    cachedAt: new Date().toISOString(),
-                                }, { merge: true });
-                            }
-                            else {
-                                // API failed, use cached regardless of staleness
-                                currentPrice = typeof p.bestPrice === 'number' ? p.bestPrice : null;
-                                parfumNom = p.nom ?? '';
-                                parfumMarque = p.marque ?? '';
-                            }
-                        }
-                        else {
-                            // No fragellaId, use cached regardless
-                            currentPrice = typeof p.bestPrice === 'number' ? p.bestPrice : null;
-                            parfumNom = p.nom ?? '';
-                            parfumMarque = p.marque ?? '';
-                        }
-                    }
+                    currentPrice = typeof p.bestPrice === 'number' ? p.bestPrice : null;
+                    parfumNom = p.nom ?? '';
+                    parfumMarque = p.marque ?? '';
                 }
             }
             catch (err) {
@@ -284,253 +244,6 @@ exports.sendNotification = functions.https.onCall({ region: 'europe-west1' }, as
     };
 });
 /**
- * Cloud Function : searchFragrance
- * Recherche via Fragella API directe — pas de cache Firestore.
- * Scan : utilise /brands/:brandName pour résultats exhaustifs.
- * Catalogue : utilise /fragrances?search pour suggestions rapides.
- */
-exports.searchFragrance = functions.https.onCall({ region: 'europe-west1' }, async (request) => {
-    const { marque, nom, query, typeParfum, id, similarTo } = request.data;
-    const uid = request.auth?.uid;
-    const isAuthed = !!uid;
-    // Mode getById : récupérer un parfum par son ID Fragella
-    if (id) {
-        const apiKey = process.env.FRAGELLA_API_KEY;
-        if (!apiKey)
-            throw new functions.https.HttpsError('internal', 'Clé API Fragella non configurée.');
-        const response = await fetch(`https://api.fragella.com/api/v1/fragrances/${encodeURIComponent(id)}`, {
-            headers: { 'x-api-key': apiKey },
-        });
-        if (!response.ok)
-            return null;
-        const data = await response.json();
-        return { results: [mapFragrance(data)], source: 'fragella' };
-    }
-    // Mode similarTo : récupérer des parfums similaires
-    if (similarTo) {
-        const apiKey = process.env.FRAGELLA_API_KEY;
-        if (!apiKey)
-            throw new functions.https.HttpsError('internal', 'Clé API Fragella non configurée.');
-        const response = await fetch(`https://api.fragella.com/api/v1/fragrances/similar?name=${encodeURIComponent(similarTo)}&limit=8`, {
-            headers: { 'x-api-key': apiKey },
-        });
-        if (!response.ok)
-            return null;
-        const raw = await response.json();
-        const items = Array.isArray(raw) ? raw : (raw?.data ?? []);
-        return { results: items.map(mapFragrance), source: 'fragella' };
-    }
-    const parts = [];
-    if (marque)
-        parts.push(marque);
-    if (nom)
-        parts.push(nom);
-    if (typeParfum)
-        parts.push(typeParfum);
-    const searchQuery = query || (parts.length > 0 ? parts.join(' ') : null);
-    if (!searchQuery || searchQuery.trim().length < 2) {
-        throw new functions.https.HttpsError('invalid-argument', 'Recherche trop courte (min 2 caractères).');
-    }
-    // Vérifier le cache Firestore avant d'appeler Fragella (mode scan uniquement)
-    if (marque && nom && !query) {
-        const cacheKey = `${normalizeId(marque)}_${normalizeId(nom)}`;
-        try {
-            const cachedDoc = await admin.firestore().doc(`parfums/${cacheKey}`).get();
-            if (cachedDoc.exists) {
-                console.log(`[Cache] Hit: ${cacheKey}`);
-                const data = cachedDoc.data();
-                data['id'] = cacheKey;
-                data['source'] = 'cache';
-                return { results: [data], source: 'cache' };
-            }
-            console.log(`[Cache] Miss: ${cacheKey}`);
-        }
-        catch { /* cache read failure, on passe à Fragella */ }
-    }
-    const apiKey = process.env.FRAGELLA_API_KEY;
-    if (!apiKey) {
-        throw new functions.https.HttpsError('internal', 'Clé API Fragella non configurée.');
-    }
-    // Rate limit : 10/jour (authed), 5/jour (anonymous)
-    const maxCalls = isAuthed ? 10 : 5;
-    const callerId = uid ?? ('anon_' + (request.rawRequest?.ip ?? 'unknown'));
-    const today = new Date().toISOString().slice(0, 10);
-    const usageRef = admin.firestore().doc(`users/${callerId}/_usage/${today}`);
-    const usageDoc = await usageRef.get();
-    const count = usageDoc.exists ? (usageDoc.data()?.['fragellaCalls'] ?? 0) : 0;
-    if (count >= maxCalls) {
-        throw new functions.https.HttpsError('resource-exhausted', `Limite quotidienne atteinte (${maxCalls} recherches/jour).`);
-    }
-    // Plafond global : max 200 appels/jour tous utilisateurs confondus
-    const globalRef = admin.firestore().doc(`rateLimits/${today}`);
-    const globalDoc = await globalRef.get();
-    const globalCount = globalDoc.exists ? (globalDoc.data()?.['total'] ?? 0) : 0;
-    if (globalCount >= 200) {
-        throw new functions.https.HttpsError('resource-exhausted', 'Limite globale quotidienne atteinte. Réessayez demain.');
-    }
-    // Incrémenter les compteurs avant l'appel Fragella
-    await Promise.all([
-        usageRef.set({ fragellaCalls: count + 1 }, { merge: true }),
-        globalRef.set({ total: globalCount + 1 }, { merge: true }),
-    ]);
-    // Appeler Fragella
-    try {
-        let fragellaUrl;
-        if (marque && !query) {
-            // Mode scan : utiliser /brands pour avoir TOUTES les fragrances de la marque
-            fragellaUrl = `https://api.fragella.com/api/v1/brands/${encodeURIComponent(marque)}?limit=50`;
-        }
-        else {
-            // Mode catalogue : recherche texte libre (normaliser les accents)
-            const q = normalize(searchQuery);
-            fragellaUrl = `https://api.fragella.com/api/v1/fragrances?search=${encodeURIComponent(q)}&limit=10`;
-        }
-        const response = await fetch(fragellaUrl, { headers: { 'x-api-key': apiKey } });
-        console.log(`[Fragella] GET ${fragellaUrl} → status ${response.status}`);
-        if (!response.ok) {
-            console.error('Fragella API error:', response.status);
-            return null;
-        }
-        const raw = await response.json();
-        const data = Array.isArray(raw) ? raw : (raw?.data ?? []);
-        console.log(`[Fragella] ${data.length} résultats bruts (isArray:${Array.isArray(raw)})`);
-        if (!data.length)
-            return null;
-        let results = data.map(f => mapFragrance(f));
-        // Mode scan : trier par pertinence nom, mais garder tous les résultats
-        if (marque && nom && !query) {
-            const nomLower = normalize(nom);
-            results.sort((a, b) => {
-                const aMatch = normalize(String(a['nom'] ?? '')).includes(nomLower) ? 1 : 0;
-                const bMatch = normalize(String(b['nom'] ?? '')).includes(nomLower) ? 1 : 0;
-                return bMatch - aMatch;
-            });
-            if (results.length > 10)
-                results = results.slice(0, 10);
-        }
-        // Filtrer par typeParfum si fourni
-        if (typeParfum) {
-            const typeFiltered = results.filter(r => normalize(String(r['typeParfum'] ?? '')).includes(normalize(typeParfum)));
-            if (typeFiltered.length > 0)
-                results = typeFiltered;
-        }
-        // Fallback ultime : /fragrances?search=marque+nom
-        if (results.length === 0 && marque && nom) {
-            const fallbackUrl = `https://api.fragella.com/api/v1/fragrances?search=${encodeURIComponent(marque + ' ' + nom)}&limit=5`;
-            const fbResponse = await fetch(fallbackUrl, { headers: { 'x-api-key': apiKey } });
-            if (fbResponse.ok) {
-                const fbRaw = await fbResponse.json();
-                const fbData = Array.isArray(fbRaw) ? fbRaw : (fbRaw?.data ?? []);
-                if (fbData.length)
-                    results = fbData.map(f => mapFragrance(f));
-            }
-        }
-        // Sauvegarder dans le cache Firestore (mode scan) — auth only
-        if (isAuthed && marque && nom && !query) {
-            try {
-                const now = new Date().toISOString();
-                for (const r of results) {
-                    const key = `${normalizeId(String(r['marque'] ?? ''))}_${normalizeId(String(r['nom'] ?? ''))}`;
-                    const docRef = admin.firestore().doc(`parfums/${key}`);
-                    const existing = await docRef.get();
-                    if (existing.exists && existing.data()?.imageVerified) {
-                        r['imageUrl'] = existing.data()?.imageUrl;
-                    }
-                    r['source'] = 'fragella';
-                    r['cachedAt'] = now;
-                    await docRef.set(r, { merge: true });
-                }
-                console.log(`[Cache] ${results.length} parfum(s) sauvegardé(s)`);
-            }
-            catch (e) {
-                console.warn('[Cache] Write failed:', e?.message);
-            }
-        }
-        return { results, source: 'fragella' };
-    }
-    catch (error) {
-        const message = error instanceof Error ? error.message : 'Erreur inconnue.';
-        console.error('Fragella error:', message);
-        return null;
-    }
-});
-/** Helper: normalise une chaîne pour comparaison insensible aux accents (garde les espaces). */
-function normalize(s) {
-    return s.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase();
-}
-/** Helper: normalise pour les IDs/doc keys (remplace les espaces par des underscores).
- *  Doit correspondre exactement à la version client dans src/services/fragella.ts. */
-function normalizeId(s) {
-    return normalize(s).replace(/[^a-z0-9]+/g, '_').replace(/^_|_$/g, '');
-}
-/** Helper: mappe une entrée Fragella vers notre format */
-function mapFragrance(f) {
-    const notes = f['Notes'];
-    const nom = String(f['Name'] ?? '');
-    const marque = String(f['Brand'] ?? '');
-    const raw = {
-        id: normalizeId(marque) + '_' + normalizeId(nom),
-        fragellaId: f['_id'],
-        nom,
-        marque,
-        annee: f['Year'] ? (parseInt(String(f['Year']), 10) || undefined) : undefined,
-        imageUrl: f['Image URL'] ?? null,
-        bestPrice: f['Price'] ? (parseFloat(String(f['Price'])) || undefined) : undefined,
-        typeParfum: f['OilType'] ?? null,
-        familleOlactive: f['Main Accords']?.[0] ?? '',
-        notesTete: notes?.Top?.map(n => n.name) ?? [],
-        notesCoeur: notes?.Middle?.map(n => n.name) ?? [],
-        notesFond: notes?.Base?.map(n => n.name) ?? [],
-        longevity: f['Longevity'] ?? null,
-        sillage: f['Sillage'] ?? null,
-        gender: f['Gender'] ?? null,
-        purchaseUrl: f['Purchase URL'] ?? null,
-        priceValue: f['Price Value'] ?? null,
-        mainAccords: f['Main Accords'] ?? [],
-        rating: f['rating'] ?? null,
-        popularity: f['Popularity'] ?? null,
-        popularityScore: popScore(f['Popularity']),
-        ratingScore: rateScore(f['rating']),
-        country: f['Country'] ?? null,
-        imageUrlTransparent: f['Image URL Transparent'] ?? null,
-        mainAccordsPercentage: f['Main Accords Percentage'] ?? null,
-        generalNotes: f['General Notes'] ?? null,
-        confidence: f['Confidence'] ?? null,
-        seasonRanking: f['Season Ranking'] ?? null,
-        occasionRanking: f['Occasion Ranking'] ?? null,
-        imageFallbacks: f['Image Fallbacks'] ?? null,
-    };
-    return Object.fromEntries(Object.entries(raw).filter(([_, v]) => v !== undefined && v !== null && !Number.isNaN(v)));
-}
-function popScore(v) {
-    if (!v)
-        return undefined;
-    const k = v.toLowerCase().trim();
-    if (k.includes('very high') || k.includes('extremely'))
-        return 100;
-    if (k.includes('high'))
-        return 75;
-    if (k.includes('medium') || k.includes('moderate'))
-        return 50;
-    if (k.includes('low') && !k.includes('very'))
-        return 25;
-    if (k.includes('very low'))
-        return 0;
-    const n = parseFloat(k);
-    return isNaN(n) ? undefined : n;
-}
-function rateScore(v) {
-    if (!v)
-        return undefined;
-    const n = parseFloat(v);
-    return isNaN(n) ? undefined : n;
-}
-/**
- * Cloud Function : analyzePerfumeImage
- * Reçoit une image base64, appelle OpenAI GPT-4o Vision,
- * et retourne les informations du parfum détecté.
- */
-/**
  * Extrait un objet JSON d'une chaîne de texte (supporte markdown fences et texte autour).
  */
 function extractJson(text) {
@@ -546,6 +259,11 @@ function extractJson(text) {
     }
     return text.trim();
 }
+/**
+ * Cloud Function : analyzePerfumeImage
+ * Reçoit une image base64, appelle OpenAI GPT-4o Vision,
+ * et retourne les informations du parfum détecté.
+ */
 exports.analyzePerfumeImage = functions.https.onCall({ region: 'europe-west1' }, async (request) => {
     const { imageBase64, imagesBase64 } = request.data;
     const isBurst = Array.isArray(imagesBase64) && imagesBase64.length > 0;

@@ -22,7 +22,7 @@ adb wait-for-device
 adb shell getprop sys.boot_completed  # doit = 1
 npx expo run:android
 ```
-✅ Firebase, Fragella (Cloud Functions), GPT-4o Vision, Camera, Haptics, Reanimated
+✅ Firebase, GPT-4o Vision, Camera, Haptics, Reanimated
 🔄 Fast Refresh automatique après le 1er build (~3-5 min)
 ⚠️ Sur Windows : le script `.bat` évite les problèmes d'ExecutionPolicy PowerShell
 

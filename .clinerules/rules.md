@@ -32,7 +32,7 @@ app/
 └── admin.tsx                 # Administration
 
 src/
-├── services/     (12)        # Firebase, Firestore, Fragella (via Cloud Function), GPT-4o, user-data, wardrobe, theme-storage, haptics…
+├── services/     (12)        # Firebase, Firestore, GPT-4o, user-data, wardrobe, theme-storage, haptics…
 ├── hooks/        (11)        # useAuth, useScanReducer, useCatalog, useFavoris, useCollection, useWishlist, useScans, useWardrobe, useShelves, useSotd, useNetwork
 ├── contexts/     (1)         # AuthContext (ThemeContext est dans src/theme/)
 ├── components/   (12)        # ParfumCard, Button, PriceDisplay, SectionHeader, EmptyState, OfflineBanner, AppLoader, ErrorBoundary, AlertPriceToggle, ProfileAvatar, NoteDetailPopup, ActionSheet
@@ -88,7 +88,7 @@ src/
 
 ## §7 — Scan
 
-- Flux : Idle → Camera → Burst (3 photos) → GPT-4o Vision → Fragella → Résultats
+- Flux : Idle → Camera → Burst (3 photos) → GPT-4o Vision → searchParfumsCached() → Résultats
 - Import galerie : même pipeline, sans permission caméra
 - États : `idle | camera | scanning | results | no-result | clarify | error`
 - Reducer géré par `useScanReducer`
@@ -97,7 +97,7 @@ src/
 
 ## §8 — Catalogue
 
-- Recherche cache-first : Firestore → Fragella (si < 5 résultats)
+- Recherche 100% Firestore (searchParfumsCached, 21K parfums seed)
 - Navigation par famille olfactive (chips horizontaux)
 - Tri : pertinence / prix croissant / prix décroissant
 - Suggestions personnalisées (si connecté) ou populaires (fallback)
@@ -162,15 +162,14 @@ src/
 
 ---
 
-## §12 — API Fragella (via Cloud Function)
+## §12 — Catalogue de données
 
-- `src/services/fragella.ts` — appelle la Cloud Function `searchFragrance` (via `httpsCallable`)
-- La clé API Fragella est **côté serveur uniquement** (dans `functions/.env`)
-- `searchFragrance`, `searchFragranceByQuery`, `getFragranceById`, `getSimilarFragrances`
-- Cache Firestore automatique via `batchCacheParfums`
-- `fragellaId` = champ `_id` (⚠️ underscore)
-- Auth optionnelle pour les recherches (limité à 5/jour en anonyme, 10/jour connecté)
-- **v6.5** : `normalizeId()` côté serveur pour les clés Firestore cohérentes (underscores au lieu d'espaces). Parsing robuste des réponses API (supporte `{data: [...]}` wrapper). Nouveaux champs mappés : `popularityScore`, `ratingScore`, `country`, `imageUrlTransparent`, `mainAccordsPercentage`, `generalNotes`, `confidence`, `seasonRanking`, `occasionRanking`, `imageFallbacks`.
+- Catalogue 100% autonome : 21 567 parfums importés dans Firestore via `scripts/import-firestore.ts`
+- `src/utils/normalize.ts` — `normalize()`, `normalizeId()`, `buildSearchKeywords()` pour le cache Firestore
+- Règles Firestore : `parfums` en lecture publique, écriture réservée aux admins (vérification `admins/{uid}`)
+- Images hébergées sur Firebase Storage : `parfums/{parfumId}/primary.jpg`
+- `source: 'seed'` — distingue les données importées des données saisies manuellement (`'manual'`)
+- Pas d'API externe pour les données de catalogue
 
 ---
 

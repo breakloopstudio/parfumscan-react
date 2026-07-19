@@ -8,10 +8,9 @@ import ParfumCard from '../../components/ParfumCard';
 import { setPendingParfum } from '../../services/catalog-bridge';
 import { useTheme, type Theme } from '../../theme/ThemeContext';
 import type { Parfum } from '../../models';
-import type { ParfumSearchResult } from '../../services/fragella';
 
 interface Props {
-  parfums: Parfum[] | ParfumSearchResult[];
+  parfums: Parfum[];
   onOpenCatalog: () => void;
 }
 
@@ -26,7 +25,7 @@ export function ScanResults({ parfums, onOpenCatalog }: Props) {
     return aPrice - bPrice;
   });
 
-  const handleParfumPress = (parfum: Parfum | ParfumSearchResult) => {
+  const handleParfumPress = (parfum: Parfum) => {
     setPendingParfum(parfum);
     router.dismissTo('/(tabs)');
   };
@@ -39,7 +38,7 @@ export function ScanResults({ parfums, onOpenCatalog }: Props) {
           {sorted.length} parfum{sorted.length > 1 ? 's' : ''} trouvé{sorted.length > 1 ? 's' : ''}
         </Text>
       </View>
-      <FlatList<Parfum | ParfumSearchResult>
+      <FlatList<Parfum>
         data={sorted}
         keyExtractor={(p, i) => `${p.id}_${i}`}
         renderItem={({ item }) => (

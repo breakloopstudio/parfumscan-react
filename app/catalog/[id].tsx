@@ -9,12 +9,10 @@ import { Gesture, GestureDetector } from 'react-native-gesture-handler';
 import Animated, { useSharedValue, useAnimatedStyle, withSpring, runOnJS } from 'react-native-reanimated';
 import Ionicons from '@react-native-vector-icons/ionicons/static';
 import { useAuthContext } from '../../src/contexts/AuthContext';
-import { getParfumById, cacheParfumFromSearch, batchCacheParfums, updateParfum } from '../../src/services/firestore';
+import { getParfumById, updateParfum, getSimilarParfums } from '../../src/services/firestore';
 import { isParfumFavori, addFavori, removeFavori } from '../../src/services/user-data';
 import { consumePendingParfum, setPendingParfum } from '../../src/services/catalog-bridge';
 import { isInWardrobe, addToWardrobe } from '../../src/services/wardrobe';
-import { searchFragrance, searchFragranceByQuery, getFragranceById, fragellaToParfum, getSimilarFragrances } from '../../src/services/fragella';
-import type { ParfumSearchResult } from '../../src/services/fragella';
 import { useTheme, type Theme } from '../../src/theme/ThemeContext';
 import type { Parfum } from '../../src/models';
 import { translateNote } from '../../src/utils/translate-note';
@@ -189,25 +187,24 @@ export default function CatalogDetailPage() {
   }));
 
   const { user, isAuthenticated } = useAuthContext();
-  const [parfum, setParfum] = useState<Parfum | ParfumSearchResult | null>(null);
+  const [parfum, setParfum] = useState<Parfum | null>(null);
   const [loading, setLoading] = useState(true);
   const [isFav, setIsFav] = useState(false);
   const [favoriId, setFavoriId] = useState<string | null>(null);
   const [wardrobeItem, setWardrobeItem] = useState<import('../../src/models/wardrobe.interface').WardrobeItem | null>(null);
   const [showWardrobeSheet, setShowWardrobeSheet] = useState(false);
   const [selectedNote, setSelectedNote] = useState<string | null>(null);
-  const [pending] = useState<Parfum | ParfumSearchResult | null>(() => consumePendingParfum());
+  const [pending] = useState<Parfum | null>(() => consumePendingParfum());
   const [imgFailed, setImgFailed] = useState(false);
-  const [similars, setSimilars] = useState<ParfumSearchResult[]>([]);
+  const [similars, setSimilars] = useState<Parfum[]>([]);
   const [similarsLoading, setSimilarsLoading] = useState(false);
   const loadingRef = useRef(false);
-  const enrichmentRef = useRef(false);
   const scrollY = useSharedValue(0);
   const priceSectionY = useSharedValue(9999);
   const priceSectionRef = useRef<View>(null);
   const insets = useSafeAreaInsets();
 
-  // Chargement auto-suffisant : bridge (preview) -> Firestore -> Fragella by ID -> Fragella search
+  // Chargement auto-suffisant : bridge (preview) -> Firestore
   useEffect(() => {
     if (!id) return;
     if (loadingRef.current) return;
@@ -219,48 +216,31 @@ export default function CatalogDetailPage() {
         // Step 1: Bridge data — affichage instantané si disponible
         if (pending && pending.id === id) {
           setParfum(pending);
-            
         }
 
-        // Step 2: Toujours tenter Firestore (données plus complètes : enriched metadata)
+        // Step 2: Toujours tenter Firestore (données plus complètes)
         try {
           const cached = await getParfumById(id);
           if (cached) {
-            setParfum(cached); // override le preview bridge
-            
+            setParfum(cached);
             return;
           }
         } catch (e) {
           console.warn('[detail] Firestore fetch failed:', (e as Error)?.message);
         }
 
-        // Step 3: Si on a déjà le bridge, on s'arrête là (pas besoin d'appeler l'API)
-          
+        // Step 3: Si on a déjà le bridge, on s'arrête là
         if (pending && pending.id === id) {
           return;
         }
 
-        // Step 4: Dernier recours — recherche textuelle Fragella
-          
-        try {
-          const searchQuery = id.replace(/_/g, ' ').trim();
-          const results = await searchFragranceByQuery(searchQuery);
-          if (results.length > 0) {
-            const p = fragellaToParfum(results[0]);
-            setParfum(p);
-            cacheParfumFromSearch(p).catch(() => {});
-          } else {
-          }
-        } catch (e) {
-          console.warn('[detail] Fragella search failed:', (e as Error)?.message);
-          if (!parfum) setParfum(null);
-        }
+        // Pas de fallback API — le catalogue est 100% Firestore
+        if (!parfum) setParfum(null);
       } catch (fatalErr) {
         console.error('[detail] FATAL load error:', fatalErr);
         if (!parfum) setParfum(null);
       } finally {
         setLoading(false);
-        
       }
     };
 
@@ -277,62 +257,9 @@ export default function CatalogDetailPage() {
   }, [user?.uid, id]);
 
 
-  // Enrichissement : si le parfum est chargé mais sans saisonnalité/occasions,
-  // on appelle l'endpoint détail Fragella pour récupérer les métadonnées complètes
+  // Parfums similaires — recherche Firestore par famille olfactive
   useEffect(() => {
-    if (!parfum || !id) return;
-    if (enrichmentRef.current) return;
-    const hasSeason = parfum.seasonRanking && parfum.seasonRanking.length > 0;
-    const hasOccasion = parfum.occasionRanking && parfum.occasionRanking.length > 0;
-    if (hasSeason && hasOccasion) { enrichmentRef.current = true; return; }
-    enrichmentRef.current = true;
-
-    // Utiliser l'ID Fragella original si disponible, sinon chercher via search
-    const enrich = async () => {
-      let fragellaId = parfum.fragellaId;
-      if (!fragellaId && parfum.marque && parfum.nom) {
-        const results = await searchFragrance(parfum.marque, parfum.nom);
-        if (results[0]?.fragellaId) {
-          fragellaId = results[0].fragellaId;
-        }
-      }
-      if (!fragellaId) return;
-      const detail = await getFragranceById(fragellaId);
-      if (!detail) return;
-      const enriched = fragellaToParfum(detail);
-      setParfum(prev => {
-        if (!prev) return enriched;
-        return {
-          ...prev,
-          seasonRanking: prev.seasonRanking ?? enriched.seasonRanking,
-          occasionRanking: prev.occasionRanking ?? enriched.occasionRanking,
-          mainAccords: prev.mainAccords ?? enriched.mainAccords,
-          mainAccordsPercentage: prev.mainAccordsPercentage ?? enriched.mainAccordsPercentage,
-          longevity: prev.longevity ?? enriched.longevity,
-          sillage: prev.sillage ?? enriched.sillage,
-          gender: prev.gender ?? enriched.gender,
-          rating: prev.rating ?? enriched.rating,
-          popularity: prev.popularity ?? enriched.popularity,
-          popularityScore: prev.popularityScore ?? enriched.popularityScore,
-          ratingScore: prev.ratingScore ?? enriched.ratingScore,
-          priceValue: prev.priceValue ?? enriched.priceValue,
-          country: prev.country ?? enriched.country,
-          generalNotes: prev.generalNotes ?? enriched.generalNotes,
-          bestPrice: prev.bestPrice ?? enriched.bestPrice,
-          referencePrice: prev.referencePrice ?? enriched.referencePrice,
-          imageUrl: prev.imageUrl ?? enriched.imageUrl,
-          purchaseUrl: prev.purchaseUrl ?? enriched.purchaseUrl,
-          fragellaId: prev.fragellaId ?? enriched.fragellaId,
-        } as ParfumSearchResult;
-      });
-      cacheParfumFromSearch(enriched).catch(() => {});
-    };
-    enrich().catch(() => {});
-  }, [id, parfum]);
-
-  // Parfums similaires — cache-first (Firestore free → Fragella paid)
-  useEffect(() => {
-    if (!parfum?.marque || !parfum?.nom) return;
+    if (!parfum?.familleOlactive || !parfum?.id) return;
 
     const loadSimilars = async () => {
       setSimilarsLoading(true);
@@ -344,29 +271,25 @@ export default function CatalogDetailPage() {
         )).filter(Boolean) as Parfum[];
 
         if (cached.length >= 3) {
-          setSimilars(cached.map(p => ({
-            ...p,
-            source: 'fragella' as const,
-          } as ParfumSearchResult)));
+          setSimilars(cached);
           setSimilarsLoading(false);
           return;
         }
       }
 
-      // Step 2: call Fragella API
+      // Step 2: recherche Firestore par famille olfactive
       try {
-        const r = await getSimilarFragrances(parfum.marque, parfum.nom, 6);
-        const mapped = r.filter(f => f.id !== parfum.id).map(fragellaToParfum);
-        setSimilars(mapped);
+        const results = await getSimilarParfums(parfum.familleOlactive, parfum.id!, 6);
 
-        // Step 3: cache results + persist similarIds for next visitor
-        if (mapped.length > 0) {
-          const ids = mapped.map(p => p.id);
-          batchCacheParfums(mapped).catch(() => {});
+        if (results.length > 0) {
+          setSimilars(results);
+
+          // Persist similarIds pour les prochains visiteurs
+          const ids = results.map((p: Parfum) => p.id);
           updateParfum(parfum.id!, { similarIds: ids }).catch(() => {});
         }
       } catch {
-        // silent fail — similars carousel is non-critical
+        // silent fail
       } finally {
         setSimilarsLoading(false);
       }
@@ -388,9 +311,6 @@ export default function CatalogDetailPage() {
     } else {
       setIsFav(true);
       try {
-        if (!('createdAt' in parfum)) {
-          await cacheParfumFromSearch(parfum as ParfumSearchResult);
-        }
         const fid = await addFavori(user.uid, id, parfum.nom, parfum.marque, parfum.imageUrl, parfum.familleOlactive, parfum.bestPrice, parfum.referencePrice, parfum.annee);
         setFavoriId(fid);
       } catch (e) {
@@ -427,15 +347,15 @@ export default function CatalogDetailPage() {
   const seasonMax = seasonData && seasonData.length > 0 ? Math.max.apply(null, seasonData.map(function(s){return s.score})) : 0;
   const occasionData = parfum && parfum.occasionRanking ? [...parfum.occasionRanking].sort(function(a,b){return b.score-a.score}) : null;
   const occasionMax = occasionData && occasionData.length > 0 ? Math.max.apply(null, occasionData.map(function(o){return o.score})) : 0;
-  const heroUrl = parfum?.imageUrl ?? parfum?.imageUrlTransparent ?? (parfum?.imageFallbacks?.[0]) ?? null;
+  const heroUrl = parfum?.imageUrl ?? null;
   const topSeasons = seasonData?.slice(0, 2) ?? [];
   const topOccasions = occasionData?.slice(0, 2) ?? [];
-  const hasBestPrice = ('bestPrice' in (parfum ?? {}) && typeof (parfum as ParfumSearchResult).bestPrice === 'number') ? (parfum as ParfumSearchResult).bestPrice! > 0 : false;
+  const hasBestPrice = typeof parfum?.bestPrice === 'number' && parfum.bestPrice > 0;
   const ratingDisplay: number | undefined = (() => {
-    const p = parfum as ParfumSearchResult | null;
+    const p = parfum;
     if (!p) return undefined;
-    if ('ratingScore' in p && typeof p.ratingScore === 'number') return Number.isNaN(p.ratingScore) ? undefined : p.ratingScore;
-    if ('rating' in p && typeof p.rating === 'string') { const v = parseFloat(p.rating); return Number.isNaN(v) ? undefined : v; }
+    if (typeof p.ratingScore === 'number') return Number.isNaN(p.ratingScore) ? undefined : p.ratingScore;
+    if (typeof p.rating === 'string') { const v = parseFloat(p.rating); return Number.isNaN(v) ? undefined : v; }
     return undefined;
   })();
 
@@ -469,20 +389,19 @@ export default function CatalogDetailPage() {
           <HeroPriceOverlay
             imageUrl={heroUrl}
             brand={parfum.marque}
-            bestPrice={hasBestPrice ? (parfum as ParfumSearchResult).bestPrice : undefined}
-            referencePrice={'referencePrice' in parfum ? (parfum as ParfumSearchResult).referencePrice : undefined}
-            purchaseUrl={'purchaseUrl' in parfum ? (parfum as ParfumSearchResult).purchaseUrl : undefined}
+            bestPrice={hasBestPrice ? parfum.bestPrice : undefined}
+            referencePrice={parfum.referencePrice}
+            purchaseUrl={parfum.purchaseUrl}
             imgFailed={imgFailed}
             onImageError={() => setImgFailed(true)}
             onPurchasePress={() => {
-              const purl = (parfum as ParfumSearchResult).purchaseUrl;
-              if (purl) Linking.openURL(purl);
+              if (parfum.purchaseUrl) Linking.openURL(parfum.purchaseUrl);
             }}
           />
 
           <View style={s.contentWrap}>
             <View style={s.badgeRow}>
-              {'typeParfum' in parfum && parfum.typeParfum && (
+              {parfum.typeParfum && (
                 <View style={s.badgeCompact}><Text style={s.badgeCompactText}>{typeParfumLabel(parfum.typeParfum)}</Text></View>
               )}
               <View style={[s.badgeCompact,{backgroundColor:t.colors.primarySoft}]}>
@@ -494,7 +413,7 @@ export default function CatalogDetailPage() {
                 </View>
               )}
               {__DEV__ && (
-                <View style={{width:6,height:6,borderRadius:3,backgroundColor:parfum.source==='fragella'?'#10B981':parfum.source==='fragella-cached'?'#3B82F6':parfum.source==='seed'||parfum.source==='manual'?'#8B5CF6':'#EF4444',alignSelf:'center'}} />
+                <View style={{width:6,height:6,borderRadius:3,backgroundColor:parfum.source==='seed'||parfum.source==='manual'?'#8B5CF6':'#EF4444',alignSelf:'center'}} />
               )}
             </View>
 
@@ -525,12 +444,12 @@ export default function CatalogDetailPage() {
 
             <View ref={priceSectionRef} onLayout={(e: LayoutChangeEvent) => { priceSectionY.value = e.nativeEvent.layout.y + 20; }}>
               {/* ─── Prix (PriceDisplay) ─── */}
-              {'bestPrice' in parfum && parfum.bestPrice ? (
+              {parfum.bestPrice ? (
                 <View style={s.dealSection}>
                   <PriceDisplay
                     bestPrice={parfum.bestPrice}
                     referencePrice={parfum.referencePrice}
-                    priceValue={'priceValue' in parfum ? parfum.priceValue as 'deal' | 'fair' | 'overpriced' : undefined}
+                    priceValue={parfum.priceValue as 'deal' | 'fair' | 'overpriced' | undefined}
                     large
                   />
                   {parfum.purchaseUrl && (
@@ -540,7 +459,7 @@ export default function CatalogDetailPage() {
                   )}
 
                   {/* ─── Indicateur de tendance ─── */}
-                  {'bestPrice' in parfum && parfum.referencePrice ? (
+                  {parfum.referencePrice ? (
                     <View style={s.trendRow}>
                       <Ionicons
                         name={parfum.bestPrice < parfum.referencePrice * 0.9 ? 'trending-down' : parfum.bestPrice > parfum.referencePrice * 1.05 ? 'trending-up' : 'remove'}
@@ -567,7 +486,7 @@ export default function CatalogDetailPage() {
               )}
 
               {/* ─── Toutes les offres (multi-marchands) ─── */}
-              {'offers' in parfum && parfum.offers && parfum.offers.length > 1 ? (
+              {parfum.offers && parfum.offers.length > 1 ? (
                 <View style={s.infoZone}>
                   <SectionTitle icon="🛍️" title="Toutes les offres" s={s} />
                   {parfum.offers.map((offer, i) => (
@@ -599,7 +518,7 @@ export default function CatalogDetailPage() {
             onNotePress={setSelectedNote}
           />
           {/* ─── Accords principaux ─── */}
-          {'mainAccords' in parfum && parfum.mainAccords && parfum.mainAccords.length > 0 ? (
+          {parfum.mainAccords && parfum.mainAccords.length > 0 ? (
             <View style={s.infoZone}>
               <SectionTitle icon="🎯" title="Accords principaux" s={s} />
               {parfum.mainAccordsPercentage
@@ -615,12 +534,12 @@ export default function CatalogDetailPage() {
             </View>
           ) : null}
           {/* ─── Longévité & Sillage ─── */}
-          {('longevity' in parfum && parfum.longevity) || ('sillage' in parfum && parfum.sillage) || ('popularityScore' in parfum && typeof parfum.popularityScore === 'number') ? (
+          {parfum.longevity || parfum.sillage || typeof parfum.popularityScore === 'number' ? (
             <View style={s.infoZone}>
               <SectionTitle icon="⚡" title="En résumé" s={s} />
-              {('longevity' in parfum && parfum.longevity) ? (() => { const m = longevityMeta(parfum.longevity!); return <View style={s.gaugeRow}><View style={[s.gaugeIcon, { backgroundColor: t.colors.violetSoft }]}><Ionicons name="time-outline" size={14} color={t.colors.violetInk} /></View><View style={s.gaugeBody}><Text style={s.gaugeLabel}>Longévité</Text><View style={s.gaugeTrack}><View style={[s.gaugeFill, { width: `${m.pct}%`, backgroundColor: t.colors.primary }]} /></View></View><Text style={[s.gaugeVal, { color: t.colors.violetInk }]}>{m.label}</Text></View>; })() : null}
-              {('sillage' in parfum && parfum.sillage) ? (() => { const m = sillageMeta(parfum.sillage!); return <View style={s.gaugeRow}><View style={[s.gaugeIcon, { backgroundColor: t.colors.rewardSoft }]}><Ionicons name="pulse-outline" size={14} color={t.colors.reward} /></View><View style={s.gaugeBody}><Text style={s.gaugeLabel}>Sillage</Text><View style={s.gaugeTrack}><View style={[s.gaugeFill, { width: `${m.pct}%`, backgroundColor: t.colors.reward }]} /></View></View><Text style={[s.gaugeVal, { color: t.colors.reward }]}>{m.label}</Text></View>; })() : null}
-              {('popularityScore' in parfum && typeof parfum.popularityScore === 'number') ? (() => { const pop = popLabel(parfum.popularityScore!); return <View style={s.gaugeRow}><View style={[s.gaugeIcon, { backgroundColor: '#FFF7ED' }]}><Ionicons name="flame-outline" size={14} color={pop.color} /></View><View style={s.gaugeBody}><Text style={s.gaugeLabel}>Popularité</Text><View style={s.gaugeTrack}><View style={[s.gaugeFill, { width: `${parfum.popularityScore}%`, backgroundColor: pop.color }]} /></View></View><Text style={[s.gaugeVal, { color: pop.color }]}>{pop.label}</Text></View>; })() : null}
+              {parfum.longevity ? (() => { const m = longevityMeta(parfum.longevity!); return <View style={s.gaugeRow}><View style={[s.gaugeIcon, { backgroundColor: t.colors.violetSoft }]}><Ionicons name="time-outline" size={14} color={t.colors.violetInk} /></View><View style={s.gaugeBody}><Text style={s.gaugeLabel}>Longévité</Text><View style={s.gaugeTrack}><View style={[s.gaugeFill, { width: `${m.pct}%`, backgroundColor: t.colors.primary }]} /></View></View><Text style={[s.gaugeVal, { color: t.colors.violetInk }]}>{m.label}</Text></View>; })() : null}
+              {parfum.sillage ? (() => { const m = sillageMeta(parfum.sillage!); return <View style={s.gaugeRow}><View style={[s.gaugeIcon, { backgroundColor: t.colors.rewardSoft }]}><Ionicons name="pulse-outline" size={14} color={t.colors.reward} /></View><View style={s.gaugeBody}><Text style={s.gaugeLabel}>Sillage</Text><View style={s.gaugeTrack}><View style={[s.gaugeFill, { width: `${m.pct}%`, backgroundColor: t.colors.reward }]} /></View></View><Text style={[s.gaugeVal, { color: t.colors.reward }]}>{m.label}</Text></View>; })() : null}
+              {typeof parfum.popularityScore === 'number' ? (() => { const pop = popLabel(parfum.popularityScore!); return <View style={s.gaugeRow}><View style={[s.gaugeIcon, { backgroundColor: '#FFF7ED' }]}><Ionicons name="flame-outline" size={14} color={pop.color} /></View><View style={s.gaugeBody}><Text style={s.gaugeLabel}>Popularité</Text><View style={s.gaugeTrack}><View style={[s.gaugeFill, { width: `${parfum.popularityScore}%`, backgroundColor: pop.color }]} /></View></View><Text style={[s.gaugeVal, { color: pop.color }]}>{pop.label}</Text></View>; })() : null}
             </View>
           ) : null}
           {/* ─── Saisonnalité ─── */}
@@ -678,16 +597,15 @@ export default function CatalogDetailPage() {
         <StickyBottomBar
           scrollY={scrollY}
           priceSectionY={priceSectionY}
-          bestPrice={hasBestPrice ? (parfum as ParfumSearchResult).bestPrice : undefined}
-          referencePrice={'referencePrice' in parfum ? (parfum as ParfumSearchResult).referencePrice : undefined}
+          bestPrice={hasBestPrice ? parfum.bestPrice : undefined}
+          referencePrice={parfum.referencePrice}
           isFav={isFav}
           wardrobeItem={wardrobeItem}
-          purchaseUrl={'purchaseUrl' in parfum ? (parfum as ParfumSearchResult).purchaseUrl : undefined}
+          purchaseUrl={parfum.purchaseUrl}
           onToggleFav={toggleFav}
           onWardrobePress={handleWardrobePress}
           onPurchasePress={() => {
-            const purl = (parfum as ParfumSearchResult).purchaseUrl;
-            if (purl) Linking.openURL(purl);
+            if (parfum.purchaseUrl) Linking.openURL(parfum.purchaseUrl);
           }}
         />
       </View>

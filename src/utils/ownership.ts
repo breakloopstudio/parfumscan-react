@@ -1,6 +1,7 @@
 // src/utils/ownership.ts
 
 import type { WardrobeItem } from '../models/wardrobe.interface';
+import type { Parfum } from '../models';
 
 export const OWNERSHIP_LABELS: Record<WardrobeItem['ownership'], string> = {
   have: 'Possédé',
@@ -24,6 +25,8 @@ export function wardrobeToCardItem(item: WardrobeItem) {
     notesTete: [] as string[],
     notesCoeur: [] as string[],
     notesFond: [] as string[],
-    source: 'fragella' as const,
-  };
+    source: 'seed' as const,
+    createdAt: new Date(),
+    updatedAt: new Date(),
+  } satisfies Parfum;
 }

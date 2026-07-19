@@ -19,9 +19,9 @@
 | Module | Description |
 |---|---|
 | 🎨 **UI/UX « Luxe malin »** | Design system violet profond + doré/ambré + teal, 0 fontWeight, Inter + Playfair Display |
-| 📸 **Scan intelligent** | Burst 3 photos → GPT-4o Vision (adaptatif : 70% en 1 appel, 30% en cross-ref 2 photos) → API Fragella |
+| 📸 **Scan intelligent** | Burst 3 photos → GPT-4o Vision (adaptatif : 70% en 1 appel, 30% en cross-ref 2 photos) → searchParfumsCached() |
 | 🖼️ **Import galerie** | Photo existante → même pipeline IA, sans permissions supplémentaires |
-| 📚 **Catalogue** | Recherche cache-first (Firestore → Fragella), navigation par famille olfactive, tri (prix/pertinence), suggestions personnalisées |
+| 📚 **Catalogue** | Recherche 100% Firestore (21K parfums seed), navigation par famille olfactive, tri (prix/pertinence), suggestions personnalisées |
 | 🧪 **Parfumerie** | Parfums possédés/souhaités/échantillons/décants, étagères custom, parfum signature (max 3), SOTD compact |
 | 🧪 **Décants & échantillons** | Tailles dédiées 2–30ml, distinctes des formats full-size (30–200ml) |
 | ⭐ **Wishlist** | Parfums à acheter, alertes prix |
@@ -45,7 +45,7 @@
 | **Navigation** | Expo Router (file-based) + react-native-pager-view (native pan) |
 | **Animations** | React Native Reanimated 4, Gesture Handler 2, react-native-svg |
 | **Backend** | Firebase Auth, Firestore, Storage, Cloud Functions (europe-west1) |
-| **IA** | GPT-4o Vision (analyse photo), Fragella API (catalogue) |
+| **IA** | GPT-4o Vision (analyse photo), Firestore (catalogue 21K parfums) |
 | **Formulaires** | React Hook Form 7 + Zod 4 |
 
 ---
@@ -78,7 +78,6 @@ cp .env.example .env
 cp functions/.env.example functions/.env
 # Puis édite functions/.env avec tes vraies clés :
 #   OPENAI_API_KEY=sk-...
-#   FRAGELLA_API_KEY=...
 ```
 
 ### Lancement
@@ -147,7 +146,7 @@ app/
 └── admin.tsx                 # Administration (seed + reset cache + upload)
 
 src/
-├── services/     (12)        # Firebase, Firestore (upsert intelligent), Fragella, GPT-4o, user-data, wardrobe, theme-storage…
+├── services/     (12)        # Firebase, Firestore, GPT-4o, user-data, wardrobe, theme-storage…
 ├── hooks/        (11)        # useAuth, useScanReducer, useCatalog, useFavoris, useCollection, useWishlist, useScans, useWardrobe, useShelves, useSotd, useNetwork
 ├── contexts/     (1)         # AuthContext (ThemeContext est dans src/theme/)
 ├── components/   (11)        # ParfumCard, Button, PriceDisplay, SectionHeader, EmptyState, OfflineBanner, AlertPriceToggle, AppLoader, ErrorBoundary, ProfileAvatar, NoteDetailPopup
@@ -159,10 +158,10 @@ src/
 │   └── navigation/ (1)       # DockBar (barre flottante 5 positions + FAB, indicateur doré, pulse ring, show/hide)
 ├── models/       (8)         # Parfum, WardrobeItem, Shelf, SotdEntry, UserFavori, UserScan, UserCollectionItem, UserWishlistItem
 ├── config/       (3)         # Firebase config, env, index
-└── utils/        (4)         # Error translator, translate-note, note-descriptions, ownership (labels)
+├── utils/        (5)         # Error translator, translate-note, note-descriptions, normalize, ownership (labels)
 
 functions/                    # Cloud Functions Firebase
-├── src/index.ts              # Analyse GPT-4o Vision + Fragella proxy (normalizeId, nouveaux champs)
+├── src/index.ts              # Analyse GPT-4o Vision + sendNotification + checkPriceAlerts
 └── lib/                      # Build JavaScript
 ```
 
@@ -210,8 +209,8 @@ scrape Fragrantica      données factuelles     images hébergées
 ```
 Idle → [Tap Scanner] → CameraView → [Capture]
   → Burst 3 photos (~1s, haptics×3) → GPT-4o Vision (photo 1, detail:auto → retry high si vide)
-  → Confidence haute ? → Fragella → batchCacheParfums() → Résultats (~2s)
-  → Confidence basse ? → analyzeMultipleImages (photos 2+3, cross-ref) → Fragella → Résultats (~4s)
+  → Confidence haute ? → searchParfumsCached() → Résultats (~2s)
+  → Confidence basse ? → analyzeMultipleImages (photos 2+3, cross-ref) → searchParfumsCached() → Résultats (~4s)
   → Résultat → Tap parfum → setPendingParfum() → dismissTo tabs
       → TabPager consume + re-set → push /catalog/:id
       → Fiche détail consumePendingParfum() → données enrichies affichées
@@ -226,7 +225,7 @@ Import galerie : expo-image-picker → 1 photo → pipeline burst (single-photo 
 
 ### Fiche détail enrichie
 
-La page `app/catalog/[id].tsx` affiche les métadonnées de l'API Fragella :
+La page `app/catalog/[id].tsx` affiche les métadonnées du catalogue Firestore :
 - Longévité & Sillage (jauges visuelles avec labels)
 - Prix, réduction, lien affilié
 - Pyramide olfactive v5 (SVG unifié interactif au touch, légende 3 boutons avec compteurs, notes cliquables → popup détail)
@@ -237,8 +236,6 @@ La page `app/catalog/[id].tsx` affiche les métadonnées de l'API Fragella :
 - Notes capitalisees (1ere lettre majuscule)
 
 > **Indicateur dev** : pastille en haut a droite (visible uniquement en __DEV__)
-> - Vert = live API Fragella (bridge)
-> - Bleu = cache Firestore
 > - Violet = donnees admin (seed/manual)
 > - Rouge = source inconnue (fallback)
 
@@ -247,19 +244,12 @@ La page `app/catalog/[id].tsx` affiche les métadonnées de l'API Fragella :
 ```
 Saisie ≥ 3 caractères → useCatalog() → debounce 800ms
   1. searchParfumsCached(query) → Firestore (gratuit, score = tokens + popularité + exact match)
-  2. Si < 5 résultats → searchFragranceByQuery() → API payante
-   3. batchCacheParfums(results) → Firestore (batch.set {merge:true}, sans read préalable)
 
-Avantage : chaque recherche n'est payée qu'une fois,
-tous utilisateurs confondus. Le score intègre la popularité
+Avantage : recherche 100% locale, zéro appel API externe.
 → les parfums populaires remontent naturellement.
 
-⚠️ L'endpoint `/fragrances?search=` de Fragella retourne TOUTES les métadonnées
-  (longévité, sillage, saisonnalité, occasions, accords, etc.) — identique au détail.
-  → `fragellaId` = champ `_id` de l'API (⚠️ underscore, pas `Id`/`id`/`ID`).
-  → La fiche détail utilise `getFragranceById()` en enrichissement si `fragellaId` disponible.
-  → Les données enrichies sont mergées dans Firestore (upsert intelligent).
-  → Si `fragellaId` absent → skip enrichissement.
+Toutes les métadonnées (longévité, sillage, saisonnalité, occasions, accords, etc.) sont déjà
+présentes dans Firestore via le pipeline d'import seed — aucun enrichissement nécessaire.
 ```
 
 ### Catalogue idle (v5.7)
@@ -269,7 +259,7 @@ tous utilisateurs confondus. Le score intègre la popularité
 - Fallback → `getPopularParfums(30)` → Firestore (triés par popularityScore desc), shuffle journalier déterministe (Lehmer RNG). Section "Parfums populaires".
 - Affichage en grille 2 colonnes avec `ParfumCard compact`.
 
-Les miniatures flacon (44×44) sont affichées dans les deux onglets via le CDN Fragella
+Les miniatures sont affichées via Firebase Storage
 (gratuit, pas d'appel API). Fallback automatique sur icône scan/cœur si l'image échoue.
 Le bouton unfavorite utilise un cœur avec animation heartbeat (scale bounce 250ms).
 
@@ -277,7 +267,7 @@ Le bouton unfavorite utilise un cœur avec animation heartbeat (scale bounce 250
 ### Favoris & Historique enrichis
 
 Les documents `UserFavori` et `UserScan` stockent `imageUrl` et `familleOlactive`
-dénormalisés → affichage direct sans appel API Firestore ni Fragella.
+dénormalisés → affichage direct sans appel API Firestore supplémentaire.
 
 ---
 ## v6.3 — Wardrobe enrichie + OlfactoryPyramid rework (17/07/2026)
@@ -296,7 +286,7 @@ dénormalisés → affichage direct sans appel API Firestore ni Fragella.
 ## v6.2 — Bugfixes & Search Bar (17/07/2026)
 
 - **Barre de recherche persistante** : visible sur les 4 onglets, verre dépoli (BlurView), show/hide synchronisé avec le DockBar, navigation vers overlay recherche plein écran
-- **Overlay recherche** (`search.tsx`) : autofocus, live filtering (cache-first Firestore → Fragella), 6 filtres famille, recherches récentes persistantes
+- **Overlay recherche** (`search.tsx`) : autofocus, live filtering (Firestore cached), 6 filtres famille, recherches récentes persistantes
 - **Catalogue simplifié** : search bar inline retirée, chips famille redirigent vers l'overlay recherche, avatar header ajouté
 - **ProfileAvatar** : composant partagé (photo Google ou initiale), dédupliqué sur Favoris/Historique/Collection
 - **ThemeContext** : fix crash si AsyncStorage échoue (écran blanc → fallback system)
@@ -338,7 +328,7 @@ dénormalisés → affichage direct sans appel API Firestore ni Fragella.
 - **SOTDCard compact** : redesign complet — miniature 26×26, icône soleil inline, label "SOTD" pill, boutons icônes (swap/add) remplaçant les boutons texte "Changer"/"Choisir". Intégration plus discrète au-dessus de la grille.
 - **Dark mode system UI** : `expo-system-ui` pour le fond d'écran, `expo-navigation-bar` pour la barre Android (suit le thème). Tous les `TextInput` reçoivent `keyboardAppearance` basé sur `resolvedMode`.
 - **Settings "Soutenir"** : section don (cœur + description + bouton désactivé "Bientôt disponible"). Routes `/legal` et `/privacy` fonctionnelles (nouveaux écrans `legal.tsx`, `privacy.tsx`).
-- **Fragella API** : `normalizeId()` côté serveur (Firestore doc keys cohérentes), parsing robuste des réponses (supporte `{data: [...]}` wrapper), nouveaux champs : `popularityScore`, `ratingScore`, `country`, `imageUrlTransparent`, `mainAccordsPercentage`, `generalNotes`, `confidence`, `seasonRanking`, `occasionRanking`, `imageFallbacks`.
+- **Catalogue autonome** : catalogue 100% Firestore, zéro dépendance API externe. `src/utils/normalize.ts` pour les clés Firestore cohérentes. Tous les champs enrichis (`popularityScore`, `ratingScore`, `country`, `mainAccordsPercentage`, `generalNotes`, `confidence`, `seasonRanking`, `occasionRanking`) importés via le pipeline seed.
 - **Bug fixes** : NaN dans les tris rating, couleurs de fond derrière les images ParfumCard, positions badge note/signature inversées sur WardrobeCard, `contentStyle.backgroundColor` sur tous les écrans Stack, `key={resolvedMode}` sur WardrobeGrid pour re-render au changement de thème.
 - **Deps** : `react-native-pager-view ^8.0.2`, `expo-navigation-bar ~57`, `expo-system-ui ~57`
 
