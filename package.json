@@ -46,6 +46,8 @@
   "devDependencies": {
     "@react-native-community/cli": "^19.0.0",
     "@types/react": "~19.2.10",
+    "firebase-admin": "^14.2.0",
+    "tsx": "^4.23.1",
     "typescript": "~6.0.3"
   },
   "scripts": {
@@ -57,6 +59,8 @@
     "functions:install": "cd functions && npm install",
     "functions:build": "cd functions && npm run build",
     "functions:deploy": "firebase deploy --only functions",
+    "clean-data": "tsx scripts/clean-apify.ts",
+    "import-data": "tsx scripts/import-firestore.ts",
     "emulators": "firebase emulators:start"
   },
   "private": true

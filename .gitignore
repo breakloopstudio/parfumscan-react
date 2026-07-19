@@ -37,6 +37,7 @@ functions/.env
 # ─── Secrets Firebase/Google (NE JAMAIS COMMITTER) ───────────────
 google-services.json
 GoogleService-Info.plist
+service-account.json
 
 # ─── IDE / Outils locaux ─────────────────────────────────────────
 .idea/
@@ -70,3 +71,6 @@ NEXT_SESSION.md
 # ─── Dossiers natifs générés ─────────────────────────────────────
 /ios
 /android
+
+# ─── Données brutes (scrapées, non versionnées) ──────────────────
+/data

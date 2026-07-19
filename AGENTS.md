@@ -95,3 +95,39 @@ Parfumerie (ex « Garde-robe ») — icône `flask`. Favoris en grille (filtres 
 Expo SDK 57: https://docs.expo.dev/versions/v57.0.0/
 iOS cross-platform rules: `.clinerules/rules.md` §17
 Design system « Luxe malin » : `.clinerules/design-guide.md`
+
+## Données — Pipeline d'import
+
+### Catalogue seed (21 567 parfums, 193 marques)
+
+Le catalogue est importé depuis un scrape Fragrantica Apify, puis nettoyé et hébergé en autonome.
+Zéro dépendance à l'API Fragella pour les données de base.
+
+```
+data/raw/ (1.27 GB, non versionné) → data/clean/ (31 MB) → Firestore parfums/{id}
+```
+
+### Scripts
+
+| Commande | Fichier | Rôle |
+|---|---|---|
+| `npm run clean-data` | `scripts/clean-apify.ts` | Nettoie les 193 JSON scrapés : débruite, déduplique, strip champs traçants |
+| `npm run import-data` | `scripts/import-firestore.ts` | Import Firestore + upload images → Firebase Storage |
+
+### Authentification import
+
+Nécessite un compte de service Firebase :
+1. Console Firebase → Project Settings → Service Accounts → Generate key
+2. Sauvegarder le JSON → `service-account.json` à la racine (gitignoré)
+3. Le script le lit via `firebase-admin` (v13+, API modulaire)
+
+### Décisions clés
+
+| Décision | Raison |
+|---|---|
+| Zéro référence Fragella dans les données | Indépendance totale |
+| Images : 1 JPG 375×500 par parfum (pas de PNG transparent) | Seule source dispo dans le scrape (vignettes, pas full-size) |
+| Images hébergées sur Firebase Storage | Pas de dépendance CDN externe (fimgs.net) |
+| `imageUrlTransparent` = null, `imageFallbacks` = [] | Non disponibles dans le scrape, non nécessaires pour l'UI |
+| `source` = `'seed'` | Distingue les données importées des données API live |
+| Photos communauté (`images[]`, photogram) supprimées | Contenu utilisateur, risque légal, jamais affiché |

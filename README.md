@@ -168,6 +168,43 @@ functions/                    # Cloud Functions Firebase
 
 ---
 
+## 📊 Données — Catalogue (21 567 parfums)
+
+Le catalogue est importé depuis un scrape Fragrantica (193 marques), nettoyé et hébergé en autonome sur Firebase — **zéro dépendance à l'API Fragella** pour le socle de données.
+
+### Pipeline
+
+```
+data/raw/              data/clean/            Firestore + Storage
+193 JSON (1.27 GB)  →  193 JSON (31 MB)   →  parfums/{id}
+scrape Fragrantica      données factuelles     images hébergées
+```
+
+| Étape | Script | Action |
+|---|---|---|
+| 1. Nettoyage | `npm run clean-data` | `scripts/clean-apify.ts` — débruite, déduplique, strip les champs traçants (URLs, contenu éditorial, photos communauté) |
+| 2. Import | `npm run import-data` | `scripts/import-firestore.ts` — parse les titres, génère les IDs, télécharge les images → Firebase Storage, écrit dans Firestore |
+
+### Images
+
+- **Format** : JPG 375×500 (vignettes scrape, pas de PNG transparent)
+- **Stockage** : Firebase Storage → `parfums/{parfumId}/primary.jpg`
+- **Fallback UI** : initiale de la marque sur fond coloré (si image absente)
+- **Amélioration future** : upscale IA ou re-scrape pages détail
+
+### Mapping des données
+
+| Champ Firestore | Source raw |
+|---|---|
+| `nom`, `annee`, `typeParfum` | Parsé depuis `title` |
+| `notesTete/Coeur/Fond` | `pyramid.topNotes/middleNotes/baseNotes[].name` |
+| `mainAccords` | `mainAccords[].accord` (noms uniquement, pas les couleurs) |
+| `longevity`, `sillage`, `priceValue` | Moyennes → catégories textuelles |
+| `imageUrl` | `primaryImageUrl` → téléchargé → Firebase Storage |
+| `source` | `'seed'` (données importées, pas d'API live) |
+
+---
+
 ## 📱 Flux de scan (v5.7 — burst adaptatif)
 
 ```
