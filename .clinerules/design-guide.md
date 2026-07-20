@@ -158,6 +158,7 @@ Deux variantes, un seul composant.
 - Badge promo : `reward` (doré), texte `Inter_800ExtraBold` 10px
 - Titre 14px sur 2 lignes max avec `ellipsizeMode: 'tail'`
 - Pas de zone prix en compact
+- Image : `contentFit="contain"` (flacon entier, pas de crop), fond `surface`
 
 #### Normal (liste, résultats de scan)
 
@@ -165,7 +166,6 @@ Deux variantes, un seul composant.
 ┌──────────────────────────┐
 │                          │
 │       [image 180]        │ badge -X% top-right
-│     ▼ overlay gradient   │
 ├──────────────────────────┤
 │ MARQUE                    │
 │ Nom du parfum             │

@@ -124,7 +124,7 @@ export async function searchParfumsCached(queryStr: string): Promise<Parfum[]> {
   const searchTokens = tokens.slice(0, 10);
 
   try {
-    const snap = await getDocs(query(parfumsCol(), where('searchKeywords', 'array-contains-any', searchTokens), limit(20)));
+    const snap = await getDocs(query(parfumsCol(), where('searchKeywords', 'array-contains-any', searchTokens), limit(200)));
 
     if (snap.empty) return [];
 
@@ -132,10 +132,20 @@ export async function searchParfumsCached(queryStr: string): Promise<Parfum[]> {
 
     const scored = docs.map((scoredDoc: ScoredDoc) => {
       const kw = (scoredDoc.searchKeywords ?? []) as string[];
-      const matches = searchTokens.filter(t => kw.includes(t)).length;
+      let matchScore = 0;
+      for (const token of searchTokens) {
+        const best = kw
+          .filter(k => k.startsWith(token))
+          .sort((a, b) => a.length - b.length)[0];
+        if (best) {
+          matchScore += token.length / best.length;
+        }
+      }
       const exactMatch = kw.includes(q) ? 10 : 0;
-      const popBonus = typeof scoredDoc.popularityScore === 'number' ? scoredDoc.popularityScore / 20 : 0;
-      return { ...scoredDoc, _score: matches + exactMatch + popBonus };
+      const reviewBonus = typeof scoredDoc.reviewCount === 'number'
+        ? Math.log(scoredDoc.reviewCount + 1) / 8
+        : 0;
+      return { ...scoredDoc, _score: matchScore + exactMatch + reviewBonus };
     });
 
     return scored
@@ -240,13 +250,28 @@ export async function getPersonalizedSuggestions(
 }
 
 /** Parfums similaires par famille olfactive (utilisé par la fiche détail). */
+function seededShuffle<T>(arr: T[], seed: number): T[] {
+  const shuffled = [...arr];
+  let s = seed;
+  for (let i = shuffled.length - 1; i > 0; i--) {
+    s = (s * 16807 + 0) % 2147483647;
+    const j = s % (i + 1);
+    [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
+  }
+  return shuffled;
+}
+
 export async function getSimilarParfums(familleOlactive: string, excludeId: string, limitCount: number = 6): Promise<Parfum[]> {
   try {
-    const snap = await getDocs(query(parfumsCol(), where('familleOlactive', '==', familleOlactive), limit(limitCount)));
+    const snap = await getDocs(query(parfumsCol(), where('familleOlactive', '==', familleOlactive), limit(60)));
     if (snap.empty) return [];
-    return snap.docs
+    const today = Math.floor(Date.now() / 86400000);
+    const pool = snap.docs
       .map((d) => ({ id: d.id, ...d.data() } as Parfum))
-      .filter(p => p.id !== excludeId && p.imageUrl);
+      .filter(p => p.id !== excludeId && p.imageUrl)
+      .sort((a, b) => (b.popularityScore ?? 0) - (a.popularityScore ?? 0))
+      .slice(0, 40);
+    return seededShuffle(pool, today).slice(0, limitCount);
   } catch {
     return [];
   }

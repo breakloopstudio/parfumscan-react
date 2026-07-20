@@ -22,6 +22,7 @@ import Button from '../../src/components/Button';
 import AlertPriceToggle from '../../src/components/AlertPriceToggle';
 import WardrobeAddSheet from '../../src/features/wardrobe/WardrobeAddSheet';
 import NoteDetailPopup from '../../src/components/NoteDetailPopup';
+import ImageViewerPopup from '../../src/components/ImageViewerPopup';
 import HeroPriceOverlay from '../../src/features/catalog/HeroPriceOverlay';
 import CollapsingHeader from '../../src/features/catalog/CollapsingHeader';
 import StickyBottomBar from '../../src/features/catalog/StickyBottomBar';
@@ -193,6 +194,7 @@ export default function CatalogDetailPage() {
   const [favoriId, setFavoriId] = useState<string | null>(null);
   const [wardrobeItem, setWardrobeItem] = useState<import('../../src/models/wardrobe.interface').WardrobeItem | null>(null);
   const [showWardrobeSheet, setShowWardrobeSheet] = useState(false);
+  const [showImageViewer, setShowImageViewer] = useState(false);
   const [selectedNote, setSelectedNote] = useState<string | null>(null);
   const [pending] = useState<Parfum | null>(() => consumePendingParfum());
   const [imgFailed, setImgFailed] = useState(false);
@@ -394,6 +396,7 @@ export default function CatalogDetailPage() {
             purchaseUrl={parfum.purchaseUrl}
             imgFailed={imgFailed}
             onImageError={() => setImgFailed(true)}
+            onImagePress={() => setShowImageViewer(true)}
             onPurchasePress={() => {
               if (parfum.purchaseUrl) Linking.openURL(parfum.purchaseUrl);
             }}
@@ -622,6 +625,12 @@ export default function CatalogDetailPage() {
         visible={selectedNote !== null}
         noteName={selectedNote ?? ''}
         onClose={() => setSelectedNote(null)}
+      />
+      <ImageViewerPopup
+        visible={showImageViewer}
+        imageUrl={heroUrl ?? ''}
+        brand={parfum?.marque ?? ''}
+        onClose={() => setShowImageViewer(false)}
       />
     </>
   );

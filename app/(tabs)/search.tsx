@@ -153,14 +153,19 @@ export default function SearchScreen() {
 
       {hasResults ? (
         <FlatList
+          key={`search-results-${resolvedMode}`}
           data={parfums}
+          numColumns={2}
           keyExtractor={(p, i) => `${p.id}_${i}`}
           renderItem={({ item }) => (
-            <Pressable onPress={() => handleResultPress(item.id)}>
-              <ParfumCard parfum={item} showDeal />
-            </Pressable>
+            <View style={s.resultCardWrap}>
+              <Pressable onPress={() => handleResultPress(item.id)}>
+                <ParfumCard parfum={item} compact />
+              </Pressable>
+            </View>
           )}
-          contentContainerStyle={{ paddingBottom: 16 }}
+          columnWrapperStyle={s.resultRow}
+          contentContainerStyle={{ paddingHorizontal: 16, paddingBottom: 16 }}
           showsVerticalScrollIndicator={false}
           keyboardShouldPersistTaps="handled"
         />
@@ -285,6 +290,8 @@ function getStyles(t: Theme) {
     filterChipTextActive: {
       color: t.colors.primaryInk,
     },
+    resultRow: { gap: 8, marginBottom: 8 },
+    resultCardWrap: { flex: 1, maxWidth: '50%' },
     empty: {
       alignItems: 'center',
       paddingTop: 48,

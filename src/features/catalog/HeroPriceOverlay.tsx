@@ -24,11 +24,12 @@ interface Props {
   imgFailed: boolean;
   onImageError: () => void;
   onPurchasePress: () => void;
+  onImagePress: () => void;
 }
 
 export default function HeroPriceOverlay({
   imageUrl, brand, bestPrice, referencePrice, purchaseUrl,
-  imgFailed, onImageError, onPurchasePress,
+  imgFailed, onImageError, onPurchasePress, onImagePress,
 }: Props) {
   const { theme } = useTheme();
   const s = useMemo(() => getStyles(theme), [theme]);
@@ -50,13 +51,15 @@ export default function HeroPriceOverlay({
   return (
     <View style={s.container}>
       {hasImage ? (
-        <Image
-          source={{ uri: imageUrl }}
-          style={s.image}
-          contentFit="cover"
-          transition={300}
-          onError={onImageError}
-        />
+        <Pressable onPress={onImagePress}>
+          <Image
+            source={{ uri: imageUrl }}
+            style={s.image}
+            contentFit="contain"
+            transition={300}
+            onError={onImageError}
+          />
+        </Pressable>
       ) : (
         <View style={[s.placeholder, { backgroundColor: brandColor(brand) }]}>
           <Text style={s.placeholderText}>
@@ -98,8 +101,8 @@ export default function HeroPriceOverlay({
 
 function getStyles(t: Theme) {
   return {
-    container: { position: 'relative' as const, width: '100%', height: 320 },
-    image: { width: '100%', height: 320 },
+    container: { position: 'relative' as const, width: '100%', height: 320, backgroundColor: t.colors.surface },
+    image: { width: '100%', height: 320, backgroundColor: t.colors.surface },
     placeholder: { width: '100%', height: 320, justifyContent: 'center' as const, alignItems: 'center' as const },
     placeholderText: { fontSize: 72, fontFamily: 'Inter_700Bold', color: '#FFFFFF', opacity: 0.5 },
 

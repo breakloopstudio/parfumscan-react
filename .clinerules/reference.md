@@ -17,7 +17,9 @@ export function updateParfum(id: string, data: Partial<Parfum>): Promise<void>;
 export function getPopularParfums(limit: number): Promise<Parfum[]>;
 export function getPersonalizedSuggestions(uid: string, limit: number): Promise<Parfum[]>;
 export function searchParfumsCached(query: string): Promise<Parfum[]>;
+// Scoring par prefixe (startsWith) + bonus reviewCount, limit 200
 export function getSimilarParfums(familleOlactive: string, excludeId: string, limit?: number): Promise<Parfum[]>;
+// Tire 60 parfums de la meme famille, trie par popularityScore desc, prend le top 40, shuffle journalier (Lehmer RNG)
 ```
 
 ### `src/utils/normalize.ts`
@@ -113,8 +115,8 @@ export function hapticsError(): void;
 ### `src/services/catalog-bridge.ts`
 ```ts
 // Pont mémoire inter-écrans (scan → détail)
-export function setPendingParfum(p: Parfum | ParfumSearchResult): void;
-export function consumePendingParfum(): Parfum | ParfumSearchResult | null;
+export function setPendingParfum(p: Parfum): void;
+export function consumePendingParfum(): Parfum | null;
 export function setPendingCatalogQuery(q: string): void;
 export function consumePendingCatalogQuery(): string | null;
 ```

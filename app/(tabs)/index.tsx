@@ -150,8 +150,9 @@ export default function TabPager() {
 
       <PagerView
         ref={pagerRef}
+        key={resolvedMode}
         style={s.pager}
-        initialPage={0}
+        initialPage={activePage}
         scrollEnabled={!sheetOpen}
         offscreenPageLimit={PAGES - 1}
         onPageSelected={handlePageSelected}

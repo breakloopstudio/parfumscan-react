@@ -27,7 +27,7 @@
 | ⭐ **Wishlist** | Parfums à acheter, alertes prix |
 | ❤️ **Favoris** | Coups de cœur, sans obligation d'achat |
 | ⚙️ **Paramètres** | Alertes prix, devise EUR, notifs push, mentions légales |
-| 🧠 **Fiche détail** | Hub d'actions (3 boutons), HeroPriceOverlay, CollapsingHeader, StickyBottomBar, pyramide olfactive v5 interactive, note detail popup |
+| 🧠 **Fiche détail** | Hub d'actions (3 boutons), HeroPriceOverlay, CollapsingHeader, StickyBottomBar, pyramide olfactive v5 interactive, note detail popup, image viewer popup |
 | 🚀 **Onboarding** | 3 slides au premier lancement, swipe navigation, sans auth (⏸️ désactivé temporairement) |
 | 🔐 **Auth optionnelle** | App utilisable sans compte, login demandé uniquement quand nécessaire |
 | 📴 **Mode hors-ligne** | Bannière réseau, contenu dégradé via cache Firestore local |
@@ -137,7 +137,7 @@ app/
 ├── auth/
 │   ├── login.tsx             # Connexion email + Google
 │   └── register.tsx          # Inscription
-├── catalog/[id].tsx          # Détail enrichi : HeroPriceOverlay, CollapsingHeader, StickyBottomBar, pyramide v5, accords, saisons
+├── catalog/[id].tsx          # Détail enrichi : HeroPriceOverlay, CollapsingHeader, StickyBottomBar, pyramide v5, accords, saisons, ImageViewerPopup
 ├── wardrobe/[parfumId].tsx    # Fiche personnelle (notes, notes, SOTD, étagères, signature)
 ├── settings.tsx              # Paramètres : alertes prix, apparence, soutien, mentions légales, confidentialité
 ├── legal.tsx                 # Mentions légales
@@ -149,7 +149,7 @@ src/
 ├── services/     (12)        # Firebase, Firestore, GPT-4o, user-data, wardrobe, theme-storage…
 ├── hooks/        (11)        # useAuth, useScanReducer, useCatalog, useFavoris, useCollection, useWishlist, useScans, useWardrobe, useShelves, useSotd, useNetwork
 ├── contexts/     (1)         # AuthContext (ThemeContext est dans src/theme/)
-├── components/   (11)        # ParfumCard, Button, PriceDisplay, SectionHeader, EmptyState, OfflineBanner, AlertPriceToggle, AppLoader, ErrorBoundary, ProfileAvatar, NoteDetailPopup
+├── components/   (13)        # ParfumCard, Button, PriceDisplay, SectionHeader, EmptyState, OfflineBanner, AlertPriceToggle, AppLoader, ErrorBoundary, ProfileAvatar, NoteDetailPopup, ImageViewerPopup, ActionSheet
 ├── theme/        (2)         # theme.ts (double palette light/dark), ThemeContext.tsx (SystemUI + NavigationBar theming)
 ├── features/
 │   ├── scan/     (8)         # ScanScreen + 7 sous-états
@@ -229,6 +229,7 @@ La page `app/catalog/[id].tsx` affiche les métadonnées du catalogue Firestore 
 - Longévité & Sillage (jauges visuelles avec labels)
 - Prix, réduction, lien affilié
 - Pyramide olfactive v5 (SVG unifié interactif au touch, légende 3 boutons avec compteurs, notes cliquables → popup détail)
+- Photo cliquable → popup plein écran (ImageViewerPopup)
 - Accords principaux (barres triees par score decroissant - traduits en francais)
 - Saisonnalite
 - Occasions
@@ -309,6 +310,18 @@ dénormalisés → affichage direct sans appel API Firestore supplémentaire.
 - **0 fontWeight** : migration complète de tout le code vers `fontFamily`
 - **Firebase modular API** : migration namespaced → modular (v25+)
 - **Onboarding** : 3 slides swipe au 1er lancement, AsyncStorage `@parfumscan_onboarding_done` (⏸️ désactivé temporairement)
+
+## v6.7 — Pipeline seed autonome + ImageViewer + Search améliorée (20/07/2026)
+
+- **Pipeline seed autonome** : catalogue 21K parfums importé depuis scrape Apify → `data/clean/` → Firestore. Zéro dépendance à l'API Fragella. Images hébergées sur Firebase Storage.
+- **ImageViewerPopup** : tap sur la photo du parfum (fiche détail) → popup plein écran avec animation fade+scale, tap n'importe où pour fermer.
+- **Recherche en grille** : `numColumns={2}` + `ParfumCard compact`, affichage 2 colonnes pour les résultats de recherche.
+- **Images en `contain`** : `contentFit="contain"` sur les cartes compactes et la fiche détail — plus de crop/zoom, le flacon est visible en entier.
+- **Parfums similaires** : tri par `popularityScore` décroissant, pool de 40, shuffle journalier (Lehmer RNG) — plus les mêmes 6 parfums en boucle.
+- **Recherche par préfixes** : scoring `startsWith` + bonus `reviewCount`, limit 200, génération de préfixes dans `buildSearchKeywords()`.
+- **Dark mode fixes** : `extraData={resolvedMode}` et `key={resolvedMode}` dans les FlatList/PagerView pour re-render correct au changement de thème.
+- **New components** : `ImageViewerPopup` (popup image plein écran)
+- **New scripts** : `migrate-search-keywords` (migration des keywords de recherche avec préfixes)
 
 ## v6.6 — Parfumerie, Favoris moodboard, Historique journal (18/07/2026)
 

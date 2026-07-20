@@ -152,12 +152,19 @@ function buildSearchKeywords(marque: string, nom: string): string[] {
   const n = normaliseTokens(nom);
   const tokens = new Set<string>();
 
+  const addWordAndPrefixes = (word: string) => {
+    tokens.add(word);
+    for (let i = 3; i < word.length; i++) {
+      tokens.add(word.slice(0, i));
+    }
+  };
+
   m.split('_')
     .filter(Boolean)
-    .forEach((t) => tokens.add(t));
+    .forEach((t) => addWordAndPrefixes(t));
   n.split('_')
     .filter(Boolean)
-    .forEach((t) => tokens.add(t));
+    .forEach((t) => addWordAndPrefixes(t));
 
   tokens.add(`${m}_${n}`);
   tokens.add(`${m} ${n}`.trim());

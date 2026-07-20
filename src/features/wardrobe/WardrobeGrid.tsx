@@ -16,7 +16,7 @@ interface Props {
 const CARD_HEIGHT = 210;
 
 export default function WardrobeGrid({ items, loading, onItemPress, onScroll }: Props) {
-  const { theme } = useTheme();
+  const { theme, resolvedMode } = useTheme();
   const s = useMemo(() => getStyles(theme), [theme]);
 
   const renderItem = useCallback(({ item }: { item: WardrobeItem }) => (
@@ -42,6 +42,7 @@ export default function WardrobeGrid({ items, loading, onItemPress, onScroll }: 
       data={items}
       numColumns={2}
       keyExtractor={item => item.parfumId}
+      extraData={resolvedMode}
       renderItem={renderItem}
       columnWrapperStyle={s.row}
       contentContainerStyle={s.content}

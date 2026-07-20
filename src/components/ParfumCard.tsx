@@ -58,8 +58,7 @@ export default function ParfumCard({ parfum, showDeal = false, compact = false, 
         {showImage ? (
           <View style={compact ? s.imgWrapCompact : s.imgWrap}>
             <View style={compact ? s.imgBgCompact : s.imgBg} />
-            <Image source={imageSource!} style={compact ? s.imgCompact : s.img} contentFit="cover" transition={300} onError={() => setImgFailed(true)} />
-            <View style={s.imgOverlay} />
+            <Image source={imageSource!} style={compact ? s.imgCompact : s.img} contentFit={compact ? 'contain' : 'cover'} transition={300} onError={() => setImgFailed(true)} />
             {discount !== null && <View style={compact ? s.dealBadgeCompact : s.dealBadge}><Text style={compact ? s.dealBadgeTextCompact : s.dealBadgeText}>-{discount}%</Text></View>}
           </View>
         ) : (
@@ -125,10 +124,9 @@ function getStyles(t: Theme) {
       borderRadius: t.radius.card, backgroundColor: t.colors.surface,
       overflow: 'hidden', ...t.shadow.card,
     },
-    imgWrap: { position: 'relative', maxHeight: 180, overflow: 'hidden', backgroundColor: t.colors.surface2 },
-    imgBg: { position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: t.colors.surface2 },
-    img: { width: '100%', height: 180, resizeMode: 'cover', backgroundColor: t.colors.surface2 },
-    imgOverlay: { position: 'absolute', bottom: 0, left: 0, right: 0, height: 60, backgroundColor: 'rgba(0,0,0,0.1)' },
+    imgWrap: { position: 'relative', maxHeight: 180, overflow: 'hidden', backgroundColor: t.colors.surface },
+    imgBg: { position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: t.colors.surface },
+    img: { width: '100%', height: 180, resizeMode: 'cover', backgroundColor: t.colors.surface },
     dealBadge: {
       position: 'absolute', top: 12, right: 12,
       backgroundColor: t.colors.reward, paddingHorizontal: 10, paddingVertical: 5, borderRadius: 20,
@@ -159,9 +157,9 @@ function getStyles(t: Theme) {
     dealCtaText: { fontSize: 13, fontFamily: 'Inter_700Bold', color: t.colors.primary },
     dealCtaGhost: { fontSize: 13, fontFamily: 'Inter_600SemiBold', color: t.colors.textMuted },
     cardCompact: { margin: 4, borderRadius: t.radius.card, backgroundColor: t.colors.surface, overflow: 'hidden', ...t.shadow.card },
-    imgWrapCompact: { position: 'relative', maxHeight: 130, overflow: 'hidden', backgroundColor: t.colors.surface2 },
-    imgBgCompact: { position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: t.colors.surface2 },
-    imgCompact: { width: '100%', height: 130, resizeMode: 'cover', backgroundColor: t.colors.surface2 },
+    imgWrapCompact: { position: 'relative', maxHeight: 130, overflow: 'hidden', backgroundColor: t.colors.surface },
+    imgBgCompact: { position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: t.colors.surface },
+    imgCompact: { width: '100%', height: 130, resizeMode: 'cover', backgroundColor: t.colors.surface },
     dealBadgeCompact: { position: 'absolute', top: 6, right: 6, backgroundColor: t.colors.reward, paddingHorizontal: 6, paddingVertical: 3, borderRadius: 20 },
     dealBadgeTextCompact: { color: '#1F1A2E', fontFamily: 'Inter_800ExtraBold', fontSize: 10 },
     headerCompact: { padding: 10, paddingBottom: 0 },

@@ -352,6 +352,7 @@ export default function FavoritesPage({ onScroll }: Props) {
           data={filtered}
           keyExtractor={item => item.id}
           renderItem={renderItem}
+          extraData={resolvedMode}
           numColumns={2}
           columnWrapperStyle={s.row}
           contentContainerStyle={s.content}

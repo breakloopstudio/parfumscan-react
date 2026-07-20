@@ -15,7 +15,7 @@ interface Props {
 }
 
 export function ScanResults({ parfums, onOpenCatalog }: Props) {
-  const { theme } = useTheme();
+  const { theme, resolvedMode } = useTheme();
   const s = useMemo(() => getStyles(theme), [theme]);
   const router = useRouter();
 
@@ -41,6 +41,7 @@ export function ScanResults({ parfums, onOpenCatalog }: Props) {
       <FlatList<Parfum>
         data={sorted}
         keyExtractor={(p, i) => `${p.id}_${i}`}
+        extraData={resolvedMode}
         renderItem={({ item }) => (
           <ParfumCard parfum={item} showDeal onPressOverride={() => handleParfumPress(item)} />
         )}

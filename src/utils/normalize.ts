@@ -12,10 +12,20 @@ export function buildSearchKeywords(marque: string, nom: string): string[] {
   const m = normalize(marque);
   const n = normalize(nom);
   const tokens = new Set<string>();
-  m.split('_').filter(Boolean).forEach(t => tokens.add(t));
-  n.split('_').filter(Boolean).forEach(t => tokens.add(t));
+
+  const addWordAndPrefixes = (word: string) => {
+    tokens.add(word);
+    for (let i = 3; i < word.length; i++) {
+      tokens.add(word.slice(0, i));
+    }
+  };
+
+  m.split('_').filter(Boolean).forEach(addWordAndPrefixes);
+  n.split('_').filter(Boolean).forEach(addWordAndPrefixes);
+
   tokens.add(`${m}_${n}`);
   tokens.add(`${m} ${n}`.trim());
   tokens.add(m);
+
   return [...tokens];
 }

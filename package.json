@@ -61,6 +61,7 @@
     "functions:deploy": "firebase deploy --only functions",
     "clean-data": "tsx scripts/clean-apify.ts",
     "import-data": "tsx scripts/import-firestore.ts",
+    "migrate-search": "tsx scripts/migrate-search-keywords.ts",
     "emulators": "firebase emulators:start"
   },
   "private": true
