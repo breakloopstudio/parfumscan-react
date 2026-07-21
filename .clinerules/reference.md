@@ -553,5 +553,23 @@ interface Props {
 ```ts
 interface Props {
   onFamilyTap: (query: string) => void;
+  onHorizontalScrollActive?: (active: boolean) => void;
 }
+```
+
+### `BrandSheet` — `src/features/catalog/BrandSheet.tsx`
+
+Bottom sheet alphabétique A-Z (« Toutes les marques »). Modal avec FlatList groupée par lettre, barre de recherche, index latéral rapide.
+
+```ts
+interface Props {
+  visible: boolean;
+  onClose: () => void;
+  onSelectBrand: (brand: string) => void;
+}
+```
+
+### `TabPager` — `app/(tabs)/index.tsx`
+
+Pager horizontal 4 pages (Catalogue / Favoris / Historique / Parfumerie) avec `GestureDetector` + Reanimated. Gesture config : `activeOffsetX([-30, 30])`, `failOffsetY([-15, 15])`, spring animation (damping 25, stiffness 250). 4 pages rendues en `flexDirection: 'row'`, translatées via `translateX` animé. DockBar hide/show au scroll vertical, barre de recherche persistante `BlurView`.
 ```

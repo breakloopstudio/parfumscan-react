@@ -153,7 +153,7 @@ src/
 ├── theme/        (2)         # theme.ts (double palette light/dark), ThemeContext.tsx (SystemUI + NavigationBar theming)
 ├── features/
 │   ├── scan/     (8)         # ScanScreen + 7 sous-états
-│   ├── catalog/ (8)    # CatalogPage, BrandCapsules, CatalogRow, FamilyAmbianceCards, OlfactoryPyramid v5, HeroPriceOverlay, CollapsingHeader, StickyBottomBar
+│   ├── catalog/ (9)    # CatalogPage, BrandCapsules, BrandSheet, CatalogRow, FamilyAmbianceCards, OlfactoryPyramid v5, HeroPriceOverlay, CollapsingHeader, StickyBottomBar
 │   ├── wardrobe/ (9)         # WardrobeAddSheet, WardrobeCard, WardrobeGrid, WardrobeQuickSheet, SOTDCard (compact redesign), SOTDPicker, FilterBar, StarRating, ShelfManager
 │   └── navigation/ (1)       # DockBar (barre flottante 5 positions + FAB, indicateur doré, pulse ring, show/hide)
 ├── models/       (8)         # Parfum, WardrobeItem, Shelf, SotdEntry, UserFavori, UserScan, UserCollectionItem, UserWishlistItem
@@ -311,11 +311,21 @@ dénormalisés → affichage direct sans appel API Firestore supplémentaire.
 - **Firebase modular API** : migration namespaced → modular (v25+)
 - **Onboarding** : 3 slides swipe au 1er lancement, AsyncStorage `@parfumscan_onboarding_done` (⏸️ désactivé temporairement)
 
+## v6.9 — Favoris + Historique refonte & Pager migration (21/07/2026)
+
+- **Favoris** : chips famille remplacées par bouton unique « Famille » → ActionSheet + chip dismissible, densité partagée avec le catalogue (`useDensityPreference`), cartes en mode dynamique (Confort./Compact/Liste)
+- **Historique** : `ScanHistoryCard` refactorée en wrapper — scans réussis → `ParfumCard` (densité partagée) + overlay (dot statut + date + compteur ×N), no-result/error → layout compact natif
+- **Pager** : `react-native-pager-view` remplacé par `GestureDetector` + Reanimated — résout les conflits de swipe natifs entre le pager et les ScrollView horizontaux du catalogue (`activeOffsetX(30)` + `failOffsetY(15)`)
+- **BrandSheet** : bottom sheet alphabétique A-Z (60+ marques, barre de recherche, index latéral) — ouverte depuis « Toutes → » sur les capsules marques
+- **« Voir tout → »** : scroll direct vers la grille catalogue (`scrollToIndex`) au lieu de push vers l'overlay de recherche
+- **GRID_MODES** : centralisé dans `useDensityPreference`, supprimé des définitions locales
+- **Bug fixes** : crash `parfum.notesTete` undefined sur données dénormalisées (favoris, historique)
+
 ## v6.8 — Refonte Catalogue v2 (21/07/2026)
 
 - **Structure hybride** : rangées éditoriales horizontales (façon Spotify/Netflix) + grille filtrable en dessous
 - **Suppression chips famille olfactive** : remplacés par dilution dans sections nommées + cartes d'ambiance « Explorer par famille » (6 cartes theme-aware avec Ionicons)
-- **Capsules marques** : top 10 marques en pastilles rectangulaires + « Toutes → » (à venir : bottom sheet A-Z)
+- **Capsules marques** : top 10 marques en pastilles rectangulaires + bottom sheet « Toutes les marques » (A-Z, barre de recherche, index latéral)
 - **ParfumCard 4 modes** : `compact` (rangées, 140px), `comfortable` (grille défaut, tags famille/année + notes de tête + price dot deal/fair/overpriced), `compactPlus` (grille dense, image 90px), `list`
 - **Densité persistée** : AsyncStorage (`@parfumscan/catalog-density`), partagée entre catalogue et recherche
 - **Recherche** : chips famille supprimées, contrôles de densité identiques à la grille (Confort./Compact/Liste)
