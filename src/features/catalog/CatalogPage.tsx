@@ -2,7 +2,7 @@
 // Structure hybride : capsules marques → rangées éditoriales → grille filtrable
 // Suppression des chips famille olfactive — dilution dans des sections nommées
 
-import { useState, useEffect, useMemo, useCallback } from 'react';
+import { useState, useEffect, useMemo, useCallback, useRef } from 'react';
 import { View, Text, FlatList, ActivityIndicator, Pressable, ScrollView, StyleSheet } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Link, useRouter } from 'expo-router';
@@ -52,6 +52,7 @@ export default function CatalogPage({ onScroll, onHorizontalScrollActive }: Prop
   const s = useMemo(() => getStyles(theme), [theme]);
   const { user, authReady, isAuthenticated } = useAuthContext();
   const router = useRouter();
+  const flatListRef = useRef<FlatList<Parfum>>(null);
 
   const { density: gridDensity, setDensity: setGridDensity } = useDensityPreference();
 
@@ -163,6 +164,10 @@ export default function CatalogPage({ onScroll, onHorizontalScrollActive }: Prop
     setBrandSheetVisible(true);
   }, []);
 
+  const scrollToGrid = useCallback(() => {
+    flatListRef.current?.scrollToIndex({ index: 0, animated: true, viewPosition: 0 });
+  }, []);
+
   const renderGridItem = useCallback(({ item }: { item: Parfum }) => (
     <View style={gridDensity === 'list' ? s.listItemWrap : s.gridItemWrap}>
       <ParfumCard parfum={item} mode={gridDensity} />
@@ -187,7 +192,7 @@ export default function CatalogPage({ onScroll, onHorizontalScrollActive }: Prop
           title={suggestionLabel}
           subtitle="Suggestions basées sur vos goûts"
           actionLabel="Voir tout →"
-          onAction={() => router.push('/(tabs)/search')}
+          onAction={scrollToGrid}
           collapsible
           defaultCollapsed={false}
           onHorizontalScrollActive={onHorizontalScrollActive}
@@ -256,7 +261,7 @@ export default function CatalogPage({ onScroll, onHorizontalScrollActive }: Prop
   ), [
     s, suggestionParfums, suggestionLabel, suggestionLoading,
     bestDeals, dealsLoading, iconicParfums, gridDensity,
-    handleViewAllBrands, handleBrandTap, handleFamilyTap, router,
+    handleViewAllBrands, handleBrandTap, handleFamilyTap, scrollToGrid,
   ]);
 
   return (
@@ -284,6 +289,7 @@ export default function CatalogPage({ onScroll, onHorizontalScrollActive }: Prop
         </View>
       ) : (
         <FlatList
+          ref={flatListRef}
           key={gridKey}
           data={gridParfums}
           extraData={gridDensity}
