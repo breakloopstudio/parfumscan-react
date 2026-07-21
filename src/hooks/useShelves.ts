@@ -1,6 +1,6 @@
 // src/hooks/useShelves.ts
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { onShelves, createShelf, updateShelf, deleteShelf } from '../services/wardrobe';
 import type { Shelf } from '../models/wardrobe.interface';
 
@@ -13,20 +13,20 @@ export function useShelves(uid: string | null) {
     return () => unsub();
   }, [uid]);
 
-  const create = async (name: string, icon?: string, color?: string) => {
+  const create = useCallback(async (name: string, icon?: string, color?: string) => {
     if (!uid) return;
     await createShelf(uid, name, icon, color);
-  };
+  }, [uid]);
 
-  const update = async (shelfId: string, data: Parameters<typeof updateShelf>[2]) => {
+  const update = useCallback(async (shelfId: string, data: Parameters<typeof updateShelf>[2]) => {
     if (!uid) return;
     await updateShelf(uid, shelfId, data);
-  };
+  }, [uid]);
 
-  const remove = async (shelfId: string) => {
+  const remove = useCallback(async (shelfId: string) => {
     if (!uid) return;
     await deleteShelf(uid, shelfId);
-  };
+  }, [uid]);
 
   return { shelves, create, update, remove };
 }

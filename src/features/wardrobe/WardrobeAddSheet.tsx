@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { useMemo, useState, useCallback } from 'react';
 import { View, Text, Pressable, TextInput, ActivityIndicator } from 'react-native';
 import { Image } from 'expo-image';
 import Ionicons from '@react-native-vector-icons/ionicons/static';
@@ -34,14 +34,14 @@ export default function WardrobeAddSheet({
 
   if (!visible) return null;
 
-  const handleSelect = (ownership: WardrobeItem['ownership']) => {
+  const handleSelect = useCallback((ownership: WardrobeItem['ownership']) => {
     hapticsLight();
     setSelected(ownership);
     setSizeMl('');
     setError(null);
-  };
+  }, []);
 
-  const handleConfirm = async () => {
+  const handleConfirm = useCallback(async () => {
     if (!selected || loading) return;
     const ml = selected === 'decant' ? parseFloat(sizeMl) : null;
     if (selected === 'decant' && (!sizeMl || isNaN(ml!) || ml! <= 0)) {
@@ -63,7 +63,7 @@ export default function WardrobeAddSheet({
     } finally {
       setLoading(false);
     }
-  };
+  }, [selected, loading, sizeMl, onSelect, onClose]);
 
   return (
     <View style={s.backdrop}>

@@ -1,6 +1,6 @@
 // src/services/wardrobe.ts — CRUD Firestore pour la Wardrobe
 
-import { getFirestore, collection, doc, query, getDoc, getDocs, setDoc, deleteDoc, writeBatch, onSnapshot, Timestamp } from '@react-native-firebase/firestore';
+import { getFirestore, collection, doc, query, where, orderBy, limit, getDoc, getDocs, setDoc, deleteDoc, writeBatch, onSnapshot, Timestamp } from '@react-native-firebase/firestore';
 import type { WardrobeItem, Shelf, SotdEntry } from '../models/wardrobe.interface';
 
 const db = getFirestore();
@@ -63,36 +63,48 @@ export async function addToWardrobe(
   nom?: string, marque?: string, imageUrl?: string, familleOlactive?: string,
   sizeMl?: number | null,
 ): Promise<void> {
-  const dRef = doc(wCol(uid), parfumId);
-  const now = new Date();
-  await setDoc(dRef, {
-    parfumId,
-    ownership,
-    nom: nom ?? null,
-    marque: marque ?? null,
-    imageUrl: imageUrl ?? null,
-    familleOlactive: familleOlactive ?? null,
-    rating: null,
-    notes: null,
-    shelfIds: [],
-    sizeMl: sizeMl ?? null,
-    sotdCount: 0,
-    isSignature: false,
-    addedAt: now,
-    updatedAt: now,
-  }, { merge: true });
+  try {
+    const dRef = doc(wCol(uid), parfumId);
+    const now = new Date();
+    await setDoc(dRef, {
+      parfumId,
+      ownership,
+      nom: nom ?? null,
+      marque: marque ?? null,
+      imageUrl: imageUrl ?? null,
+      familleOlactive: familleOlactive ?? null,
+      rating: null,
+      notes: null,
+      shelfIds: [],
+      sizeMl: sizeMl ?? null,
+      sotdCount: 0,
+      isSignature: false,
+      addedAt: now,
+      updatedAt: now,
+    }, { merge: true });
+  } catch (e: unknown) {
+    console.warn('[wardrobe] addToWardrobe failed:', (e as Error)?.message ?? String(e));
+  }
 }
 
 export async function updateWardrobeItem(
   uid: string, parfumId: string,
   data: Partial<Pick<WardrobeItem, 'ownership' | 'rating' | 'notes' | 'shelfIds' | 'sizeMl' | 'isSignature'>>,
 ): Promise<void> {
-  const dRef = doc(wCol(uid), parfumId);
-  await setDoc(dRef, { ...data, updatedAt: new Date() }, { merge: true });
+  try {
+    const dRef = doc(wCol(uid), parfumId);
+    await setDoc(dRef, { ...data, updatedAt: new Date() }, { merge: true });
+  } catch (e: unknown) {
+    console.warn('[wardrobe] updateWardrobeItem failed:', (e as Error)?.message ?? String(e));
+  }
 }
 
 export async function removeFromWardrobe(uid: string, parfumId: string): Promise<void> {
-  await deleteDoc(doc(wCol(uid), parfumId));
+  try {
+    await deleteDoc(doc(wCol(uid), parfumId));
+  } catch (e: unknown) {
+    console.warn('[wardrobe] removeFromWardrobe failed:', (e as Error)?.message ?? String(e));
+  }
 }
 
 export async function isInWardrobe(uid: string, parfumId: string): Promise<WardrobeItem | null> {
@@ -114,39 +126,52 @@ export function onShelves(uid: string, cb: (shelves: Shelf[]) => void): () => vo
 }
 
 export async function createShelf(uid: string, name: string, icon?: string, color?: string): Promise<string> {
-  const existing = await getDocs(shCol(uid));
-  const nextOrder = existing.docs.length;
-  const dRef = doc(shCol(uid));
-  await setDoc(dRef, {
-    name,
-    icon: icon ?? null,
-    color: color ?? null,
-    order: nextOrder,
-    createdAt: new Date(),
-  });
-  return dRef.id;
+  try {
+    const q = query(shCol(uid), orderBy('order', 'desc'), limit(1));
+    const snap = await getDocs(q);
+    const nextOrder = snap.empty ? 0 : ((snap.docs[0].data().order as number) ?? 0) + 1;
+    const dRef = doc(shCol(uid));
+    await setDoc(dRef, {
+      name,
+      icon: icon ?? null,
+      color: color ?? null,
+      order: nextOrder,
+      createdAt: new Date(),
+    });
+    return dRef.id;
+  } catch (e: unknown) {
+    console.warn('[wardrobe] createShelf failed:', (e as Error)?.message ?? String(e));
+    const dRef = doc(shCol(uid));
+    return dRef.id;
+  }
 }
 
 export async function updateShelf(uid: string, shelfId: string, data: Partial<Pick<Shelf, 'name' | 'icon' | 'color' | 'order'>>): Promise<void> {
-  await setDoc(doc(shCol(uid), shelfId), data, { merge: true });
+  try {
+    await setDoc(doc(shCol(uid), shelfId), data, { merge: true });
+  } catch (e: unknown) {
+    console.warn('[wardrobe] updateShelf failed:', (e as Error)?.message ?? String(e));
+  }
 }
 
 export async function deleteShelf(uid: string, shelfId: string): Promise<void> {
-  const batch = writeBatch(db);
-  batch.delete(doc(shCol(uid), shelfId));
+  try {
+    const batch = writeBatch(db);
+    batch.delete(doc(shCol(uid), shelfId));
 
-  const wSnap = await getDocs(wCol(uid));
-  for (const wDoc of wSnap.docs) {
-    const shelfIds: string[] = wDoc.data().shelfIds ?? [];
-    if (shelfIds.includes(shelfId)) {
+    const wSnap = await getDocs(query(wCol(uid), where('shelfIds', 'array-contains', shelfId)));
+    for (const wDoc of wSnap.docs) {
+      const shelfIds: string[] = (wDoc.data().shelfIds ?? []) as string[];
       batch.update(doc(wCol(uid), wDoc.id), {
         shelfIds: shelfIds.filter((id: string) => id !== shelfId),
         updatedAt: new Date(),
       });
     }
-  }
 
-  await batch.commit();
+    await batch.commit();
+  } catch (e: unknown) {
+    console.warn('[wardrobe] deleteShelf failed:', (e as Error)?.message ?? String(e));
+  }
 }
 
 // ── SOTD ──
@@ -168,19 +193,23 @@ export async function getTodaySotd(uid: string): Promise<SotdEntry | null> {
 }
 
 export async function setSotd(uid: string, parfumId: string, nom: string, marque: string, imageUrl?: string | null): Promise<void> {
-  const batch = writeBatch(db);
-  batch.set(doc(sCol(uid), today()), {
-    parfumId,
-    nom,
-    marque,
-    imageUrl: imageUrl ?? null,
-  });
-  const wSnap = await getDoc(doc(wCol(uid), parfumId));
-  const wData = wSnap.data();
-  const currentCount: number = (wData?.sotdCount as number) ?? 0;
-  batch.update(doc(wCol(uid), parfumId), {
-    sotdCount: currentCount + 1,
-    updatedAt: new Date(),
-  });
-  await batch.commit();
+  try {
+    const batch = writeBatch(db);
+    batch.set(doc(sCol(uid), today()), {
+      parfumId,
+      nom,
+      marque,
+      imageUrl: imageUrl ?? null,
+    });
+    const wSnap = await getDoc(doc(wCol(uid), parfumId));
+    const wData = wSnap.data();
+    const currentCount: number = (wData?.sotdCount as number) ?? 0;
+    batch.set(doc(wCol(uid), parfumId), {
+      sotdCount: currentCount + 1,
+      updatedAt: new Date(),
+    }, { merge: true });
+    await batch.commit();
+  } catch (e: unknown) {
+    console.warn('[wardrobe] setSotd failed:', (e as Error)?.message ?? String(e));
+  }
 }

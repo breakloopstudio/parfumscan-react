@@ -1,6 +1,6 @@
 // src/features/wardrobe/ShelfManager.tsx
 
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useCallback } from 'react';
 import { View, Text, Pressable, TextInput, Alert } from 'react-native';
 import Ionicons from '@react-native-vector-icons/ionicons/static';
 import { useTheme, type Theme } from '../../theme/ThemeContext';
@@ -8,7 +8,7 @@ import { hapticsLight } from '../../services/haptics';
 import type { Shelf } from '../../models/wardrobe.interface';
 
 const SHELF_COLORS = ['#6C3ED9', '#C8945A', '#0D9488', '#D97706', '#E04444', '#2563EB', '#059669', '#7C3AED'];
-const SHELF_ICONS = ['sunny-outline', 'moon-outline', 'briefcase-outline', 'rose-outline', 'gift-outline', 'star-outline', 'leaf-outline', 'sparkles-outline', 'water-outline', 'flame-outline', 'snow-outline', 'musical-notes-outline'];
+const SHELF_ICONS = ['sunny-outline', 'moon-outline', 'briefcase-outline', 'rose-outline', 'gift-outline', 'star-outline', 'leaf-outline', 'sparkles-outline', 'water-outline', 'flame-outline', 'snow-outline', 'musical-notes-outline'] as const;
 
 interface Props {
   visible: boolean;
@@ -32,16 +32,16 @@ export default function ShelfManager({ visible, shelves, orphanCount, onClose, o
 
   if (!visible) return null;
 
-  const handleCreate = () => {
+  const handleCreate = useCallback(() => {
     if (!newName.trim()) return;
     hapticsLight();
     onCreate(newName.trim(), selectedIcon ?? undefined, selectedColor ?? undefined);
     setNewName('');
     setSelectedIcon(null);
     setSelectedColor(null);
-  };
+  }, [newName, selectedIcon, selectedColor, onCreate]);
 
-  const handleDelete = (shelfId: string, shelfName: string) => {
+  const handleDelete = useCallback((shelfId: string, shelfName: string) => {
     Alert.alert(
       'Supprimer l\'étagère',
       `« ${shelfName} » sera supprimée. Les parfums ne seront pas effacés, ils perdront juste cette étagère.`,
@@ -50,7 +50,7 @@ export default function ShelfManager({ visible, shelves, orphanCount, onClose, o
         { text: 'Supprimer', style: 'destructive', onPress: () => onDelete(shelfId) },
       ]
     );
-  };
+  }, [onDelete]);
 
   return (
     <View style={s.backdrop}>
@@ -124,7 +124,7 @@ export default function ShelfManager({ visible, shelves, orphanCount, onClose, o
                 style={[s.iconBtn, selectedIcon === icon && s.iconBtnActive]}
                 onPress={() => setSelectedIcon(selectedIcon === icon ? null : icon)}
               >
-                <Ionicons name={icon as never} size={18} color={selectedIcon === icon ? theme.colors.primaryInk : theme.colors.textMuted} />
+                <Ionicons name={icon} size={18} color={selectedIcon === icon ? theme.colors.primaryInk : theme.colors.textMuted} />
               </Pressable>
             ))}
           </View>

@@ -3,7 +3,7 @@
 // Phase A : nouveaux tokens + rétrocompatibilité avec l'existant
 // Dark mode : palette « Luxe profond »
 
-// ── Palette light (inchangée) ──
+import type { ViewStyle } from 'react-native';// ── Palette light (inchangée) ──
 const lightColors = {
   background: '#F8F6F2',
   surface: '#FFFFFF',
@@ -228,10 +228,10 @@ export interface Theme {
   radius: typeof shared.radius;
   spacing: typeof shared.spacing;
   shadow: {
-    card: Record<string, unknown>;
-    elevated: Record<string, unknown>;
-    button: Record<string, unknown>;
-    scanCircle: Record<string, unknown>;
+    card: ViewStyle;
+    elevated: ViewStyle;
+    button: ViewStyle;
+    scanCircle: ViewStyle;
   };
 }
 

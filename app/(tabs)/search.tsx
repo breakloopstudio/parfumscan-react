@@ -14,7 +14,7 @@ import { consumePendingCatalogQuery } from '../../src/services/catalog-bridge';
 import { useDensityPreference, GRID_MODES } from '../../src/hooks/useDensityPreference';
 
 // Persiste les recherches recentes entre les navigations
-let _recentSearches: string[] = [];
+const recentStore = { items: [] as string[] };
 
 export default function SearchScreen() {
   const { theme, resolvedMode } = useTheme();
@@ -28,7 +28,7 @@ export default function SearchScreen() {
   const [searchText, setSearchText] = useState(initialQuery ?? '');
   const { parfums, searching, search, clear } = useCatalog();
   const { density: searchDensity, setDensity: setSearchDensity } = useDensityPreference();
-  const [recentSearches, setRecentSearches] = useState<string[]>(_recentSearches);
+  const [recentSearches, setRecentSearches] = useState<string[]>(recentStore.items);
 
   useEffect(() => {
     const t = setTimeout(() => inputRef.current?.focus(), 250);
@@ -50,8 +50,8 @@ export default function SearchScreen() {
   const handleResultPress = useCallback((id: string) => {
     const text = searchText.trim();
     if (text && text.length >= 3) {
-      _recentSearches = [text, ..._recentSearches.filter(x => x.toLowerCase() !== text.toLowerCase())].slice(0, 5);
-      setRecentSearches(_recentSearches);
+      recentStore.items = [text, ...recentStore.items.filter(x => x.toLowerCase() !== text.toLowerCase())].slice(0, 5);
+      setRecentSearches(recentStore.items);
     }
     router.push(`/catalog/${id}`);
   }, [searchText, router]);

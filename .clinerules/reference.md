@@ -17,9 +17,10 @@ export function updateParfum(id: string, data: Partial<Parfum>): Promise<void>;
 export function getPopularParfums(limit: number): Promise<Parfum[]>;
 export function getPersonalizedSuggestions(uid: string, limit: number): Promise<Parfum[]>;
 export function searchParfumsCached(query: string): Promise<Parfum[]>;
-// Scoring par prefixe (startsWith) + bonus reviewCount, limit 200
+// Cache Map (exact + prefix), dual query Firestore (1 token → array-contains + orderBy reviewCount, 2+ tokens → array-contains-any), scoring single-pass, 50 résultats
+// Cache Map (prefix cache local + hit complet), dual query Firestore (1 token → array-contains + orderBy reviewCount, 2+ tokens → array-contains-any), `exactMatch` réservé aux queries multi-mots, signal composite `Math.max(reviewCount, ratingCount, popularityScore)`, bonus `/2`, scoring single-pass (boucle for), tri pop-first pour 1 token, 50 résultats, debounce 150ms, requestIdRef anti-race.
 export function getSimilarParfums(mainAccords: string[], excludeId: string, limit?: number): Promise<Parfum[]>;
-// Scoring par nombre d'accords partages (array-contains-any) + popularityScore, shuffle journalier (Lehmer RNG)
+// Scoring par nombre d'accords partagés (array-contains-any) + orderBy popularityScore, shuffle journalier (Lehmer RNG), ParfumCard compact dans UI, cache TTL 24h via similarIdsCachedAt
 ```
 
 ### `src/utils/normalize.ts`
@@ -224,7 +225,6 @@ export function useSotd(uid: string | null): {
 };
 ```
 
-```
 ### `useDensityPreference()` — `src/hooks/useDensityPreference.ts`
 ```ts
 // Persistance AsyncStorage du mode d'affichage grille — partage catalogue + recherche
@@ -252,7 +252,7 @@ export const theme = lightTheme;
 interface Theme {
   colors: { /* 28 tokens couleur */ };
   fonts: { /* display, body, sizes */ };
-  radius: { /* sm, base, card, lg, xl, full */ };
+  radius: { /* sm, base, card, full */ };
   spacing: { /* xs → 3xl */ };
   shadow: { /* card, elevated, button, scanCircle */ };
 }
@@ -428,6 +428,58 @@ export function getNoteDescription(note: string): string | null;
 
 ## §6 — Composants
 
+### `Button` — `src/components/Button.tsx`
+
+Bouton 4 variantes. Toujours en `Inter_600SemiBold`.
+
+```ts
+interface Props {
+  variant?: 'primary' | 'secondary' | 'outline' | 'ghost';
+  icon?: string;
+  loading?: boolean;
+  disabled?: boolean;
+  onPress: () => void;
+  children: React.ReactNode;
+}
+```
+
+### `PriceDisplay` — `src/components/PriceDisplay.tsx`
+
+Affichage prix avec code couleur (deal/fair/overpriced).
+
+```ts
+interface Props {
+  bestPrice: number;
+  referencePrice?: number;
+  priceValue?: 'deal' | 'fair' | 'overpriced';
+  large?: boolean;
+}
+```
+
+### `EmptyState` — `src/components/EmptyState.tsx`
+
+État vide 4 variantes : `collection | wishlist | favoris | historique`.
+
+```ts
+interface Props {
+  variant: 'collection' | 'wishlist' | 'favoris' | 'historique';
+  onAction?: () => void;
+}
+```
+
+### `ImageViewerPopup` — `src/components/ImageViewerPopup.tsx`
+
+Popup plein écran pour afficher la photo du parfum en grand.
+
+```ts
+interface Props {
+  visible: boolean;
+  imageUrl: string;
+  brand?: string;
+  onClose: () => void;
+}
+```
+
 ### `NoteDetailPopup` — `src/components/NoteDetailPopup.tsx`
 
 Popup affichant le détail d'une note olfactive (nom français, description, couche olfactive).
@@ -469,22 +521,22 @@ Barre de navigation flottante 5 positions (Catalogue, Favoris, Scan, Historique,
 ```ts
 interface Props {
   activeIndex: number;                    // 0=Catalogue, 1=Favoris, 3=Historique, 4=Collection (2=FAB)
-  pageWidth: SharedValue<number>;        // Largeur ecran partagee pour le calcul de position
-  dockTranslateY: SharedValue<number>;   // Drive le show/hide au scroll (0 visible / +120 cache)
+  pageWidth: SharedValue<number>;        // Largeur écran partagée pour le calcul de position
+  dockTranslateY: SharedValue<number>;   // Drive le show/hide au scroll (0 visible / +120 caché)
   onTabPress: (index: number) => void;   // Callback changement d'onglet (haptics attendu par le parent)
 }
 ```
 
-**Caracteristiques** :
-- Verre depoli : `BlurView` (expo-blur, intensity 24) + overlay semi-transparent `rgba(background, 0.88)`
-- Indicateur dore anime : `withSpring({ damping: 22, stiffness: 280, mass: 0.7 })` via `useAnimatedReaction`
-- Pulse ring : halo violet autour du FAB, `withRepeat(withTiming(1.18, 2500ms), -1, true)`, opacity inversee
+**Caractéristiques** :
+- Verre dépoli : `BlurView` (expo-blur, intensity 24) + overlay semi-transparent `rgba(background, 0.88)`
+- Indicateur doré animé : `withSpring({ damping: 22, stiffness: 280, mass: 0.7 })` via `useAnimatedReaction`
+- Pulse ring : halo violet autour du FAB, `withRepeat(withTiming(1.18, 2500ms), -1, true)`, opacity inversée
 - Show/hide au scroll : `useAnimatedReaction` sur `scrollY` → cache si `y > prev && y > 60`, montre si `y < prev`
 - Dimensions : 64px hauteur, 24px borderRadius, 88% largeur (max 380px), FAB 56×56
 - Dark mode : `BlurView tint` suit `resolvedMode`, overlay couleur dynamique via `t.colors.background`
-- Haptics integres sur le FAB, delegues au parent pour les onglets
+- Haptics intégrés sur le FAB, délégués au parent pour les onglets
 
-**Dependances** : `expo-blur`, `react-native-reanimated`, `@react-native-vector-icons/ionicons`, `react-native-safe-area-context`
+**Dépendances** : `expo-blur`, `react-native-reanimated`, `@react-native-vector-icons/ionicons`, `react-native-safe-area-context`
 
 ### `ParfumCard` — `src/components/ParfumCard.tsx`
 

@@ -77,7 +77,42 @@ export default function OlfactoryPyramid({ topNotes, heartNotes, baseNotes, onNo
   const hasAnyNotes = layers.some(l => l.notes.length > 0);
   if (!hasAnyNotes) return null;
 
-  const s = getStyles(theme);
+  const s = useMemo(() => getStyles(theme), [theme]);
+
+  const activeLayer = layers.find(l => l.key === active);
+  const activeNotesBlock = activeLayer && (
+    <View style={[s.notesWrap, { backgroundColor: activeLayer.soft }]}>
+      {activeLayer.notes.length === 0 ? (
+        <Text style={[s.emptyText, { color: activeLayer.ink }]}>
+          Aucune note de {activeLayer.label.toLowerCase()} renseignée
+        </Text>
+      ) : (
+        <>
+          <Text style={[s.notesLabel, { color: activeLayer.ink }]}>
+            Notes de {activeLayer.label.toLowerCase()}
+          </Text>
+          <View style={s.chipRow}>
+            {activeLayer.notes.map((note, idx) => (
+              <Pressable
+                key={`${activeLayer.key}-${idx}`}
+                style={({ pressed }) => [
+                  s.chip,
+                  { backgroundColor: activeLayer.color },
+                  pressed && { opacity: 0.75, transform: [{ scale: 0.96 }] },
+                ]}
+                onPress={() => {
+                  hapticsLight();
+                  onNotePress?.(note);
+                }}
+              >
+                <Text style={s.chipText}>{translateNote(note)}</Text>
+              </Pressable>
+            ))}
+          </View>
+        </>
+      )}
+    </View>
+  );
 
   return (
     <Animated.View style={[s.root, fadeIn]}>
@@ -169,45 +204,7 @@ export default function OlfactoryPyramid({ topNotes, heartNotes, baseNotes, onNo
       </View>
 
       {/* Notes de la couche active */}
-      {active &&
-        (() => {
-          const layer = layers.find(l => l.key === active);
-          if (!layer) return null;
-          if (layer.notes.length === 0) {
-            return (
-              <View style={[s.notesWrap, { backgroundColor: layer.soft }]}>
-                <Text style={[s.emptyText, { color: layer.ink }]}>
-                  Aucune note de {layer.label.toLowerCase()} renseignée
-                </Text>
-              </View>
-            );
-          }
-          return (
-            <View style={[s.notesWrap, { backgroundColor: layer.soft }]}>
-              <Text style={[s.notesLabel, { color: layer.ink }]}>
-                Notes de {layer.label.toLowerCase()}
-              </Text>
-              <View style={s.chipRow}>
-                {layer.notes.map((note, idx) => (
-                  <Pressable
-                    key={`${layer.key}-${idx}`}
-                    style={({ pressed }) => [
-                      s.chip,
-                      { backgroundColor: layer.color },
-                      pressed && { opacity: 0.75, transform: [{ scale: 0.96 }] },
-                    ]}
-                    onPress={() => {
-                      hapticsLight();
-                      onNotePress?.(note);
-                    }}
-                  >
-                    <Text style={s.chipText}>{translateNote(note)}</Text>
-                  </Pressable>
-                ))}
-              </View>
-            </View>
-          );
-        })()}
+      {activeNotesBlock}
     </Animated.View>
   );
 }

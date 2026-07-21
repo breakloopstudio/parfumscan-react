@@ -3,6 +3,7 @@
 import { getFirestore, collection, doc, query, where, orderBy, limit, startAfter, getDocs, getDoc, addDoc, setDoc, updateDoc, deleteDoc, writeBatch, onSnapshot } from '@react-native-firebase/firestore';
 import type { QuerySnapshot, DocumentSnapshot, DocumentData, DocumentReference, QueryDocumentSnapshot } from '@react-native-firebase/firestore';
 import type { Parfum } from '../models';
+import { normalize } from '../utils/normalize';
 
 const db = getFirestore();
 const parfumsCol = () => collection(db, 'parfums');
@@ -10,7 +11,9 @@ const parfumsCol = () => collection(db, 'parfums');
 
 // ─── Type utilitaire pour le scoring local de searchParfumsCached ───
 
-type ScoredDoc = { id: string; _score: number; searchKeywords?: string[] } & Record<string, unknown>;
+type ScoredDoc = { id: string; _score: number; _pop: number; searchKeywords?: string[] } & Record<string, unknown>;
+
+const _searchCache = new Map<string, Parfum[]>();
 
 // ——— Mapper Firestore → Parfum (Timestamp → Date) ———
 
@@ -52,6 +55,7 @@ function docToParfum(d: DocumentSnapshot<DocumentData, DocumentData>): Parfum {
     seasonRanking: data.seasonRanking as { name: string; score: number }[] | undefined,
     occasionRanking: data.occasionRanking as { name: string; score: number }[] | undefined,
     similarIds: data.similarIds as string[] | undefined,
+    similarIdsCachedAt: (data.similarIdsCachedAt as { toDate?: () => Date })?.toDate?.() ?? (data.similarIdsCachedAt as Date | undefined),
     createdAt: (data.createdAt as { toDate?: () => Date })?.toDate?.() ?? (data.createdAt as Date),
     updatedAt: (data.updatedAt as { toDate?: () => Date })?.toDate?.() ?? (data.updatedAt as Date),
   };
@@ -69,7 +73,7 @@ export async function getParfumById(id: string): Promise<Parfum | undefined> {
 }
 
 export function onParfumsByMarque(marque: string, cb: (parfums: Parfum[]) => void): () => void {
-  const q = query(parfumsCol(), where('marque', '>=', marque), where('marque', '<=', marque + '\uf8ff'));
+  const q = query(parfumsCol(), where('marque', '>=', marque), where('marque', '<=', marque + '\uf8ff'), orderBy('marque'));
   return onSnapshot(q, (snap) => {
     cb(snap.docs.map(docToParfum)
       .filter((p: Parfum) => p.marque.toLowerCase().includes(marque.toLowerCase())));
@@ -118,41 +122,135 @@ export async function searchParfumsCached(queryStr: string): Promise<Parfum[]> {
   const q = queryStr.trim().toLowerCase();
   if (q.length < 2) return [];
 
-  const tokens = q.split(/\s+/).filter(t => t.length >= 2);
-  if (tokens.length === 0) return [];
+  const cached = _searchCache.get(q);
+  if (cached !== undefined) return cached;
 
-  const searchTokens = tokens.slice(0, 10);
+  const rawTokens = q.split(/\s+/).filter(t => t.length >= 2);
+  if (rawTokens.length === 0) return [];
 
-  try {
-    const snap = await getDocs(query(parfumsCol(), where('searchKeywords', 'array-contains-any', searchTokens), limit(200)));
+  const searchTokens = rawTokens
+    .flatMap(t => normalize(t).split('_'))
+    .filter(t => t.length >= 2)
+    .slice(0, 10);
+  const multiToken = searchTokens.length >= 2;
+  const normalizedQ = normalize(q);
 
-    if (snap.empty) return [];
-
-    const docs: ScoredDoc[] = snap.docs.map((d) => ({ id: d.id, _score: 0, ...d.data() } as ScoredDoc));
-
-    const scored = docs.map((scoredDoc: ScoredDoc) => {
+  const _scoreDocs = (docs: ScoredDoc[]): Parfum[] => {
+    const scored = docs.map((scoredDoc) => {
       const kw = (scoredDoc.searchKeywords ?? []) as string[];
       let matchScore = 0;
       for (const token of searchTokens) {
-        const best = kw
-          .filter(k => k.startsWith(token))
-          .sort((a, b) => a.length - b.length)[0];
+        let best: string | undefined;
+        for (let i = 0; i < kw.length; i++) {
+          const k = kw[i];
+          if (k.startsWith(token) && (!best || k.length < best.length)) {
+            best = k;
+          }
+        }
         if (best) {
           matchScore += token.length / best.length;
         }
       }
-      const exactMatch = kw.includes(q) ? 10 : 0;
-      const reviewBonus = typeof scoredDoc.reviewCount === 'number'
-        ? Math.log(scoredDoc.reviewCount + 1) / 8
-        : 0;
-      return { ...scoredDoc, _score: matchScore + exactMatch + reviewBonus };
+      const exactMatch = multiToken && kw.includes(normalizedQ) ? 10 : 0;
+      const popBonus = scoredDoc._pop > 0 ? Math.log(scoredDoc._pop + 1) / 2 : 0;
+      return { ...scoredDoc, _score: matchScore + exactMatch + popBonus };
     });
 
-    return scored
-      .filter((scoredDoc: ScoredDoc) => scoredDoc._score > 0)
-      .sort((a: ScoredDoc, b: ScoredDoc) => b._score - a._score)
-      .slice(0, 15)
-      .map(({ _score, ...rest }: ScoredDoc) => rest as unknown as Parfum);
+    let sorted: ScoredDoc[];
+    if (!multiToken) {
+      sorted = scored
+        .filter((d) => d._score > 0)
+        .sort((a, b) => (b._pop - a._pop) || (b._score - a._score));
+    } else {
+      sorted = scored
+        .filter((d) => d._score > 0)
+        .sort((a, b) => {
+          const diff = b._score - a._score;
+          if (Math.abs(diff) < 0.001) return b._pop - a._pop;
+          return diff;
+        });
+    }
+
+    return sorted.slice(0, 50).map(({ _score, _pop, ...rest }) => rest as unknown as Parfum);
+  };
+
+  // Prefix cache: if a shorter query is in cache, re-score locally instead of hitting Firestore
+  if (rawTokens.length >= 2) {
+    for (const [key, results] of _searchCache) {
+      if (results.length > 0 && q.startsWith(key) && q !== key) {
+        const cachedDocs: ScoredDoc[] = results.map((p) => {
+          const d = p as unknown as Record<string, unknown>;
+          const rCount = (d.reviewCount as number) ?? 0;
+          const ratCount = (d.ratingCount as number) ?? 0;
+          return { id: p.id, _score: 0, _pop: Math.max(rCount, ratCount, p.popularityScore ?? 0), ...d } as ScoredDoc;
+        });
+        const reScored = _scoreDocs(cachedDocs);
+        _searchCache.set(q, reScored);
+        if (__DEV__) console.log(`[search] "${q}" — prefix cache hit (from "${key}", ${reScored.length} results)`);
+        return reScored;
+      }
+    }
+  }
+
+  const t0 = Date.now();
+
+  try {
+    let snap;
+
+    if (!multiToken) {
+      snap = await getDocs(query(parfumsCol(), where('searchKeywords', 'array-contains', searchTokens[0]), orderBy('reviewCount', 'desc'), limit(100)));
+    } else {
+      const seen = new Set<string>();
+      const allDocs: ScoredDoc[] = [];
+
+      const snaps = await Promise.all(
+        searchTokens.map(token =>
+          getDocs(query(parfumsCol(), where('searchKeywords', 'array-contains', token), orderBy('reviewCount', 'desc'), limit(300)))
+        )
+      );
+
+      for (const s of snaps) {
+        for (const d of s.docs) {
+          if (!seen.has(d.id)) {
+            seen.add(d.id);
+            const data = d.data() as Record<string, unknown>;
+            const reviewCount = (data.reviewCount as number) ?? 0;
+            const ratingCount = (data.ratingCount as number) ?? 0;
+            const popularityScore = (data.popularityScore as number) ?? 0;
+            allDocs.push({ id: d.id, _score: 0, _pop: Math.max(reviewCount, ratingCount, popularityScore), ...data } as ScoredDoc);
+          }
+        }
+      }
+
+      const results = _scoreDocs(allDocs);
+      const t2 = Date.now();
+      if (__DEV__) console.log(`[search] "${q}" — Firestore:${t2 - t0}ms (${searchTokens.length} queries, ${results.length} results)`);
+      _searchCache.set(q, results);
+      return results;
+    }
+
+    const t1 = Date.now();
+
+    if (snap.empty) {
+      _searchCache.set(q, []);
+      return [];
+    }
+
+    const docs: ScoredDoc[] = snap.docs.map((d) => {
+      const data = d.data() as Record<string, unknown>;
+      const reviewCount = (data.reviewCount as number) ?? 0;
+      const ratingCount = (data.ratingCount as number) ?? 0;
+      const popularityScore = (data.popularityScore as number) ?? 0;
+      return { id: d.id, _score: 0, _pop: Math.max(reviewCount, ratingCount, popularityScore), ...data } as ScoredDoc;
+    });
+
+    const results = _scoreDocs(docs);
+
+    const t2 = Date.now();
+    if (__DEV__) console.log(`[search] "${q}" — Firestore:${t1 - t0}ms scoring:${t2 - t1}ms total:${t2 - t0}ms (${results.length} results)`);
+
+    _searchCache.set(q, results);
+    return results;
   } catch (err: unknown) {
     console.warn('[firestore] searchParfumsCached failed:', (err as Error)?.message ?? String(err));
     return [];
@@ -164,7 +262,7 @@ export async function getPopularParfums(limitCount: number = 6): Promise<Parfum[
   try {
     const snap = await getDocs(query(parfumsCol(), orderBy('popularityScore', 'desc'), limit(limitCount)));
     if (snap.empty) return [];
-    return snap.docs.map((d) => ({ id: d.id, ...d.data() } as Parfum));
+    return snap.docs.map(docToParfum);
   } catch {
     return [];
   }
@@ -213,15 +311,13 @@ export async function getPersonalizedSuggestions(
   let candidates: Parfum[] = [];
   try {
     const familySnap = await getDocs(query(parfumsCol(), where('familleOlactive', 'in', topFamilies), limit(20)));
-    candidates = familySnap.docs.map(
-      (d) => ({ id: d.id, ...d.data() } as Parfum),
-    );
-  } catch {}
+    candidates = familySnap.docs.map(docToParfum);
+  } catch (e: unknown) { console.warn('[firestore] getSimilarParfums family query failed:', (e as Error)?.message ?? String(e)); }
 
   let popular: Parfum[] = [];
   try {
     popular = await getPopularParfums(20);
-  } catch {}
+  } catch (e: unknown) { console.warn('[firestore] getSimilarParfums popular fallback failed:', (e as Error)?.message ?? String(e)); }
 
   const unique = new Map<string, Parfum>();
   for (const p of candidates) unique.set(p.id, p);
@@ -261,16 +357,28 @@ function seededShuffle<T>(arr: T[], seed: number): T[] {
   return shuffled;
 }
 
-export async function getSimilarParfums(familleOlactive: string, excludeId: string, limitCount: number = 6): Promise<Parfum[]> {
+export async function getSimilarParfums(mainAccords: string[], excludeId: string, limitCount: number = 6): Promise<Parfum[]> {
+  if (!mainAccords || mainAccords.length === 0) return [];
+
   try {
-    const snap = await getDocs(query(parfumsCol(), where('familleOlactive', '==', familleOlactive), limit(60)));
+    const snap = await getDocs(query(parfumsCol(), where('mainAccords', 'array-contains-any', mainAccords.slice(0, 10)), orderBy('popularityScore', 'desc'), limit(200)));
+
     if (snap.empty) return [];
+
     const today = Math.floor(Date.now() / 86400000);
-    const pool = snap.docs
-      .map((d) => ({ id: d.id, ...d.data() } as Parfum))
-      .filter(p => p.id !== excludeId && p.imageUrl)
-      .sort((a, b) => (b.popularityScore ?? 0) - (a.popularityScore ?? 0))
-      .slice(0, 40);
+
+    const scored = snap.docs
+      .map(docToParfum)
+      .filter((p) => p.id !== excludeId && p.imageUrl)
+      .map((p) => {
+        const shared = (p.mainAccords ?? []).filter((a) => mainAccords.includes(a)).length;
+        return { p, _score: shared * 10 + (p.popularityScore ?? 0) / 100 };
+      });
+
+    scored.sort((a, b) => b._score - a._score);
+
+    const pool = scored.slice(0, 40).map((s) => s.p);
+
     return seededShuffle(pool, today).slice(0, limitCount);
   } catch {
     return [];

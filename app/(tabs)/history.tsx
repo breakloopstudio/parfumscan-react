@@ -255,7 +255,7 @@ export default function HistoryPage({ onScroll }: Props) {
     try {
       const p = await getParfumById(parfumId);
       if (p) setPendingParfum(p);
-    } catch {}
+    } catch (e: unknown) { console.warn('[history] getParfumById failed:', (e as Error)?.message ?? String(e)); }
     router.push(`/catalog/${parfumId}`);
   }, [router]);
 
@@ -278,7 +278,7 @@ export default function HistoryPage({ onScroll }: Props) {
         icon: 'add-circle-outline',
         label: 'Ajouter à ma parfumerie',
         onPress: () => {
-          addToWardrobe(uid!, selectedScan.parfumId!, 'have', selectedScan.nom ?? undefined, selectedScan.marque ?? undefined, selectedScan.imageUrl ?? undefined, selectedScan.familleOlactive ?? undefined);
+          addToWardrobe(uid!, selectedScan.parfumId!, 'have', selectedScan.nom ?? undefined, selectedScan.marque ?? undefined, selectedScan.imageUrl ?? undefined, selectedScan.familleOlactive ?? undefined).catch(() => {});
           setSelectedScan(null);
         },
       });
@@ -292,7 +292,7 @@ export default function HistoryPage({ onScroll }: Props) {
         setSelectedScan(null);
         Alert.alert('Supprimer', "Supprimer ce scan de l'historique ?", [
           { text: 'Annuler', style: 'cancel' },
-          { text: 'Supprimer', style: 'destructive', onPress: () => removeScan(selectedScan.id) },
+          { text: 'Supprimer', style: 'destructive', onPress: () => removeScan(selectedScan.id).catch(() => {}) },
         ]);
       },
     });
@@ -477,7 +477,7 @@ export default function HistoryPage({ onScroll }: Props) {
           })
         )}
 
-        <View style={{ height: 40 }} />
+        <View style={s.bottomSpacer} />
       </ScrollView>
 
       <ActionSheet
@@ -651,5 +651,6 @@ function getStyles(t: Theme) {
     segmentBtnTextActive: { fontFamily: 'Inter_600SemiBold', color: t.colors.text },
     sectionHeader: { paddingHorizontal: 20, paddingTop: 16, paddingBottom: 6 },
     sectionTitle: { fontFamily: 'PlayfairDisplay_600SemiBold', fontSize: 17, color: t.colors.text },
+    bottomSpacer: { height: 40 },
   } as const;
 }

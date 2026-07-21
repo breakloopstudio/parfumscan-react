@@ -69,7 +69,7 @@ export function useAuth() {
 
   const logout = useCallback(async () => {
     await signOut(getAuth()).catch(() => {});
-    try { await GoogleSignin.signOut(); } catch {}
+    try { await GoogleSignin.signOut(); } catch (e: unknown) { console.warn('[auth] GoogleSignin.signOut failed:', (e as Error)?.message ?? String(e)); }
   }, []);
 
   return {

@@ -8,6 +8,7 @@ export function useCatalog() {
   const [parfums, setParfums] = useState<Parfum[]>([]);
   const [searching, setSearching] = useState(false);
   const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const requestIdRef = useRef(0);
   const mountedRef = useRef(true);
 
   useEffect(() => {
@@ -17,19 +18,27 @@ export function useCatalog() {
   const search = useCallback((query: string) => {
     if (timerRef.current) clearTimeout(timerRef.current);
     const q = query.trim();
-    if (q.length < 3) { setParfums([]); return; }
+    if (q.length < 3) { setParfums([]); setSearching(false); return; }
     setSearching(true);
+    const id = ++requestIdRef.current;
     timerRef.current = setTimeout(async () => {
-      const results = await searchParfumsCached(q);
-      if (mountedRef.current) {
-        setParfums(results);
-        setSearching(false);
+      try {
+        const results = await searchParfumsCached(q);
+        if (mountedRef.current && requestIdRef.current === id) {
+          setParfums(results);
+          setSearching(false);
+        }
+      } catch {
+        if (mountedRef.current && requestIdRef.current === id) {
+          setSearching(false);
+        }
       }
-    }, 800);
+    }, 150);
   }, []);
 
   const clear = useCallback(() => {
     if (timerRef.current) clearTimeout(timerRef.current);
+    requestIdRef.current++;
     setParfums([]);
     setSearching(false);
   }, []);

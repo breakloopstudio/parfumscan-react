@@ -1,8 +1,8 @@
 # Guide de design — ParfumScan
 
 **Direction** : « Luxe malin »  
-**Version** : 1.0 — Juillet 2026  
-**Cible** : iOS + Android (React Native)
+**Version** : 1.1 — Juillet 2026  
+**Cible** : iOS + Android (React Native 0.86 / Expo SDK 57)
 
 ---
 
@@ -12,11 +12,13 @@
 
 2. **Contraste par la couleur, pas par la taille** — Trois couleurs sémantiques (teal, doré, violet) portent le sens. La hiérarchie visuelle vient du jeu entre fonds atténués (soft) et accents saturés — jamais de tailles de police extrêmes.
 
-3. **Mobile-first, pouce-first** — Toute l'interface est conçue pour une main, un pouce. Les actions critiques sont dans la moitié inférieure de l'écran. Les cibles tactiles font 44 px minimum.
+3. **Mobile-first, pouce-first** — Toute l'interface est conçue pour une main, un pouce. Les actions critiques sont dans la moitié inférieure de l'écran. Les cibles tactiles font 44 px minimum, vérifiées avec `hitSlop` explicite si nécessaire.
 
 4. **Réduction délibérée** — Une seule police display (Playfair), une seule police body (Inter). Un seul accent visible par écran (primaire OU secondaire, pas les deux). Les ombres sont légères, les bordures fines.
 
 5. **Fluidité discrète** — Les animations sont fonctionnelles : feedback d'appui, transition d'état, célébration d'un résultat. Spring pour les gestes, timing pour les entrées. Rien ne distrait.
+
+6. **Accessible par défaut** — L'app fonctionne avec le texte agrandi (`maxFontSizeMultiplier`), les cibles tactiles ≥ 44 px, les contrastes WCAG AA. Voir §6.6.
 
 ---
 
@@ -32,7 +34,7 @@
 | `border` | Bordures : séparateurs de liste, divider, contour de carte si pas d'ombre. `StyleSheet.hairlineWidth` par défaut. |
 | `text` | Texte principal : titre, corps, label actif. |
 | `textMuted` | Texte secondaire : sous-titre, métadonnée, placeholder, caption. |
-| `textInverse` | Texte sur fond sombre (rare — utilisé dans les badges, chips, boutons). Préférer `#FFFFFF` en dur dans ces cas. |
+| `textInverse` | Texte sur fond sombre. Utiliser `#FFFFFF` en dur — cette valeur est invariante entre light/dark mode et ne dépend pas du thème. |
 | `primary` | Bouton principal, icône active, texte d'action, indicateur sélectionné. |
 | `primarySoft` | Fond d'icône, fond de chip actif (famille olfactive), fond d'état vide, hover/pressé sur ghost. |
 | `primaryInk` | Texte sur fond `primarySoft` (chips, pastilles, labels). Plus foncé que `primary` en light, plus clair en dark. |
@@ -44,7 +46,7 @@
 | `overpricedSoft` | Fond de zone prix surévalué. |
 | `fair` | Prix correct (ratio 0.8–1.05). |
 | `fairSoft` | Fond de zone prix correct. |
-| `favorite` | Icône cœur actif (favori). **Identique à `overpriced`** en valeur (même rouge), sémantique différente. |
+| `favorite` | Icône cœur actif (favori). Identique à `overpriced` en valeur (même rouge), sémantique différente. |
 | `favoriteSoft` | Fond cœur (alerte favori). |
 | `pyramidTop` | Note de tête — cercle pyramide, pastille de note, texte de chip. |
 | `pyramidTopSoft` | Fond de la zone notes de tête. |
@@ -74,7 +76,19 @@ couleurInk  → texte sur fond soft (lisible, plus foncé en light, plus clair e
 </View>
 ```
 
-### 2.3 Pièges à éviter
+### 2.3 Couleurs invariantes
+
+Certaines couleurs ne changent jamais entre light et dark mode. Elles peuvent être utilisées en dur :
+
+| Valeur | Contexte | Justification |
+|---|---|---|
+| `#FFFFFF` | Texte sur bouton coloré, icône FAB, texte sur chip note | Blanc pur — même rendu dans les deux thèmes |
+| `#1F1A2E` | Texte sur badge doré (`secondary`/`reward`) | Contraste optimal sur doré, inchangé entre thèmes |
+| `rgba(0,0,0,0.4)` | Overlay de fond (ActionSheet, modale) | Overlay semi-transparent indépendant du thème |
+
+Toute autre couleur hardcodée est une violation. Utiliser `t.colors.*`.
+
+### 2.4 Pièges à éviter
 
 - ❌ `primary` ET `secondary` sur le même écran (hors pyramide)
 - ❌ Texte body en `primary` — réservé aux actions
@@ -87,35 +101,37 @@ couleurInk  → texte sur fond soft (lisible, plus foncé en light, plus clair e
 
 ## 3. Règles typographiques
 
-### 3.1 Mapping police × usage
+### 3.1 Police — règle `fontFamily` obligatoire
 
-| Rôle | Police | Poids | Taille | Exemple |
-|---|---|---|---|---|
-| Titre de page (h1) | `PlayfairDisplay_700Bold` | 700 | 28–34 | "Cadre le flacon" |
-| Titre de section (h2) | `PlayfairDisplay_600SemiBold` | 600 | 18–20 | "Ta collection", "Pyramide olfactive" |
-| Titre de carte (h3) | `PlayfairDisplay_600SemiBold` | 600 | 18 | Nom du parfum |
-| Marque (overline) | `Inter_400Regular` | 400 | 10–12 | Texte uppercase + `letterSpacing: 1–1.5` |
-| Corps (body) | `Inter_400Regular` | 400 | 14–15 | Texte courant, descriptions |
-| Corps emphatique | `Inter_500Medium` | 500 | 14 | Sous-titres, labels de champ |
-| UI label | `Inter_600SemiBold` | 600 | 14–16 | Labels de bouton, onglets, titres de liste |
-| Prix (grand) | `Inter_700Bold` | 700 | 32–42 | Prix affiché en gros |
-| Prix (normal) | `Inter_800ExtraBold` | 800 | 18 | Prix dans carte (zone deal) |
-| Badge / chip | `Inter_500Medium` | 500 | 11–13 | Famille olfactive, année, notes |
-| Caption | `Inter_400Regular` | 400 | 11–13 | Texte d'aide, info secondaire |
-| Placeholder | `Inter_400Regular` | 400 | 12 | "Rechercher un parfum..." |
-| Compteur | `Inter_700Bold` | 700 | 11 | Nombre de notes dans pyramide |
+Inter et Playfair Display sont chargées via `expo-font` en **fichiers séparés par poids** (`Inter_400Regular.ttf`, `Inter_600SemiBold.ttf`, etc.). React Native ne résout **pas** `fontWeight: '600'` vers le bon fichier de police custom — il applique un faux gras algorithmique sur le fichier Regular, produisant un rendu incorrect.
 
-### 3.2 Règle iOS stricte
-
-**Jamais `fontWeight`.** Toujours `fontFamily`. C'est vérifié par lint — tout le codebase suit cette règle.
+**Règle : toujours `fontFamily`. Jamais `fontWeight`.**
 
 ```tsx
 // ✅ Correct
 fontFamily: 'Inter_600SemiBold'
 
-// ❌ Interdit
+// ❌ Interdit — rendu incorrect sur police custom
 fontWeight: '600'
 ```
+
+### 3.2 Mapping police × usage
+
+| Rôle | Police | Taille | Exemple |
+|---|---|---|---|
+| Titre de page (h1) | `PlayfairDisplay_700Bold` | 28–34 | "Cadre le flacon" |
+| Titre de section (h2) | `PlayfairDisplay_600SemiBold` | 18–20 | "Ta collection", "Pyramide olfactive" |
+| Titre de carte (h3) | `PlayfairDisplay_600SemiBold` | 18 | Nom du parfum |
+| Marque (overline) | `Inter_400Regular` | 10–12 | Texte uppercase + `letterSpacing: 1–1.5` |
+| Corps (body) | `Inter_400Regular` | 14–15 | Texte courant, descriptions |
+| Corps emphatique | `Inter_500Medium` | 14 | Sous-titres, labels de champ |
+| UI label | `Inter_600SemiBold` | 14–16 | Labels de bouton, onglets, titres de liste |
+| Prix (grand) | `Inter_700Bold` | 32–42 | Prix affiché en gros |
+| Prix (normal) | `Inter_800ExtraBold` | 18 | Prix dans carte (zone deal) |
+| Badge / chip | `Inter_500Medium` | 11–13 | Famille olfactive, année, notes |
+| Caption | `Inter_400Regular` | 11–13 | Texte d'aide, info secondaire |
+| Placeholder | `Inter_400Regular` | 12 | "Rechercher un parfum..." |
+| Compteur | `Inter_700Bold` | 11 | Nombre de notes dans pyramide |
 
 ### 3.3 Hiérarchie par page
 
@@ -135,8 +151,6 @@ fontWeight: '600'
 ## 4. Patterns UI récurrents
 
 ### 4.1 Carte parfum (`ParfumCard`)
-
-Deux variantes, un seul composant.
 
 #### Compact (grille, carrousel, similaires)
 
@@ -158,9 +172,9 @@ Deux variantes, un seul composant.
 - Badge promo : `reward` (doré), texte `Inter_800ExtraBold` 10px
 - Titre 14px sur 2 lignes max avec `ellipsizeMode: 'tail'`
 - Pas de zone prix en compact
-- Image : `contentFit="contain"` (flacon entier, pas de crop), fond `surface`
+- Image : `contentFit="contain"` (flacon entier, pas de crop), fond `surface` + `placeholder` pour le chargement
 
-#### Normal (liste, résultats de scan)
+#### Comfortable (liste, résultats de scan)
 
 ```
 ┌──────────────────────────┐
@@ -209,13 +223,10 @@ Quand l'image est absente ou échoue : fond de couleur déterministe basée sur 
 
 ### 4.3 Chip / Filtre
 
-Deux variantes dans l'app :
-
 #### Chip famille olfactive (tags)
 ```tsx
-// Fond violetSoft, texte violetInk, bordure sans
-backgroundColor: t.colors.violetSoft
-color: t.colors.violetInk
+backgroundColor: t.colors.primarySoft
+color: t.colors.primaryInk
 fontFamily: 'Inter_500Medium'
 fontSize: 11, paddingHorizontal: 10, paddingVertical: 4
 borderRadius: 20
@@ -226,10 +237,12 @@ borderRadius: 20
 // État inactif : fond surface2, bordure transparente
 // État actif : fond layerSoft, bordure layer.color
 flexDirection: 'row', alignItems: 'center', gap: 6
-paddingHorizontal: 14, paddingVertical: 8
+paddingHorizontal: 14, paddingVertical: 10   // 44px hauteur totale
 borderRadius: 20, borderWidth: 1
 // Dot 8×8 + label Inter 500 13px + compteur
 ```
+
+> La hauteur totale doit atteindre **44 px** (10+10+8+8+8 = 44 avec dot 8px et paddingVertical 10). Si le paddingVertical est plus petit, ajouter `hitSlop={{ top: 5, bottom: 5 }}` sur le `Pressable` parent.
 
 #### Chip note (pyramide)
 ```tsx
@@ -247,7 +260,7 @@ borderRadius: 14
 // Badge promo (-X%) — toujours positionné top-right de l'image
 position: 'absolute', top: 12, right: 12
 backgroundColor: t.colors.reward  // doré
-color: '#1F1A2E'                  // texte foncé sur doré
+color: '#1F1A2E'                  // texte foncé sur doré — invariant
 fontFamily: 'Inter_800ExtraBold', fontSize: 13
 paddingHorizontal: 10, paddingVertical: 5, borderRadius: 20
 ```
@@ -255,7 +268,7 @@ paddingHorizontal: 10, paddingVertical: 5, borderRadius: 20
 ```tsx
 // Badge discount dans PriceDisplay — à côté du prix
 backgroundColor: color             // deal/fair/overpriced
-color: '#FFFFFF'
+color: '#FFFFFF'                   // blanc invariant
 fontFamily: 'Inter_700Bold', fontSize: 13
 paddingHorizontal: 8, paddingVertical: 3, borderRadius: 10
 ```
@@ -294,6 +307,22 @@ Pas de skeleton screen. L'app utilise des animations contextuelles :
 - **Scan loading** : particules flottantes + halo rotatif + texte cyclique
 - **Chargement page** : spinner natif (`ActivityIndicator`) dans les boutons, pas de placeholder de contenu
 
+### 4.8 Champ texte (`TextInput`)
+
+```tsx
+// Style de base pour tous les champs de saisie
+backgroundColor: t.colors.surface
+borderWidth: 1
+borderColor: t.colors.border
+borderRadius: t.radius.base     // 12
+height: 44
+paddingHorizontal: 14
+fontFamily: 'Inter_400Regular'
+fontSize: 15
+color: t.colors.text
+placeholderTextColor: t.colors.textMuted
+```
+
 ---
 
 ## 5. Règles de spacing et layout
@@ -305,11 +334,12 @@ xs   = 4   → micro-gap (icône↔texte, dot↔label)
 sm   = 8   → gap entre éléments liés (tags, boutons jumeaux)
 base = 12  → padding intérieur carte, gap entre chips
 md   = 16  → marge horizontale standard, padding card header
-lg   = 20  → espacement entre sections
-xl   = 24  → padding CTA, espace après titre
+xl   = 24  → padding CTA, espace après titre, espacement entre sections majeures
 2xl  = 32  → espace après un bloc majeur
 3xl  = 48  → rare — espacement global
 ```
+
+> Supprimé de la grille : `lg` (20) et l'ancien `xl` → `24` est le nouveau `xl`. Cohérent avec l'échelle Tailwind 4-8-12-16-24-32-48.
 
 ### 5.2 Marges entre sections
 
@@ -336,8 +366,8 @@ xl   = 24  → padding CTA, espace après titre
 
 | Type | Padding |
 |---|---|
-| Carte normale (ParfumCard) | header 16px, body 16px horizontal / 8px vertical |
-| Carte compacte (ParfumCard) | header 10px, body 10px horizontal / 4px vertical |
+| Carte normale (ParfumCard comfortable) | header 16px, body 16px horizontal / 8px vertical |
+| Carte compacte (ParfumCard compact) | header 10px, body 10px horizontal / 4px vertical |
 | PriceDisplay | 16px tout autour |
 | Zone deal (ParfumCard footer) | 12px tout autour |
 | OlfactoryPyramid container | 16px horizontal / 14px vertical |
@@ -349,10 +379,10 @@ xl   = 24  → padding CTA, espace après titre
 sm   = 8   → coins viseur scan, badge discount
 base = 12  → boutons, inputs
 card  = 16 → cartes parfum, PriceDisplay, pyramide NotesWrap
-lg    = 20 → non utilisé actuellement
-xl    = 24 → non utilisé actuellement
 full  = 9999 → cercles (icône, halo, scan FAB)
 ```
+
+> `lg` (20) et `xl` (24) retirés — non utilisés.
 
 ### 5.5 Bordures
 
@@ -375,15 +405,24 @@ Les actions principales sont placées dans la **moitié inférieure** de l'écra
 
 ### 6.2 Taille minimale des cibles tactiles
 
-**44 px minimum** (recommandation Apple HIG et Material Design).
+**44 px minimum** (recommandation Apple HIG et Material Design).  
+Si un élément est plus petit, utiliser `hitSlop` **explicite** pour agrandir sa zone tactile :
+
+```tsx
+// ✅ Correct — le chip fait 34px, hitSlop compense
+<Pressable hitSlop={{ top: 5, bottom: 5, left: 4, right: 4 }}>
+
+// ❌ Incorrect — zone tactile insuffisante sans hitSlop
+<Pressable style={{ height: 34 }}>
+```
 
 Vérifications dans le code :
 - `Button` : hauteur 50 px ✓
 - `Pressable` dans `ScanIdle` : hauteur CTA 54px, outline 48px ✓
-- Chip sélecteur pyramide : hauteur ~34px — compensé par `paddingHorizontal: 14` (= largeur adaptée), et `hitSlop` implicite via le flex gap
-- `SectionHeader` action : `hitSlop: 12` explicite
-- `ParfumCard` lien "Voir l'offre" : `hitSlop: 8`
-- Pastille compteur pyramide : `paddingHorizontal: 6, paddingVertical: 2` — étroit, mais l'ensemble du bouton (label + dot + compteur) est la cible
+- Chip sélecteur pyramide : ~34px → `hitSlop={{ top: 5, bottom: 5 }}` pour atteindre 44px
+- `SectionHeader` action : `hitSlop: 12` explicite ✓
+- `ParfumCard` lien "Voir l'offre" : `hitSlop: 8` ✓
+- Pastille compteur pyramide : cible = label + dot + compteur (bouton complet) ✓
 
 ### 6.3 Edge-to-edge et safe areas
 
@@ -392,17 +431,16 @@ L'app utilise `react-native-safe-area-context` :
 ```tsx
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 const insets = useSafeAreaInsets();
-// paddingTop: insets.top (ou insets.top + 16 pour respirer)
-// paddingBottom: insets.bottom
 ```
 
-**Règle** : chaque écran full-screen gère ses propres safe areas. Ne pas wrapper toute l'app dans un SafeAreaView global — les écrans de scan ont des besoins différents de la fiche détail.
+**Règle** : chaque écran full-screen gère ses propres safe areas. Ne pas wrapper toute l'app dans un SafeAreaView global.
 
 Cas spécifiques :
 - **Scan idle** : `paddingTop: insets.top + 16`, tip à `bottom: 24 + insets.bottom`
 - **Scan camera** : plein écran, pas de padding
 - **Fiche détail** : `SafeAreaView` avec `edges={['top']}`, scroll gère le bas
 - **Auth / Onboarding** : `SafeAreaView` complet
+- **Écrans à scroll** : `SafeAreaView` avec `edges={['bottom']}` uniquement (le header est dans le scroll)
 
 ### 6.4 Barre de navigation Android
 
@@ -420,6 +458,31 @@ Gérée dynamiquement par `ThemeContext` :
 ```
 Pas de `StatusBar` dans les écrans individuels.
 
+### 6.6 Accessibilité — Texte agrandi
+
+Les utilisateurs peuvent activer « Texte plus grand » dans les réglages du téléphone. React Native applique par défaut un facteur d'échelle à tous les `fontSize`, ce qui peut casser les layouts.
+
+**Règles :**
+
+1. **Textes longs** (descriptions, paragraphes) : `maxFontSizeMultiplier={1.3}` — permet un agrandissement modéré sans débordement.
+2. **Éléments critiques** (badges, chips, compteurs, prix) : `allowFontScaling={false}` — taille fixe car le design est calibré.
+3. **Test obligatoire** : activer « Texte plus grand → Maximum » dans les réglages et vérifier que l'UI ne casse pas.
+
+```tsx
+// ✅ Correct — le badge prix ne se déforme pas
+<Text allowFontScaling={false} style={s.priceText}>89.99 €</Text>
+
+// ✅ Correct — la description s'adapte raisonnablement
+<Text maxFontSizeMultiplier={1.3} style={s.description}>
+  {longDescription}
+</Text>
+```
+
+**Contrastes minimum** (WCAG AA) :
+- Texte normal : ratio ≥ 4.5:1
+- Texte large (≥18px bold ou ≥24px) : ratio ≥ 3:1
+- Vérifiés : `text`/`background` ~15:1 ✓, `textMuted`/`surface` ~4.8:1 ✓
+
 ---
 
 ## 7. Guidelines animation/transition
@@ -433,16 +496,16 @@ Pas de `StatusBar` dans les écrans individuels.
 | Entrée séquentielle (pyramide) | `withDelay` + `withTiming` | `delay: i * 150ms`, `duration: 200ms` |
 | Respiration (halo scan) | `withRepeat` + `withTiming` | `duration: 2000ms`, `Easing.inOut(Easing.ease)` |
 | Changement de thème | `LayoutAnimation.configureNext` | `LayoutAnimation.Presets.easeInEaseOut` |
-| Swipe onboarding | `PanGesture` → `withSpring` | Snapping naturel, pas de config manuelle |
+| Swipe onboarding | `PanGesture` → `withSpring` | Snapping naturel |
 | Gesture sheet (catalogue) | `Gesture.Pan()` → `withSpring` | `damping: 20, stiffness: 200` |
 | Slide down (OfflineBanner) | `withSpring` | Entrée/sortie fluide |
 
 ### 7.2 Durées recommandées
 
 ```
-Feedback immédiat (pressé)      → 0ms (natif Pressable)
+Feedback immédiat (pressé)       → 0ms (natif Pressable)
 Transition d'état (loading→résultat) → 200–300ms
-Entrée de page (apparition)     → 300–400ms
+Entrée de page (apparition)      → 300–400ms
 Animation d'attention (halo)     → 2000ms (boucle)
 Animation séquentielle           → 150ms par élément
 Transition thème                 → 300ms (LayoutAnimation)
@@ -457,9 +520,13 @@ Transition thème                 → 300ms (LayoutAnimation)
   // Dans le worklet :
   runOnJS(onCapture)();
   ```
-- **`useDerivedValue`** quand une valeur du thread UI dépend du thème :
+- **`useDerivedValue`** crée une valeur dérivée réactive. Le second argument (tableau de dépendances) est optionnel — il n'est utile que sur le Web sans le plugin Babel Reanimated. En pratique dans ce projet, on l'omet :
   ```tsx
-  const barBg = useDerivedValue(() => theme.colors.surface, [theme]);
+  // ✅ Correct — auto-tracke les SharedValues
+  const barBg = useDerivedValue(() => theme.colors.surface);
+
+  // Alternative avec deps explicites (Web sans Babel uniquement)
+  const dv = useDerivedValue(() => sv.value + 1, [sv]);
   ```
 - **Ne pas mélanger `withSpring` et `withTiming` dans une même séquence** sans raison. Spring = interactif/gestuel, timing = prédéfini.
 - **Fade avant scale** : toujours `opacity` en même temps que `scale` pour éviter un "pop" brutal.
@@ -503,7 +570,7 @@ Tous les tokens changent — voir `theme.ts` pour le mapping complet. Résumé d
 | `text` | `#1A1520` | `#EDE8F5` | Blanc cassé chaud |
 | `textMuted` | `#8B8580` | `#988EA8` | Gris à sous-ton violet |
 
-**Règle** : les couleurs soft/ink suivent leur couleur parente. Les couleurs sémantiques (deal, overpriced, fair, favorite) s'éclaircissent en dark mode pour garder le contraste sur fond sombre.
+**Règle** : les couleurs soft/ink suivent leur couleur parente. Les couleurs sémantiques s'éclaircissent en dark mode.
 
 ### 8.2 Ombres → Bordures
 
@@ -516,7 +583,7 @@ En dark mode, les ombres noires sont invisibles. Tous les `shadow` tokens sont r
 | `shadow.button` | ombre violette `shadowOpacity: 0.3` | `borderWidth: 1`, `borderColor: rgba(139,108,246,0.25)` |
 | `shadow.scanCircle` | ombre violette `shadowOpacity: 0.4` | `borderWidth: 1.5`, `borderColor: rgba(139,108,246,0.30)` |
 
-**En pratique** : le code n'a rien à changer. Le spread `...t.shadow.card` continue de fonctionner — c'est le thème qui expose les bonnes valeurs selon le mode.
+**En pratique** : le spread `...t.shadow.card` fonctionne dans les deux thèmes sans changement de code.
 
 ### 8.3 Contraste
 
@@ -528,22 +595,15 @@ En dark mode, les ombres noires sont invisibles. Tous les `shadow` tokens sont r
 ### 8.4 Éviter le noir pur
 
 - Le fond n'est **jamais** `#000000`. Le `#0B0712` a un sous-ton violet qui adoucit le dark mode.
-- Les surfaces (`#15101E`, `#1D1728`) restent dans des écarts de luminance faibles (~3–5%) — suffisants pour distinguer les cartes, sans casser l'immersion nocturne.
-- Les textes ne sont jamais blanc pur (`#FFFFFF`) — le `#EDE8F5` est un blanc cassé chaud qui réduit la fatigue oculaire.
+- Les surfaces (`#15101E`, `#1D1728`) restent dans des écarts de luminance faibles (~3–5%).
+- Les textes ne sont jamais blanc pur (`#FFFFFF`) — le `#EDE8F5` est un blanc cassé chaud.
 
 ### 8.5 Comportement dynamique
 
-- **Mode système** : `useColorScheme()` natif. Si l'utilisateur change le thème du téléphone, l'app suit immédiatement.
-- **Persistance** : le choix `system | light | dark` est stocké dans AsyncStorage (`@parfumscan/theme`).
+- **Mode système** : `useColorScheme()` natif, changement immédiat.
+- **Persistance** : choix `system | light | dark` dans AsyncStorage (`@parfumscan/theme`).
 - **Pas de flash** : le `ThemeProvider` bloque le rendu (`{ready ? children : null}`) tant que la préférence n'est pas chargée.
 - **StatusBar** : suit automatiquement le mode résolu.
-
-### 8.6 Ce qui NE change PAS
-
-- Les `fonts`, `radius`, `spacing` — identiques dans les deux thèmes
-- Les `fontFamily` — le mapping de police ne dépend pas du mode
-- La structure des composants — un seul `getStyles(t: Theme)` par composant
-- Les icônes Ionicons — leur couleur est déjà dynamique via `theme.colors.xxx`
 
 ---
 
@@ -555,7 +615,7 @@ En dark mode, les ombres noires sont invisibles. Tous les `shadow` tokens sont r
 src/theme/
 ├── theme.ts             ← lightTheme + darkTheme (tokens complets)
 ├── ThemeContext.tsx      ← ThemeProvider + useTheme()
-└── (pas de theme-utils.ts séparé — tout dans ThemeContext)
+└── (pas de theme-utils.ts séparé)
 
 src/services/
 └── theme-storage.ts     ← AsyncStorage, clé @parfumscan/theme
@@ -563,7 +623,7 @@ src/services/
 
 ### A.2 Pattern getStyles
 
-Chaque composant migré vers le dark mode suit ce pattern :
+Chaque composant suit ce pattern :
 
 ```tsx
 import { useTheme, type Theme } from '../theme/ThemeContext';
@@ -582,10 +642,13 @@ function getStyles(t: Theme) {
 }
 ```
 
-- `getStyles` est une **fonction pure** hors du composant
-- Les styles sont memoïsés avec `useMemo`
-- `StyleSheet.create` n'est pas utilisé dans les composants migrés (inefficace dans un `useMemo`)
-- Les anciens composants non migrés utilisent `import { theme }` de `theme.ts` — c'est `lightTheme` en dur, rétrocompatible
+**Règles :**
+
+- `getStyles` est une **fonction pure** hors du composant — testable, sans dépendance React.
+- Les styles sont memoïsés avec `useMemo(() => getStyles(theme), [theme])`.
+- `StyleSheet.create` n'est **pas** utilisé pour les styles thématiques car ils dépendent du thème (dynamique). Le `useMemo` suffit à éviter la recréation d'objets. Pour les styles **statiques** (layout pur, sans couleurs), `StyleSheet.create` reste le pattern recommandé — il fournit du typage statique et un ID natif optimisé (cf. [docs RN](https://reactnative.dev/docs/stylesheet)).
+- L'exception : `ErrorBoundary` (composant classe) utilise `getStyles(lightTheme)` directement — seul cas où `useTheme()` est impossible.
+- **Jamais** importer `theme` depuis `theme.ts` dans un composant fonctionnel — toujours `useTheme()`.
 
 ### A.3 ThemeProvider vs AuthProvider
 
@@ -597,21 +660,24 @@ function getStyles(t: Theme) {
 
 ### Nouveau composant
 - [ ] Utilise `useTheme()` (pas `import { theme }`)
-- [ ] Styles dans `getStyles(t: Theme)` → `useMemo`
+- [ ] Styles dans `getStyles(t: Theme)` → `useMemo(() => getStyles(theme), [theme])`
 - [ ] Aucun `fontWeight` → tout en `fontFamily`
-- [ ] Couleurs via tokens (`t.colors.xxx`), jamais en dur
+- [ ] Couleurs via tokens (`t.colors.xxx`), jamais en dur (sauf §2.3)
 - [ ] Ombres via `t.shadow.xxx`, jamais en dur
-- [ ] Tailles de police via `t.fonts.size.xxx`
 - [ ] Radius via `t.radius.xxx`
-- [ ] Cibles tactiles ≥ 44 px
+- [ ] Cibles tactiles ≥ 44 px (ou `hitSlop` explicite)
 - [ ] Safe areas gérées si plein écran
 - [ ] Un seul accent par écran (primary OU secondary, pas les deux)
+- [ ] Textes longs : `maxFontSizeMultiplier={1.3}`, badges/chips : `allowFontScaling={false}`
+- [ ] Handlers passés aux enfants wrappés dans `useCallback`
+- [ ] Appels async protégés par `try/catch` ou `.catch(() => {})`
 
 ### Révision design
 - [ ] Pas de violet ET doré comme couleurs d'action sur le même écran
 - [ ] Pas de `textMuted` sur fond `primarySoft`
 - [ ] Pas de fond `background` sur une carte
-- [ ] Hiérarchie typographique cohérente (taille affichée dans l'ordre logique)
+- [ ] Hiérarchie typographique cohérente
 - [ ] Les overlays sur image sont dans un coin, pas flottants
 - [ ] Dark mode : les ombres sont-elles visibles ? (sinon → bordures)
-- [ ] Dark mode : les contrastes texte/fond sont-ils suffisants ?
+- [ ] Dark mode : contrastes texte/fond ≥ 4.5:1
+- [ ] Testé avec texte agrandi (réglages → accessibilité → texte plus grand)

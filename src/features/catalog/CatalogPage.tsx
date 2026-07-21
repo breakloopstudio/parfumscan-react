@@ -84,7 +84,7 @@ export default function CatalogPage({ onScroll, onHorizontalScrollActive }: Prop
             setSuggestionLoading(false);
             return;
           }
-        } catch {}
+        } catch (e: unknown) { console.warn('[catalog] getPersonalizedSuggestions failed:', (e as Error)?.message ?? String(e)); }
       }
       try {
         const popular = await getPopularParfums(30);
@@ -114,7 +114,7 @@ export default function CatalogPage({ onScroll, onHorizontalScrollActive }: Prop
           .filter(({ ratio }) => ratio <= 0.85)
           .sort((a, b) => a.ratio - b.ratio);
         setBestDeals(seededShuffle(scored.map(x => x.p), today).slice(0, 8));
-      } catch {}
+      } catch (e: unknown) { console.warn('[catalog] getPopularParfums (deals) failed:', (e as Error)?.message ?? String(e)); }
       if (!cancelled) setDealsLoading(false);
     }
     load();
@@ -145,7 +145,7 @@ export default function CatalogPage({ onScroll, onHorizontalScrollActive }: Prop
       try {
         const popular = await getPopularParfums(40);
         if (!cancelled) setGridParfums(seededShuffle(popular, today));
-      } catch {}
+      } catch (e: unknown) { console.warn('[catalog] getPopularParfums (grid) failed:', (e as Error)?.message ?? String(e)); }
       if (!cancelled) setGridLoading(false);
     }
     load();
@@ -175,7 +175,7 @@ export default function CatalogPage({ onScroll, onHorizontalScrollActive }: Prop
   ), [gridDensity, s]);
 
   const gridNumCols = gridDensity === 'list' ? 1 : 2;
-  const gridKey = `${gridNumCols}col-${resolvedMode}`;
+  const gridKey = `${gridNumCols}col`;
 
   const listHeader = useMemo(() => (
     <View>
@@ -262,6 +262,7 @@ export default function CatalogPage({ onScroll, onHorizontalScrollActive }: Prop
     s, suggestionParfums, suggestionLabel, suggestionLoading,
     bestDeals, dealsLoading, iconicParfums, gridDensity,
     handleViewAllBrands, handleBrandTap, handleFamilyTap, scrollToGrid,
+    onHorizontalScrollActive,
   ]);
 
   return (

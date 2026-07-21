@@ -8,6 +8,7 @@
 [![React Native 0.86](https://img.shields.io/badge/React%20Native-0.86-61DAFB?logo=react)](https://reactnative.dev)
 [![TypeScript](https://img.shields.io/badge/TypeScript-6.0-3178C6?logo=typescript)](https://www.typescriptlang.org)
 [![Firebase](https://img.shields.io/badge/Firebase-BaaS-FFCA28?logo=firebase)](https://firebase.google.com)
+[![Tests 166](https://img.shields.io/badge/Tests-166%20passed-brightgreen)](https://github.com/breakloopstudio/parfumscan-react)
 [![License MIT](https://img.shields.io/badge/License-MIT-green)](./LICENSE)
 
 </div>
@@ -21,7 +22,7 @@
 | 🎨 **UI/UX « Luxe malin »** | Design system violet profond + doré/ambré + teal, 0 fontWeight, Inter + Playfair Display |
 | 📸 **Scan intelligent** | Burst 3 photos → GPT-4o Vision (adaptatif : 70% en 1 appel, 30% en cross-ref 2 photos) → searchParfumsCached() |
 | 🖼️ **Import galerie** | Photo existante → même pipeline IA, sans permissions supplémentaires |
-| 📚 **Catalogue** | Catalogue 21K parfums (seed Firestore), navigation par familles (rangées éditoriales), capsules marques (top 10), grille 3 densités + persistance, recherche 100% Firestore |
+| 📚 **Catalogue** | Catalogue ~25K parfums (seed Firestore), navigation par familles (rangées éditoriales), capsules marques (top 10), grille 3 densités + persistance, recherche 100% Firestore avec cache + prefix cache |
 | 🧪 **Parfumerie** | Parfums possédés/souhaités/échantillons/décants, étagères custom, parfum signature (max 3), SOTD compact |
 | 🧪 **Décants & échantillons** | Tailles dédiées 2–30ml, distinctes des formats full-size (30–200ml) |
 | ⭐ **Wishlist** | Parfums à acheter, alertes prix |
@@ -47,6 +48,7 @@
 | **Backend** | Firebase Auth, Firestore, Storage, Cloud Functions (europe-west1) |
 | **IA** | GPT-4o Vision (analyse photo), Firestore (catalogue 21K parfums) |
 | **Formulaires** | React Hook Form 7 + Zod 4 |
+| **Tests** | Jest 29 + jest-expo + Testing Library — 166 tests, 13 suites |
 
 ---
 
@@ -167,15 +169,15 @@ functions/                    # Cloud Functions Firebase
 
 ---
 
-## 📊 Données — Catalogue (21 567 parfums)
+## 📊 Données — Catalogue (~25 100 parfums)
 
-Le catalogue est importé depuis un scrape Fragrantica (193 marques), nettoyé et hébergé en autonome sur Firebase — **zéro dépendance à l'API Fragella** pour le socle de données.
+Le catalogue est importé depuis un scrape Fragrantica (239 marques), nettoyé et hébergé en autonome sur Firebase — **zéro dépendance à l'API Fragella** pour le socle de données.
 
 ### Pipeline
 
 ```
 data/raw/              data/clean/            Firestore + Storage
-193 JSON (1.27 GB)  →  193 JSON (31 MB)   →  parfums/{id}
+239 JSON (1.27 GB)  →  239 JSON (31 MB)   →  parfums/{id}
 scrape Fragrantica      données factuelles     images hébergées
 ```
 
@@ -240,18 +242,21 @@ La page `app/catalog/[id].tsx` affiche les métadonnées du catalogue Firestore 
 > - Violet = donnees admin (seed/manual)
 > - Rouge = source inconnue (fallback)
 
-## 📚 Flux de recherche (cache-first v5.3)
+## 📚 Flux de recherche (cache-first v6.10)
 
 ```
-Saisie ≥ 3 caractères → useCatalog() → debounce 800ms
-  1. searchParfumsCached(query) → Firestore (gratuit, score = tokens + popularité + exact match)
-
-Avantage : recherche 100% locale, zéro appel API externe.
-→ les parfums populaires remontent naturellement.
-
-Toutes les métadonnées (longévité, sillage, saisonnalité, occasions, accords, etc.) sont déjà
-présentes dans Firestore via le pipeline d'import seed — aucun enrichissement nécessaire.
+Saisie ≥ 3 caractères → useCatalog() → debounce 150ms → requestIdRef anti-race
+  1. Cache exact → hit instantané
+  2. Prefix cache → re-score local (frappe progressive, 0 Firestore)
+  3. Firestore dual-query :
+     - 1 token (marque) → array-contains + orderBy reviewCount desc → limit 100
+     - 2+ tokens → array-contains-any → limit 200
+  4. Scoring : matchScore (prefixes, boucle for) + exactMatch (multi-token seulement) + popBonus (log(pop+1)/2)
+  5. Tri : pop-first (1 token) ou score (multi-token) + tiebreak, slice 50 résultats
 ```
+
+Avantage : cache + prefix cache → la plupart des frappes ne touchent plus Firestore.
+Les résultats sont triés par pertinence + popularité, pas alphabétiquement.
 
 ### Catalogue idle (v5.7)
 
@@ -271,6 +276,18 @@ Les documents `UserFavori` et `UserScan` stockent `imageUrl` et `familleOlactive
 dénormalisés → affichage direct sans appel API Firestore supplémentaire.
 
 ---
+## v6.10 — Search v2 + Similar Parfums refonte + UI fixes (21/07/2026)
+
+- **Search v2** : cache Map (exact + prefix cache local), dual query Firestore (1 token `array-contains` + `orderBy reviewCount`, 2+ tokens `array-contains-any`), `exactMatch` réservé aux queries multi-mots, signal composite `Math.max(reviewCount, ratingCount, popularityScore)`, bonus popularité `/2`, scoring single-pass (boucle for), tri pop-first pour 1 token, 50 résultats max, debounce 150ms, `requestIdRef` anti-race.
+- **Prefix cache** : quand l'utilisateur tape progressivement ("guerlain" → "guerlain l'ho"), le résultat est re-scoré localement depuis le cache — zéro requête Firestore supplémentaire.
+- **Barre de recherche fixe** : ne disparaît plus au scroll — toujours visible en haut du pager. Seul le DockBar continue de se cacher/montrer.
+- **Parfums similaires** : nouvelle signature `getSimilarParfums(mainAccords: string[], ...)` utilisant `array-contains-any` sur les accords partagés + `orderBy popularityScore`. Scoring client-side (accords partagés × 10 + pop/100). UI migrée vers `ParfumCard` compact avec vraies images (plus de placeholder flask). Cache TTL 24h via `similarIdsCachedAt`.
+- **Auth fix** : `KeyboardAvoidingView` sur Android pour login et register — le clavier ne recouvre plus les inputs/boutons.
+- **Nouveaux index Firestore** : composites `searchKeywords` + `reviewCount` et `mainAccords` + `popularityScore` (fichier `firestore.indexes.json`, déployer avec `firebase deploy --only firestore:indexes`).
+- **Nouvelles marques** : 46 marques importées → ~25 100 parfums (239 marques). `popularityScore` backporté sur tous les documents existants (`npm run import-data` avec mise à jour partielle au lieu de skip). Nouveau champ `brandLower` pour usage futur.
+- **Modèles** : `similarIdsCachedAt?: Date` ajouté à l'interface `Parfum`.
+- **Perf logs** : `console.log` temporaire avec temps Firestore / scoring / total sur chaque recherche.
+
 ## v6.3 — Wardrobe enrichie + OlfactoryPyramid rework (17/07/2026)
 
 - **WardrobeAddSheet** : bottom sheet d'ajout avec sélection de taille (remplace l'ancien `Alert.alert` sur la fiche détail)

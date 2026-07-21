@@ -20,13 +20,22 @@ export function onFavoris(uid: string, cb: (favoris: UserFavori[]) => void): () 
 }
 
 export async function addFavori(uid: string, parfumId: string, nom?: string, marque?: string, imageUrl?: string, familleOlactive?: string, bestPrice?: number, referencePrice?: number, annee?: number): Promise<string> {
-  const dRef = doc(favCol(uid), parfumId);
-  await setDoc(dRef, { parfumId, nom: nom ?? null, marque: marque ?? null, imageUrl: imageUrl ?? null, familleOlactive: familleOlactive ?? null, bestPrice: bestPrice ?? null, referencePrice: referencePrice ?? null, annee: annee ?? null, addedAt: new Date() }, { merge: true });
-  return dRef.id;
+  try {
+    const dRef = doc(favCol(uid), parfumId);
+    await setDoc(dRef, { parfumId, nom: nom ?? null, marque: marque ?? null, imageUrl: imageUrl ?? null, familleOlactive: familleOlactive ?? null, bestPrice: bestPrice ?? null, referencePrice: referencePrice ?? null, annee: annee ?? null, addedAt: new Date() }, { merge: true });
+    return dRef.id;
+  } catch (e: unknown) {
+    console.warn('[user-data] addFavori failed:', (e as Error)?.message ?? String(e));
+    throw e;
+  }
 }
 
 export async function removeFavori(uid: string, favoriId: string): Promise<void> {
-  await deleteDoc(doc(favCol(uid), favoriId));
+  try {
+    await deleteDoc(doc(favCol(uid), favoriId));
+  } catch (e: unknown) {
+    console.warn('[user-data] removeFavori failed:', (e as Error)?.message ?? String(e));
+  }
 }
 
 export async function isParfumFavori(uid: string, parfumId: string): Promise<{ isFavori: boolean; favoriId: string | null }> {
@@ -48,14 +57,22 @@ export function onScans(uid: string, cb: (scans: UserScan[]) => void): () => voi
 }
 
 export async function saveScan(uid: string, scanData: Omit<UserScan, 'id' | 'scannedAt'>): Promise<void> {
-  const clean = Object.fromEntries(
-    Object.entries({ ...scanData, scannedAt: new Date() }).filter(([_, v]) => v !== undefined)
-  );
-  await addDoc(scanCol(uid), clean);
+  try {
+    const clean = Object.fromEntries(
+      Object.entries({ ...scanData, scannedAt: new Date() }).filter(([_, v]) => v !== undefined)
+    );
+    await addDoc(scanCol(uid), clean);
+  } catch (e: unknown) {
+    console.warn('[user-data] saveScan failed:', (e as Error)?.message ?? String(e));
+  }
 }
 
 export async function removeScan(uid: string, scanId: string): Promise<void> {
-  await deleteDoc(doc(scanCol(uid), scanId));
+  try {
+    await deleteDoc(doc(scanCol(uid), scanId));
+  } catch (e: unknown) {
+    console.warn('[user-data] removeScan failed:', (e as Error)?.message ?? String(e));
+  }
 }
 
 export function onCollection(uid: string, cb: (items: UserCollectionItem[]) => void): () => void {
@@ -67,23 +84,37 @@ export function onCollection(uid: string, cb: (items: UserCollectionItem[]) => v
 }
 
 export async function addToCollection(uid: string, parfumId: string, nom?: string, marque?: string, imageUrl?: string): Promise<string> {
-  const dRef = doc(collCol(uid), parfumId);
-  await setDoc(dRef, {
-    parfumId, nom: nom ?? null, marque: marque ?? null, imageUrl: imageUrl ?? null, addedAt: new Date(),
-  }, { merge: true });
-  return dRef.id;
+  try {
+    const dRef = doc(collCol(uid), parfumId);
+    await setDoc(dRef, {
+      parfumId, nom: nom ?? null, marque: marque ?? null, imageUrl: imageUrl ?? null, addedAt: new Date(),
+    }, { merge: true });
+    return dRef.id;
+  } catch (e: unknown) {
+    console.warn('[user-data] addToCollection failed:', (e as Error)?.message ?? String(e));
+    const dRef = doc(collCol(uid), parfumId);
+    return dRef.id;
+  }
 }
 
 export async function removeFromCollection(uid: string, itemId: string): Promise<void> {
-  await deleteDoc(doc(collCol(uid), itemId));
+  try {
+    await deleteDoc(doc(collCol(uid), itemId));
+  } catch (e: unknown) {
+    console.warn('[user-data] removeFromCollection failed:', (e as Error)?.message ?? String(e));
+  }
 }
 
 export async function moveToCollection(uid: string, fromTab: string, fromItemId: string, parfumId: string, nom?: string | null, marque?: string | null, imageUrl?: string | null): Promise<void> {
-  const batch = writeBatch(db);
-  if (fromTab === 'favoris') batch.delete(doc(favCol(uid), fromItemId));
-  else if (fromTab === 'wishlist') batch.delete(doc(wishCol(uid), fromItemId));
-  batch.set(doc(collCol(uid), parfumId), { parfumId, nom: nom ?? null, marque: marque ?? null, imageUrl: imageUrl ?? null, addedAt: new Date() }, { merge: true });
-  await batch.commit();
+  try {
+    const batch = writeBatch(db);
+    if (fromTab === 'favoris') batch.delete(doc(favCol(uid), fromItemId));
+    else if (fromTab === 'wishlist') batch.delete(doc(wishCol(uid), fromItemId));
+    batch.set(doc(collCol(uid), parfumId), { parfumId, nom: nom ?? null, marque: marque ?? null, imageUrl: imageUrl ?? null, addedAt: new Date() }, { merge: true });
+    await batch.commit();
+  } catch (e: unknown) {
+    console.warn('[user-data] moveToCollection failed:', (e as Error)?.message ?? String(e));
+  }
 }
 
 export async function isInCollection(uid: string, parfumId: string): Promise<{ isInCollection: boolean; itemId: string | null }> {
@@ -105,31 +136,49 @@ export function onWishlist(uid: string, cb: (items: UserWishlistItem[]) => void)
 }
 
 export async function addToWishlist(uid: string, parfumId: string, nom?: string, marque?: string, imageUrl?: string, familleOlactive?: string): Promise<string> {
-  const dRef = doc(wishCol(uid), parfumId);
-  await setDoc(dRef, {
-    parfumId, nom: nom ?? null, marque: marque ?? null, imageUrl: imageUrl ?? null, familleOlactive: familleOlactive ?? null, addedAt: new Date(),
-  }, { merge: true });
-  return dRef.id;
+  try {
+    const dRef = doc(wishCol(uid), parfumId);
+    await setDoc(dRef, {
+      parfumId, nom: nom ?? null, marque: marque ?? null, imageUrl: imageUrl ?? null, familleOlactive: familleOlactive ?? null, addedAt: new Date(),
+    }, { merge: true });
+    return dRef.id;
+  } catch (e: unknown) {
+    console.warn('[user-data] addToWishlist failed:', (e as Error)?.message ?? String(e));
+    const dRef = doc(wishCol(uid), parfumId);
+    return dRef.id;
+  }
 }
 
 export async function removeFromWishlist(uid: string, itemId: string): Promise<void> {
-  await deleteDoc(doc(wishCol(uid), itemId));
+  try {
+    await deleteDoc(doc(wishCol(uid), itemId));
+  } catch (e: unknown) {
+    console.warn('[user-data] removeFromWishlist failed:', (e as Error)?.message ?? String(e));
+  }
 }
 
 export async function moveToWishlist(uid: string, fromTab: string, fromItemId: string, parfumId: string, nom?: string | null, marque?: string | null, imageUrl?: string | null, familleOlactive?: string | null): Promise<void> {
-  const batch = writeBatch(db);
-  if (fromTab === 'favoris') batch.delete(doc(favCol(uid), fromItemId));
-  else if (fromTab === 'collection') batch.delete(doc(collCol(uid), fromItemId));
-  batch.set(doc(wishCol(uid), parfumId), { parfumId, nom: nom ?? null, marque: marque ?? null, imageUrl: imageUrl ?? null, familleOlactive: familleOlactive ?? null, addedAt: new Date() }, { merge: true });
-  await batch.commit();
+  try {
+    const batch = writeBatch(db);
+    if (fromTab === 'favoris') batch.delete(doc(favCol(uid), fromItemId));
+    else if (fromTab === 'collection') batch.delete(doc(collCol(uid), fromItemId));
+    batch.set(doc(wishCol(uid), parfumId), { parfumId, nom: nom ?? null, marque: marque ?? null, imageUrl: imageUrl ?? null, familleOlactive: familleOlactive ?? null, addedAt: new Date() }, { merge: true });
+    await batch.commit();
+  } catch (e: unknown) {
+    console.warn('[user-data] moveToWishlist failed:', (e as Error)?.message ?? String(e));
+  }
 }
 
 export async function moveFavori(uid: string, fromTab: string, fromItemId: string, parfumId: string, nom?: string | null, marque?: string | null, imageUrl?: string | null, familleOlactive?: string | null): Promise<void> {
-  const batch = writeBatch(db);
-  if (fromTab === 'collection') batch.delete(doc(collCol(uid), fromItemId));
-  else if (fromTab === 'wishlist') batch.delete(doc(wishCol(uid), fromItemId));
-  batch.set(doc(favCol(uid), parfumId), { parfumId, nom: nom ?? null, marque: marque ?? null, imageUrl: imageUrl ?? null, familleOlactive: familleOlactive ?? null, addedAt: new Date() }, { merge: true });
-  await batch.commit();
+  try {
+    const batch = writeBatch(db);
+    if (fromTab === 'collection') batch.delete(doc(collCol(uid), fromItemId));
+    else if (fromTab === 'wishlist') batch.delete(doc(wishCol(uid), fromItemId));
+    batch.set(doc(favCol(uid), parfumId), { parfumId, nom: nom ?? null, marque: marque ?? null, imageUrl: imageUrl ?? null, familleOlactive: familleOlactive ?? null, addedAt: new Date() }, { merge: true });
+    await batch.commit();
+  } catch (e: unknown) {
+    console.warn('[user-data] moveFavori failed:', (e as Error)?.message ?? String(e));
+  }
 }
 
 export async function isInWishlist(uid: string, parfumId: string): Promise<{ isInWishlist: boolean; itemId: string | null }> {
@@ -151,12 +200,16 @@ export async function getUserSettings(uid: string): Promise<{ priceAlerts: boole
     if (d) {
       return { priceAlerts: d.priceAlerts === true, pushNotifs: d.pushNotifs !== false };
     }
-  } catch {}
+  } catch (e: unknown) { console.warn('[user-data] getUserSettings failed:', (e as Error)?.message ?? String(e)); }
   return { priceAlerts: false, pushNotifs: true };
 }
 
 export async function updateUserSetting(uid: string, key: 'priceAlerts' | 'pushNotifs', value: boolean): Promise<void> {
-  await setDoc(doc(settingsCol(uid), 'preferences'), { [key]: value }, { merge: true });
+  try {
+    await setDoc(doc(settingsCol(uid), 'preferences'), { [key]: value }, { merge: true });
+  } catch (e: unknown) {
+    console.warn('[user-data] updateUserSetting failed:', (e as Error)?.message ?? String(e));
+  }
 }
 
 function alertsCol(uid: string) { return collection(db, `users/${uid}/priceAlerts`); }

@@ -1,6 +1,6 @@
 ﻿// app/catalog/[id].tsx — Fiche détail parfum (refonte Luxe malin)
 
-import { useState, useEffect, useRef, useMemo } from 'react';
+import { useState, useEffect, useRef, useMemo, useCallback } from 'react';
 import { View, Text, ScrollView, Pressable, ActivityIndicator, Linking, StyleSheet, useWindowDimensions, Platform } from 'react-native';
 import type { NativeSyntheticEvent, NativeScrollEvent, LayoutChangeEvent } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -131,7 +131,7 @@ function StatBar({ label, score, maxScore, icon, barColor, barBg, s, t }: { labe
 }
 
 function AccordBar({ name, pct, index, total, s, t }: { name: string; pct: number; index: number; total: number; s: ReturnType<typeof getStyles>; t: Theme }) {
-  const colors = [t.colors.primary, t.colors.primaryTint, '#A78BFA', '#C4B5FD', t.colors.primarySoft];
+  const colors = [t.colors.primary, t.colors.primaryTint, t.colors.violetInk, t.colors.primary, t.colors.primarySoft];
   const color = colors[index % colors.length];
   return (
     <View style={s.statBar}>
@@ -254,25 +254,29 @@ export default function CatalogDetailPage() {
   // Statut favori + wardrobe
   useEffect(() => {
     if (user?.uid && id) {
-      isParfumFavori(user.uid, id).then(r => { setIsFav(r.isFavori); setFavoriId(r.favoriId); });
-      isInWardrobe(user.uid, id).then(item => { setWardrobeItem(item); });
+      isParfumFavori(user.uid, id).then(r => { setIsFav(r.isFavori); setFavoriId(r.favoriId); }).catch(() => {});
+      isInWardrobe(user.uid, id).then(item => { setWardrobeItem(item); }).catch(() => {});
     }
   }, [user?.uid, id]);
 
 
   // Parfums similaires — recherche Firestore par accords partagés
+  const simMainAccords = parfum?.mainAccords;
+  const simSimilarIds = parfum?.similarIds;
+  const simCachedAt = parfum?.similarIdsCachedAt;
+
   useEffect(() => {
-    if (!parfum?.mainAccords || parfum.mainAccords.length === 0 || !parfum?.id) return;
+    if (!simMainAccords || simMainAccords.length === 0 || !parfum?.id) return;
 
     const loadSimilars = async () => {
       setSimilarsLoading(true);
 
       // Step 1: check Firestore cache via similarIds (TTL 24h)
-      if (parfum.similarIds && parfum.similarIds.length > 0 && parfum.similarIdsCachedAt) {
-        const age = Date.now() - parfum.similarIdsCachedAt.getTime();
+      if (simSimilarIds && simSimilarIds.length > 0 && simCachedAt) {
+        const age = Date.now() - simCachedAt.getTime();
         if (age < 86400000) {
           const cached = (await Promise.all(
-            parfum.similarIds.map((id: string) => getParfumById(id).catch(() => undefined))
+            simSimilarIds.map((id: string) => getParfumById(id).catch(() => undefined))
           )).filter(Boolean) as Parfum[];
 
           if (cached.length >= 3) {
@@ -285,7 +289,7 @@ export default function CatalogDetailPage() {
 
       // Step 2: recherche Firestore par accords partagés
       try {
-        const results = await getSimilarParfums(parfum.mainAccords!, parfum.id!, 6);
+        const results = await getSimilarParfums(simMainAccords, parfum.id!, 6);
 
         if (results.length > 0) {
           setSimilars(results);
@@ -302,9 +306,9 @@ export default function CatalogDetailPage() {
     };
 
     loadSimilars();
-  }, [parfum?.id]);
+  }, [parfum?.id, simMainAccords, simSimilarIds, simCachedAt]);
 
-  const toggleFav = async () => {
+  const toggleFav = useCallback(async () => {
     if (!isAuthenticated) { router.push('/auth/login'); return; }
     if (!user?.uid || !id || !parfum) {
       console.warn('[fav] Missing data:', { uid: !!user?.uid, id: !!id, parfum: !!parfum });
@@ -324,9 +328,9 @@ export default function CatalogDetailPage() {
         setIsFav(false);
       }
     }
-  };
+  }, [isAuthenticated, user?.uid, id, parfum, isFav, favoriId, router]);
 
-  const handleWardrobeAdd = async (ownership: import('../../src/models/wardrobe.interface').WardrobeItem['ownership'], sizeMl?: number | null): Promise<void> => {
+  const handleWardrobeAdd = useCallback(async (ownership: import('../../src/models/wardrobe.interface').WardrobeItem['ownership'], sizeMl?: number | null): Promise<void> => {
     if (!isAuthenticated) { router.push('/auth/login'); throw new Error('Non authentifié'); }
     if (!user?.uid || !id || !parfum) throw new Error('Données manquantes');
     await addToWardrobe(user.uid, id, ownership, parfum.nom, parfum.marque, parfum.imageUrl, parfum.familleOlactive, sizeMl ?? null);
@@ -337,17 +341,23 @@ export default function CatalogDetailPage() {
       isSignature: false,
       addedAt: new Date(), updatedAt: new Date(),
     });
-  };
+  }, [isAuthenticated, user?.uid, id, parfum, router]);
 
-  const handleWardrobePress = () => {
+  const handleWardrobePress = useCallback(() => {
     if (!isAuthenticated) { router.push('/auth/login'); return; }
     if (wardrobeItem) { router.push(`/wardrobe/${id}`); return; }
     setShowWardrobeSheet(true);
-  };
+  }, [isAuthenticated, wardrobeItem, id, router]);
 
-  const handleScroll = (e: NativeSyntheticEvent<NativeScrollEvent>) => {
+  const handleScroll = useCallback((e: NativeSyntheticEvent<NativeScrollEvent>) => {
     scrollY.value = e.nativeEvent.contentOffset.y;
-  };
+  }, []);
+
+  const handleImageError = useCallback(() => setImgFailed(true), []);
+  const handleImagePress = useCallback(() => setShowImageViewer(true), []);
+  const handlePurchasePress = useCallback(() => {
+    if (parfum?.purchaseUrl) Linking.openURL(parfum.purchaseUrl);
+  }, [parfum?.purchaseUrl]);
 
   const seasonData = parfum && parfum.seasonRanking ? [...parfum.seasonRanking].sort(function(a,b){return b.score-a.score}) : null;
   const seasonMax = seasonData && seasonData.length > 0 ? Math.max.apply(null, seasonData.map(function(s){return s.score})) : 0;
@@ -381,7 +391,7 @@ export default function CatalogDetailPage() {
       {loading ? (
       <View style={s.center}><ActivityIndicator size="large" color={t.colors.primary} /></View>
     ) : !parfum ? (
-      <View style={s.center}><Text style={{color:t.colors.textMuted}}>Parfum introuvable.</Text></View>
+      <View style={s.center}><Text style={{fontFamily:'Inter_400Regular',color:t.colors.textMuted}}>Parfum introuvable.</Text></View>
     ) : (
       <View style={{flex:1,backgroundColor:t.colors.background}}>
         <CollapsingHeader scrollY={scrollY} brand={parfum.marque} name={parfum.nom} />
@@ -399,11 +409,9 @@ export default function CatalogDetailPage() {
             referencePrice={parfum.referencePrice}
             purchaseUrl={parfum.purchaseUrl}
             imgFailed={imgFailed}
-            onImageError={() => setImgFailed(true)}
-            onImagePress={() => setShowImageViewer(true)}
-            onPurchasePress={() => {
-              if (parfum.purchaseUrl) Linking.openURL(parfum.purchaseUrl);
-            }}
+            onImageError={handleImageError}
+            onImagePress={handleImagePress}
+            onPurchasePress={handlePurchasePress}
           />
 
           <View style={s.contentWrap}>
@@ -420,7 +428,7 @@ export default function CatalogDetailPage() {
                 </View>
               )}
               {__DEV__ && (
-                <View style={{width:6,height:6,borderRadius:3,backgroundColor:parfum.source==='seed'||parfum.source==='manual'?'#8B5CF6':'#EF4444',alignSelf:'center'}} />
+                <View style={{width:6,height:6,borderRadius:3,backgroundColor:parfum.source==='seed'||parfum.source==='manual'?t.colors.primary:t.colors.overpriced,alignSelf:'center'}} />
               )}
             </View>
 
@@ -443,8 +451,8 @@ export default function CatalogDetailPage() {
               )}
               {ratingDisplay !== undefined && (
                 <View style={s.badgeCompactMuted}>
-                  <Ionicons name="star" size={12} color="#D97706" />
-                  <Text style={[s.badgeCompactMutedText,{color:'#D97706'}]}>{ratingDisplay}</Text>
+                  <Ionicons name="star" size={12} color={t.colors.fair} />
+                  <Text style={[s.badgeCompactMutedText,{color:t.colors.fair}]}>{ratingDisplay}</Text>
                 </View>
               )}
             </View>
@@ -546,7 +554,7 @@ export default function CatalogDetailPage() {
               <SectionTitle icon="⚡" title="En résumé" s={s} />
               {parfum.longevity ? (() => { const m = longevityMeta(parfum.longevity!); return <View style={s.gaugeRow}><View style={[s.gaugeIcon, { backgroundColor: t.colors.violetSoft }]}><Ionicons name="time-outline" size={14} color={t.colors.violetInk} /></View><View style={s.gaugeBody}><Text style={s.gaugeLabel}>Longévité</Text><View style={s.gaugeTrack}><View style={[s.gaugeFill, { width: `${m.pct}%`, backgroundColor: t.colors.primary }]} /></View></View><Text style={[s.gaugeVal, { color: t.colors.violetInk }]}>{m.label}</Text></View>; })() : null}
               {parfum.sillage ? (() => { const m = sillageMeta(parfum.sillage!); return <View style={s.gaugeRow}><View style={[s.gaugeIcon, { backgroundColor: t.colors.rewardSoft }]}><Ionicons name="pulse-outline" size={14} color={t.colors.reward} /></View><View style={s.gaugeBody}><Text style={s.gaugeLabel}>Sillage</Text><View style={s.gaugeTrack}><View style={[s.gaugeFill, { width: `${m.pct}%`, backgroundColor: t.colors.reward }]} /></View></View><Text style={[s.gaugeVal, { color: t.colors.reward }]}>{m.label}</Text></View>; })() : null}
-              {typeof parfum.popularityScore === 'number' ? (() => { const pop = popLabel(parfum.popularityScore!); return <View style={s.gaugeRow}><View style={[s.gaugeIcon, { backgroundColor: '#FFF7ED' }]}><Ionicons name="flame-outline" size={14} color={pop.color} /></View><View style={s.gaugeBody}><Text style={s.gaugeLabel}>Popularité</Text><View style={s.gaugeTrack}><View style={[s.gaugeFill, { width: `${parfum.popularityScore}%`, backgroundColor: pop.color }]} /></View></View><Text style={[s.gaugeVal, { color: pop.color }]}>{pop.label}</Text></View>; })() : null}
+              {typeof parfum.popularityScore === 'number' ? (() => { const pop = popLabel(parfum.popularityScore!); return <View style={s.gaugeRow}><View style={[s.gaugeIcon, { backgroundColor: t.colors.fairSoft }]}><Ionicons name="flame-outline" size={14} color={pop.color} /></View><View style={s.gaugeBody}><Text style={s.gaugeLabel}>Popularité</Text><View style={s.gaugeTrack}><View style={[s.gaugeFill, { width: `${parfum.popularityScore}%`, backgroundColor: pop.color }]} /></View></View><Text style={[s.gaugeVal, { color: pop.color }]}>{pop.label}</Text></View>; })() : null}
             </View>
           ) : null}
           {/* ─── Saisonnalité ─── */}
@@ -555,7 +563,7 @@ export default function CatalogDetailPage() {
                 <SectionTitle icon="🌸" title="Saisonnalité" s={s} />
                 {seasonData.map(function(item) {
                   var meta = SEASON_META[item.name.toLowerCase()] ?? { label: item.name, color: t.colors.primary, bg: t.colors.violetSoft, emoji: '📅' };
-                  var m = scoreLabel(item.score, seasonMax, 'Très adapté', 'Adapté'); return <View key={item.name} style={s.gaugeRow}><View style={[s.gaugeIcon, { backgroundColor: meta.bg }]}><Text style={{fontSize:15}}>{meta.emoji}</Text></View><View style={s.gaugeBody}><Text style={s.gaugeLabel}>{meta.label}</Text><View style={s.gaugeTrack}><View style={[s.gaugeFill, { width: `${m.pct}%`, backgroundColor: meta.color }]} /></View></View><Text style={[s.gaugeVal, { color: meta.color }]}>{m.label}</Text></View>;
+                  var m = scoreLabel(item.score, seasonMax, 'Très adapté', 'Adapté'); return <View key={item.name} style={s.gaugeRow}><View style={[s.gaugeIcon, { backgroundColor: meta.bg }]}><Text style={{fontFamily:'Inter_400Regular',fontSize:15}}>{meta.emoji}</Text></View><View style={s.gaugeBody}><Text style={s.gaugeLabel}>{meta.label}</Text><View style={s.gaugeTrack}><View style={[s.gaugeFill, { width: `${m.pct}%`, backgroundColor: meta.color }]} /></View></View><Text style={[s.gaugeVal, { color: meta.color }]}>{m.label}</Text></View>;
                 })}
               </View>
             ) : null}
@@ -565,7 +573,7 @@ export default function CatalogDetailPage() {
                 <SectionTitle icon="🎭" title="Occasions" s={s} />
                 {occasionData.map(function(item) {
                   var meta = OCCASION_META[item.name.toLowerCase()] ?? { label: item.name, emoji: '📍' };
-                  var m = scoreLabel(item.score, occasionMax, 'Idéal', 'Recommandé'); return <View key={item.name} style={s.gaugeRow}><View style={[s.gaugeIcon, { backgroundColor: t.colors.violetSoft }]}><Text style={{fontSize:15}}>{meta.emoji}</Text></View><View style={s.gaugeBody}><Text style={s.gaugeLabel}>{meta.label}</Text><View style={s.gaugeTrack}><View style={[s.gaugeFill, { width: `${m.pct}%`, backgroundColor: t.colors.primary }]} /></View></View><Text style={[s.gaugeVal, { color: t.colors.violetInk }]}>{m.label}</Text></View>;
+                  var m = scoreLabel(item.score, occasionMax, 'Idéal', 'Recommandé'); return <View key={item.name} style={s.gaugeRow}><View style={[s.gaugeIcon, { backgroundColor: t.colors.violetSoft }]}><Text style={{fontFamily:'Inter_400Regular',fontSize:15}}>{meta.emoji}</Text></View><View style={s.gaugeBody}><Text style={s.gaugeLabel}>{meta.label}</Text><View style={s.gaugeTrack}><View style={[s.gaugeFill, { width: `${m.pct}%`, backgroundColor: t.colors.primary }]} /></View></View><Text style={[s.gaugeVal, { color: t.colors.violetInk }]}>{m.label}</Text></View>;
                 })}
               </View>
             ) : null}
@@ -643,7 +651,7 @@ export default function CatalogDetailPage() {
             style={{
               position: 'absolute',
               left: 0,
-              top: 0,
+              top: insets.top + 60,
               bottom: 0,
               width: 40,
               zIndex: 10,
@@ -667,8 +675,8 @@ function getStyles(t: Theme) {
   contentWrap: { paddingHorizontal: t.spacing.md, paddingTop: 14, paddingBottom: t.spacing.base, backgroundColor: t.colors.surface, borderRadius: t.radius.card, ...t.shadow.card },
   // ─── Badges 2 lignes ───
   badgeRow: { flexDirection: 'row', gap: 6, flexWrap: 'wrap', alignItems: 'center', marginBottom: 8 },
-  badgeCompact: { paddingHorizontal: 10, paddingVertical: 4, borderRadius: 20, backgroundColor: '#FFF7ED' },
-  badgeCompactText: { fontSize: 11, fontFamily: 'Inter_500Medium', color: '#9A3412' },
+  badgeCompact: { paddingHorizontal: 10, paddingVertical: 4, borderRadius: 20, backgroundColor: t.colors.fairSoft },
+  badgeCompactText: { fontSize: 11, fontFamily: 'Inter_500Medium', color: t.colors.fair },
   badgeCompactMuted: { flexDirection: 'row', alignItems: 'center', gap: 4, paddingHorizontal: 10, paddingVertical: 4, borderRadius: 20, backgroundColor: t.colors.surface2 },
   badgeCompactMutedText: { fontSize: 11, fontFamily: 'Inter_500Medium', color: t.colors.textMuted },
   // ─── Prix & Deal ───

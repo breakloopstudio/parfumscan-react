@@ -52,6 +52,7 @@ interface ParsedTitle {
 interface ImportStats {
   fileName: string;
   imported: number;
+  updated: number;
   skipped: number;
   errors: number;
 }
@@ -284,6 +285,7 @@ async function processFile(
 
   const db = getFirestore();
   let imported = 0;
+  let updated = 0;
   let skipped = 0;
   let errors = 0;
 
@@ -297,11 +299,19 @@ async function processFile(
       continue;
     }
 
-    // Skip if already imported
+    // Update if already imported, create if not
     const docRef = db.collection('parfums').doc(parfumId);
     const existing = await docRef.get();
     if (existing.exists) {
-      skipped++;
+      await docRef.update({
+        popularityScore: entry.reviewCount ?? null,
+        brandLower: brandName.toLowerCase(),
+        updatedAt: new Date(),
+      });
+      updated++;
+      if (updated % 50 === 0) {
+        process.stdout.write(`  ${fileName.padEnd(35)} ${String(updated).padStart(4)} updated...\r`);
+      }
       continue;
     }
 
@@ -378,7 +388,8 @@ async function processFile(
         ratingScore: entry.perfumeRating ?? null,
         priceValue: priceValueString(entry.priceValueAverage),
         popularity: null,
-        popularityScore: null,
+        popularityScore: entry.reviewCount ?? null,
+        brandLower: brandName.toLowerCase(),
         country: null,
         confidence: null,
         seasonRanking: entry.seasonBreakout
@@ -421,10 +432,11 @@ async function processFile(
   }
 
   console.log(
-    `  ${fileName.padEnd(35)} ${String(imported).padStart(5)} imported, ${String(skipped).padStart(4)} skipped, ${String(errors).padStart(3)} errors`,
+    `  ${fileName.padEnd(35)} ${String(imported).padStart(5)} imported, ${String(updated).padStart(4)} updated, ${String(skipped).padStart(4)} skipped, ${String(errors).padStart(3)} errors`,
   );
 
   stats.imported += imported;
+  stats.updated += updated;
   stats.skipped += skipped;
   stats.errors += errors;
 }
@@ -469,7 +481,7 @@ async function main(): Promise<void> {
   const files = fs.readdirSync(cleanDir).filter((f) => f.endsWith('.json'));
   console.log(`Processing ${files.length} files...\n`);
 
-  const stats: ImportStats = { fileName: '', imported: 0, skipped: 0, errors: 0 };
+  const stats: ImportStats = { fileName: '', imported: 0, updated: 0, skipped: 0, errors: 0 };
   const delayMs = 300; // delay between image downloads (ms)
 
   for (const file of files) {
@@ -477,7 +489,7 @@ async function main(): Promise<void> {
   }
 
   console.log(`\n${'\u2500'.repeat(58)}`);
-  console.log(`Total: ${stats.imported} imported, ${stats.skipped} skipped, ${stats.errors} errors`);
+  console.log(`Total: ${stats.imported} imported, ${stats.updated} updated, ${stats.skipped} skipped, ${stats.errors} errors`);
 }
 
 main().catch((err) => {

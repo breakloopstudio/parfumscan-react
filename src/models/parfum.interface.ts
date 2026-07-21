@@ -41,6 +41,8 @@ export interface Parfum {
   popularity?: string | null;
   popularityScore?: number;
   ratingScore?: number;
+  reviewCount?: number;
+  ratingCount?: number;
   priceValue?: string | null;
   country?: string;
   mainAccordsPercentage?: Record<string, string>;
@@ -49,4 +51,5 @@ export interface Parfum {
   seasonRanking?: { name: string; score: number }[];
   occasionRanking?: { name: string; score: number }[];
   similarIds?: string[];
+  similarIdsCachedAt?: Date;
 }

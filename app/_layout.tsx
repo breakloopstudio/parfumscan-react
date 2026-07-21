@@ -16,7 +16,7 @@ try {
     webClientId: '831514606817-xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx.apps.googleusercontent.com',
     iosClientId: process.env.EXPO_PUBLIC_GOOGLE_IOS_CLIENT_ID,
   });
-} catch {}
+} catch (e: unknown) { console.warn('[app] GoogleSignin.configure failed:', (e as Error)?.message ?? String(e)); }
 
 SplashScreen.preventAutoHideAsync().catch(() => {});
 

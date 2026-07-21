@@ -31,5 +31,5 @@ export function onFcmNotificationOpened(cb: (payload: FirebaseMessagingTypes.Rem
 }
 
 export async function deleteFcmToken(): Promise<void> {
-  try { await deleteToken(getMessaging()); } catch {}
+  try { await deleteToken(getMessaging()); } catch (e: unknown) { console.warn('[fcm] deleteToken failed:', (e as Error)?.message ?? String(e)); }
 }

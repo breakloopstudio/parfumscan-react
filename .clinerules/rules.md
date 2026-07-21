@@ -33,12 +33,12 @@ app/
 
 src/
 ├── services/     (12)        # Firebase, Firestore, GPT-4o, user-data, wardrobe, theme-storage, haptics…
-├── hooks/        (11)        # useAuth, useScanReducer, useCatalog, useFavoris, useCollection, useWishlist, useScans, useWardrobe, useShelves, useSotd, useNetwork
+├── hooks/        (12)        # useAuth, useScanReducer, useCatalog, useFavoris, useCollection, useWishlist, useScans, useWardrobe, useShelves, useSotd, useNetwork, useDensityPreference
 ├── contexts/     (1)         # AuthContext (ThemeContext est dans src/theme/)
 ├── components/   (13)        # ParfumCard, Button, PriceDisplay, SectionHeader, EmptyState, OfflineBanner, AppLoader, ErrorBoundary, AlertPriceToggle, ProfileAvatar, NoteDetailPopup, ActionSheet, ImageViewerPopup
 ├── features/
 │   ├── scan/     (8)         # ScanScreen + 7 sous-états
-│   ├── catalog/  (5)         # CatalogPage, OlfactoryPyramid v5, HeroPriceOverlay, CollapsingHeader, StickyBottomBar
+│   ├── catalog/  (9)         # CatalogPage, OlfactoryPyramid v5, HeroPriceOverlay, CollapsingHeader, StickyBottomBar, BrandCapsules, BrandSheet, CatalogRow, FamilyAmbianceCards
 │   ├── wardrobe/ (9)         # WardrobeAddSheet, WardrobeCard, WardrobeGrid, WardrobeQuickSheet, SOTDCard, SOTDPicker, FilterBar, StarRating, ShelfManager
 │   └── navigation/ (1)      # DockBar (barre flottante 5 positions + FAB, verre depoli via expo-blur, pulse ring, show/hide au scroll)
 ├── theme/        (2)         # theme.ts (Theme interface + light/dark), ThemeContext.tsx (useTheme + SystemUI/NavigationBar theming)
@@ -60,10 +60,10 @@ src/
 
 ## §4 — Style
 
-- `StyleSheet.create()` interdit au niveau module pour les styles thématiques
-- Pattern obligatoire : `getStyles(t: Theme)` → objet plain retourné dans un `useMemo`
+- `StyleSheet.create()` autorisé uniquement pour les styles **statiques** (layout pur, pas de couleurs thème). Pour les styles thématiques, utiliser `getStyles(t: Theme)` + `useMemo`.
+- Pattern obligatoire : `getStyles(t: Theme)` (fonction pure hors composant) → `useMemo(() => getStyles(theme), [theme])` dans le composant
 - 0 `fontWeight` — tout en `fontFamily` (Inter_400Regular, Inter_600SemiBold, etc.)
-- Pas de couleurs hardcodées hors du thème
+- Pas de couleurs hardcodées hors du thème (exceptions documentées dans le design guide §2.3 : `#FFFFFF`, `#1F1A2E`, overlays)
 - Toujours `useTheme()` dans les composants — jamais `import { theme } from '.../theme/theme'`
 
 ---
@@ -97,7 +97,7 @@ src/
 
 ## §8 — Catalogue
 
-- Recherche 100% Firestore (searchParfumsCached, 21K parfums seed)
+- Recherche 100% Firestore (searchParfumsCached, ~25K parfums seed, cache Map + prefix cache, debounce 150ms)
 - Navigation par famille olfactive (chips horizontaux)
 - Tri : pertinence / prix croissant / prix décroissant
 - Suggestions personnalisées (si connecté) ou populaires (fallback)
@@ -150,6 +150,8 @@ src/
 - `useMemo` pour les styles dynamiques quand le thème est impliqué
 - Pas de `StyleSheet.create()` au niveau module pour les styles dépendant du thème
 - `StyleSheet.hairlineWidth` est autorisé (valeur statique)
+- `useCallback` obligatoire sur tous les handlers passés en props à des enfants (évite les re-renders cascade)
+- Appels async Firestore protégés par `try/catch` + `console.warn` (couche service) ou `.catch(() => {})` (écrans)
 
 ---
 
@@ -164,7 +166,7 @@ src/
 
 ## §12 — Catalogue de données
 
-- Catalogue 100% autonome : 21 567 parfums importés dans Firestore via `scripts/import-firestore.ts`
+- Catalogue 100% autonome : ~25 100 parfums importés dans Firestore via `scripts/import-firestore.ts`
 - `src/utils/normalize.ts` — `normalize()`, `normalizeId()`, `buildSearchKeywords()` pour le cache Firestore
 - Règles Firestore : `parfums` en lecture publique, écriture réservée aux admins (vérification `admins/{uid}`)
 - Images hébergées sur Firebase Storage : `parfums/{parfumId}/primary.jpg`
@@ -175,7 +177,10 @@ src/
 
 ## §13 — Tests
 
-- Pas de suite de tests automatisée actuellement
+- Suite de tests automatisée : Jest 29 + `jest-expo` + mock Firestore in-memory
+- 166 tests, 13 suites, ~6s : `npm test` (watch) / `npm run test:ci` (CI + couverture)
+- Les fichiers de test sont dans `__tests__/` (hors `src/` et `app/`)
+- Les mocks Firebase sont dans `__mocks__/@react-native-firebase/`
 - Tests manuels sur émulateur Android (`Pixel_7_Pro`) et device physique
 - Build debug : `npx expo run:android`
 - Build release : `.\build_release.bat`
@@ -202,6 +207,10 @@ src/
 - ✅ 3 boutons distincts sur fiche détail
 - ⏸️ Onboarding désactivé (route contournée, index → tabs directement)
 - ✅ 0 `fontWeight` — tout en `fontFamily`
+- ✅ `allowFontScaling={false}` sur badges/chips, `maxFontSizeMultiplier={1.3}` sur descriptions
+- ✅ Cibles tactiles ≥ 44 px (ou `hitSlop` explicite)
+- ✅ Appels async protégés (`try/catch` services, `.catch()` écrans)
+- ✅ `useCallback` systématique sur handlers passés aux enfants
 
 ---
 

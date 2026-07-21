@@ -118,14 +118,18 @@ export function ScanLoading(_props: Props) {
     };
   }, []);
 
+  const particles = useMemo(() =>
+    Array.from({ length: PARTICLES }, (_, i) => (
+      <Particle key={i} index={i} t={theme} />
+    )),
+  [theme]);
+
   return (
     <View style={m.container}>
       <View style={m.animZone}>
         <HaloRing t={theme} />
         <View style={m.particlesBox}>
-          {Array.from({ length: PARTICLES }, (_, i) => (
-            <Particle key={i} index={i} t={theme} />
-          ))}
+          {particles}
         </View>
         <View style={m.centerIcon}>
           <View style={[m.iconCircle, { backgroundColor: theme.colors.primarySoft }]}>

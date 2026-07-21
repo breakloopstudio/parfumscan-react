@@ -1,7 +1,7 @@
 // src/features/catalog/CollapsingHeader.tsx — Header collapsé avec animation scroll
 
-import { useEffect, useMemo, useState } from 'react';
-import { View, Text, Pressable, LayoutAnimation, Platform, UIManager } from 'react-native';
+import { useMemo, useState } from 'react';
+import { View, Text, Pressable, LayoutAnimation } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import Animated, {
@@ -16,9 +16,6 @@ import Ionicons from '@react-native-vector-icons/ionicons/static';
 import { useTheme, type Theme } from '../../theme/ThemeContext';
 
 function applyLayoutAnimation() {
-  if (Platform.OS === 'android') {
-    UIManager.setLayoutAnimationEnabledExperimental?.(true);
-  }
   LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
 }
 
@@ -33,12 +30,6 @@ export default function CollapsingHeader({ scrollY, brand, name }: Props) {
   const s = useMemo(() => getStyles(theme), [theme]);
   const router = useRouter();
   const [compact, setCompact] = useState(false);
-
-  useEffect(() => {
-    if (Platform.OS === 'android') {
-      UIManager.setLayoutAnimationEnabledExperimental?.(true);
-    }
-  }, []);
 
   useAnimatedReaction(
     () => scrollY.value > 30,

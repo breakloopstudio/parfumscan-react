@@ -70,22 +70,22 @@ export default function WardrobeDetailPage() {
 
   const handleOwnershipChange = (o: WardrobeItem['ownership']) => {
     hapticsLight();
-    update(parfumId!, { ownership: o });
+    update(parfumId!, { ownership: o }).catch(() => {});
   };
 
   const handleRatingChange = (rating: number) => {
     hapticsLight();
-    update(parfumId!, { rating: rating === 0 ? null : rating });
+    update(parfumId!, { rating: rating === 0 ? null : rating }).catch(() => {});
   };
 
   const handleToggleShelf = (shelfId: string) => {
     const current = item.shelfIds;
     const next = current.includes(shelfId) ? current.filter(id => id !== shelfId) : [...current, shelfId];
-    update(parfumId!, { shelfIds: next });
+    update(parfumId!, { shelfIds: next }).catch(() => {});
   };
 
   const handleSizeChange = (ml: number) => {
-    update(parfumId!, { sizeMl: item.sizeMl === ml ? null : ml });
+    update(parfumId!, { sizeMl: item.sizeMl === ml ? null : ml }).catch(() => {});
   };
 
   const handleToggleSignature = () => {
@@ -96,18 +96,18 @@ export default function WardrobeDetailPage() {
       return;
     }
     hapticsLight();
-    update(parfumId!, { isSignature: next });
+    update(parfumId!, { isSignature: next }).catch(() => {});
   };
 
   const handleSaveNotes = () => {
-    update(parfumId!, { notes: notesDraft.trim() || null });
+    update(parfumId!, { notes: notesDraft.trim() || null }).catch(() => {});
     setShowNotesEdit(false);
   };
 
   const handleSotdToggle = () => {
     if (isSotd) return;
     hapticsLight();
-    setTodaySotd(item);
+    setTodaySotd(item).catch(() => {});
   };
 
   const handleRemove = () => {
@@ -117,7 +117,7 @@ export default function WardrobeDetailPage() {
         text: 'Retirer',
         style: 'destructive',
         onPress: async () => {
-          await remove(parfumId!);
+          await remove(parfumId!).catch(() => {});
           router.back();
         },
       },

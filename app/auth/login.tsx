@@ -40,13 +40,8 @@ export default function LoginPage() {
 
   const isLoading = loading !== null;
 
-  const Wrapper = Platform.OS === 'ios' ? KeyboardAvoidingView : View;
-  const wrapperProps = Platform.OS === 'ios'
-    ? { behavior: 'padding' as const, style: s.bg }
-    : { style: s.bg };
-
   return (
-    <Wrapper {...wrapperProps}>
+    <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'} style={s.bg}>
       <ScrollView
         contentContainerStyle={s.scroll}
         keyboardShouldPersistTaps="handled"
@@ -127,7 +122,7 @@ export default function LoginPage() {
           </Link>
         </View>
       </ScrollView>
-    </Wrapper>
+    </KeyboardAvoidingView>
   );
 }
 

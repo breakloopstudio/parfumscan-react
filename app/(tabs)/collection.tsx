@@ -1,7 +1,7 @@
 // app/(tabs)/collection.tsx — Parfumerie (garde-robe personnelle)
 
-import { useRef, useState, useMemo, useEffect } from 'react';
-import { View, Text, ScrollView, Pressable, ActivityIndicator, Alert, StyleSheet, type LayoutChangeEvent } from 'react-native';
+import { useRef, useState, useMemo, useEffect, useCallback } from 'react';
+import { View, Text, ScrollView, Pressable, ActivityIndicator, Alert, type LayoutChangeEvent } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import Ionicons from '@react-native-vector-icons/ionicons/static';
@@ -57,9 +57,9 @@ export default function WardrobePage({ onScroll, onSheetOpen }: Props) {
   const [sotdCardAnchor, setSotdCardAnchor] = useState<number>(0);
   const sotdCardRef = useRef<View>(null);
 
-  const handleSotdCardLayout = (e: LayoutChangeEvent) => {
+  const handleSotdCardLayout = useCallback((e: LayoutChangeEvent) => {
     setSotdCardAnchor(e.nativeEvent.layout.y + e.nativeEvent.layout.height);
-  };
+  }, []);
 
   useEffect(() => {
     onSheetOpen?.(quickSheetItem !== null || sotdPickerVisible);
@@ -89,13 +89,13 @@ export default function WardrobePage({ onScroll, onSheetOpen }: Props) {
 
   const handleQuickOwnership = (ownership: WardrobeItem['ownership']) => {
     if (!quickSheetItem) return;
-    update(quickSheetItem.parfumId, { ownership });
+    update(quickSheetItem.parfumId, { ownership }).catch(() => {});
     setQuickSheetItem(prev => prev ? { ...prev, ownership } : null);
   };
 
   const handleQuickRating = (rating: number) => {
     if (!quickSheetItem) return;
-    update(quickSheetItem.parfumId, { rating: rating === 0 ? null : rating });
+    update(quickSheetItem.parfumId, { rating: rating === 0 ? null : rating }).catch(() => {});
     setQuickSheetItem(prev => prev ? { ...prev, rating: rating === 0 ? null : rating } : null);
   };
 
@@ -103,7 +103,7 @@ export default function WardrobePage({ onScroll, onSheetOpen }: Props) {
     if (!quickSheetItem) return;
     const current = quickSheetItem.shelfIds;
     const next = current.includes(shelfId) ? current.filter(id => id !== shelfId) : [...current, shelfId];
-    update(quickSheetItem.parfumId, { shelfIds: next });
+    update(quickSheetItem.parfumId, { shelfIds: next }).catch(() => {});
     setQuickSheetItem(prev => prev ? { ...prev, shelfIds: next } : null);
   };
 
@@ -114,7 +114,7 @@ export default function WardrobePage({ onScroll, onSheetOpen }: Props) {
       Alert.alert('Limite atteinte', 'Vous avez déjà 3 signatures. Retirez-en une avant d\'en ajouter.');
       return;
     }
-    update(quickSheetItem.parfumId, { isSignature: next });
+    update(quickSheetItem.parfumId, { isSignature: next }).catch(() => {});
     setQuickSheetItem(prev => prev ? { ...prev, isSignature: next } : null);
   };
 
@@ -124,7 +124,7 @@ export default function WardrobePage({ onScroll, onSheetOpen }: Props) {
     if (!quickSheetItem) return;
     Alert.alert('Retirer', 'Retirer ce parfum de la parfumerie ?', [
       { text: 'Annuler', style: 'cancel' },
-      { text: 'Retirer', style: 'destructive', onPress: () => { remove(quickSheetItem.parfumId); setQuickSheetItem(null); } },
+      { text: 'Retirer', style: 'destructive', onPress: () => { remove(quickSheetItem.parfumId).catch(() => {}); setQuickSheetItem(null); } },
     ]);
   };
 
@@ -151,7 +151,7 @@ export default function WardrobePage({ onScroll, onSheetOpen }: Props) {
         </View>
         <EmptyState variant="wardrobe" onAction={() => router.replace('/(tabs)')} />
         <View style={s.emptyCtaRow}>
-          <Button variant="outline" onPress={() => router.push('/(tabs)/scan')} icon="camera-outline" style={{ minWidth: 200 }}>
+          <Button variant="outline" onPress={() => router.push('/(tabs)/scan')} icon="camera-outline" style={s.emptyCtaBtn}>
             Scanner un flacon
           </Button>
         </View>
@@ -233,7 +233,7 @@ export default function WardrobePage({ onScroll, onSheetOpen }: Props) {
           const item = sotdEligible.find(i => i.parfumId === parfumId);
           if (item) {
             hapticsLight();
-            setTodaySotd(item);
+            setTodaySotd(item).catch(() => {});
           }
           setSotdPickerVisible(false);
         }}
@@ -252,5 +252,6 @@ function getStyles(t: Theme) {
     authTitle: { fontFamily: 'PlayfairDisplay_600SemiBold', fontSize: 20, color: t.colors.text, marginTop: 12 },
     authDesc: { fontFamily: 'Inter_400Regular', fontSize: 14, color: t.colors.textMuted, textAlign: 'center', lineHeight: 20, marginTop: 6 },
     emptyCtaRow: { alignItems: 'center', marginTop: 8 },
+    emptyCtaBtn: { minWidth: 200 },
   } as const;
 }

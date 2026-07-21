@@ -1,6 +1,6 @@
 // app/settings.tsx — Page de paramètres
 
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo, useCallback } from 'react';
 import { View, Text, ScrollView, Switch, Pressable, Alert, StyleSheet } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
@@ -19,33 +19,33 @@ export default function SettingsPage() {
   const [priceAlerts, setPriceAlerts] = useState(false);
   const [pushNotifs, setPushNotifs] = useState(true);
 
-  const handleThemeChange = (m: ThemeMode) => {
+  const handleThemeChange = useCallback((m: ThemeMode) => {
     setMode(m);
-  };
+  }, [setMode]);
 
   useEffect(() => {
     if (user?.uid) {
       getUserSettings(user.uid).then(s => {
         setPriceAlerts(s.priceAlerts);
         setPushNotifs(s.pushNotifs);
-      });
+      }).catch(() => {});
     }
   }, [user?.uid]);
 
-  const handlePushNotifs = async (val: boolean) => {
+  const handlePushNotifs = useCallback(async (val: boolean) => {
     setPushNotifs(val);
-    if (user?.uid) await updateUserSetting(user.uid, 'pushNotifs', val);
+    if (user?.uid) updateUserSetting(user.uid, 'pushNotifs', val).catch(() => {});
     if (val) {
       requestFcmPermission().catch(() => {});
     } else {
       deleteFcmToken().catch(() => {});
     }
-  };
+  }, [user?.uid]);
 
-  const handlePriceAlerts = async (val: boolean) => {
+  const handlePriceAlerts = useCallback(async (val: boolean) => {
     setPriceAlerts(val);
-    if (user?.uid) await updateUserSetting(user.uid, 'priceAlerts', val);
-  };
+    if (user?.uid) updateUserSetting(user.uid, 'priceAlerts', val).catch(() => {});
+  }, [user?.uid]);
 
   return (
     <SafeAreaView edges={['top', 'bottom']} style={s.container}>
@@ -124,7 +124,7 @@ export default function SettingsPage() {
         <View style={s.section}>
           <Text style={s.sectionTitle}>Compte</Text>
 
-          <Pressable style={s.row} onPress={() => { logout(); router.replace('/auth/login'); }}>
+          <Pressable style={s.row} onPress={() => { logout().catch(() => {}); router.replace('/auth/login'); }}>
             <View style={s.rowLeft}>
               <Ionicons name="log-out-outline" size={20} color={theme.colors.overpriced} />
               <Text style={[s.rowLabel, { color: theme.colors.overpriced }]}>Déconnexion</Text>
@@ -188,7 +188,7 @@ function getStyles(t: Theme) {
     backBtn: { width: 32, height: 32, justifyContent: 'center', alignItems: 'center' },
     title: { fontFamily: 'PlayfairDisplay_700Bold', fontSize: 22, color: t.colors.text },
     section: { marginBottom: 24, paddingHorizontal: 16 },
-    sectionTitle: { fontFamily: 'Inter_700Bold', fontSize: 11, textTransform: 'uppercase', letterSpacing: 1.5, color: t.colors.textMuted, marginBottom: 12 },
+    sectionTitle: { fontFamily: 'Inter_400Regular', fontSize: 11, textTransform: 'uppercase', letterSpacing: 1.5, color: t.colors.textMuted, marginBottom: 12 },
     row: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingVertical: 12, borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: t.colors.border },
     rowLeft: { flexDirection: 'row', alignItems: 'center', gap: 12, flex: 1 },
     rowLabel: { fontFamily: 'Inter_500Medium', fontSize: 15, color: t.colors.text },

@@ -49,7 +49,6 @@ export default function TabPager() {
 
   const scrollY = useSharedValue(0);
   const dockTranslateY = useSharedValue(0);
-  const searchBarTranslateY = useSharedValue(0);
   const dockSheetVisible = useSharedValue(false);
   const [sheetOpen, setSheetOpen] = useState(false);
 
@@ -62,10 +61,8 @@ export default function TabPager() {
       if (prev === null || dockSheetVisible.value) return;
       if (current > prev! && current > SCROLL_HIDE_OFFSET) {
         dockTranslateY.value = withTiming(120, { duration: DOCK_DURATION, easing: Easing.out(Easing.cubic) });
-        searchBarTranslateY.value = withTiming(-70, { duration: DOCK_DURATION, easing: Easing.out(Easing.cubic) });
       } else if (current < prev!) {
         dockTranslateY.value = withTiming(0, { duration: DOCK_DURATION, easing: Easing.out(Easing.cubic) });
-        searchBarTranslateY.value = withTiming(0, { duration: DOCK_DURATION, easing: Easing.out(Easing.cubic) });
       }
     },
   );
@@ -111,7 +108,6 @@ export default function TabPager() {
       pageAnimating.value = false;
     });
     dockTranslateY.value = withTiming(0, { duration: DOCK_DURATION, easing: Easing.out(Easing.cubic) });
-    searchBarTranslateY.value = withTiming(0, { duration: DOCK_DURATION, easing: Easing.out(Easing.cubic) });
   }, [pageWidth]);
 
   const dockActiveIndex = activePage < 2 ? activePage : activePage + 1;
@@ -121,15 +117,6 @@ export default function TabPager() {
     const pagerIndex = dockIndex < 2 ? dockIndex : dockIndex - 1;
     goTo(pagerIndex);
   }, [goTo]);
-
-  const searchBarAnimatedStyle = useAnimatedStyle(() => {
-    const t = searchBarTranslateY.value;
-    const progress = Math.min(1, Math.abs(t) / 60);
-    return {
-      transform: [{ translateY: t }],
-      opacity: 1 - progress,
-    };
-  });
 
   const dockFadeStyle = useAnimatedStyle(() => ({
     opacity: withTiming(dockSheetVisible.value ? 0 : 1, { duration: 150 }),
@@ -188,7 +175,7 @@ export default function TabPager() {
 
   return (
     <SafeAreaView edges={['top']} style={[s.root, { backgroundColor: theme.colors.background }]}>
-      <Animated.View style={[m.searchWrap, m.searchBarShadow, searchBarAnimatedStyle]}>
+      <View style={[m.searchWrap, m.searchBarShadow]}>
         <Pressable
           style={({ pressed }) => [m.searchBar, pressed && m.searchBarPressed]}
           onPress={() => router.push('/(tabs)/search')}
@@ -202,7 +189,7 @@ export default function TabPager() {
           <Ionicons name="search-outline" size={18} color={theme.colors.textMuted} />
           <Text style={m.searchPlaceholder}>Rechercher un parfum...</Text>
         </Pressable>
-      </Animated.View>
+      </View>
 
       <GestureDetector gesture={pagerPan}>
         <Animated.View style={s.pagerClip}>

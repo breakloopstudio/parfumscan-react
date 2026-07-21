@@ -40,13 +40,8 @@ export default function RegisterPage() {
 
   const isLoading = loading !== null;
 
-  const Wrapper = Platform.OS === 'ios' ? KeyboardAvoidingView : View;
-  const wrapperProps = Platform.OS === 'ios'
-    ? { behavior: 'padding' as const, style: s.bg }
-    : { style: s.bg };
-
   return (
-    <Wrapper {...wrapperProps}>
+    <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'} style={s.bg}>
       <ScrollView contentContainerStyle={s.scroll} keyboardShouldPersistTaps="handled" style={Platform.OS !== 'ios' ? s.bgScroll : undefined}>
         <View style={s.form}>
           <View style={s.iconCircle}>
@@ -123,7 +118,7 @@ export default function RegisterPage() {
           </Link>
         </View>
       </ScrollView>
-    </Wrapper>
+    </KeyboardAvoidingView>
   );
 }
 

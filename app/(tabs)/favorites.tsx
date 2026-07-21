@@ -176,7 +176,7 @@ export default function FavoritesPage({ onScroll }: Props) {
     try {
       const p = await getParfumById(parfumId);
       if (p) setPendingParfum(p);
-    } catch {}
+    } catch (e: unknown) { console.warn('[favorites] getParfumById failed:', (e as Error)?.message ?? String(e)); }
     router.push(`/catalog/${parfumId}`);
   };
 
@@ -198,7 +198,7 @@ export default function FavoritesPage({ onScroll }: Props) {
         label: 'Ajouter à ma parfumerie',
         onPress: () => {
           setSelectedItem(null);
-          addToWardrobe(uid, item.parfumId, 'have', item.nom ?? undefined, item.marque ?? undefined, item.imageUrl ?? undefined);
+          addToWardrobe(uid, item.parfumId, 'have', item.nom ?? undefined, item.marque ?? undefined, item.imageUrl ?? undefined).catch(() => {});
         },
       },
       {
@@ -206,7 +206,7 @@ export default function FavoritesPage({ onScroll }: Props) {
         label: 'Déplacer vers Parfumerie',
         onPress: () => {
           setSelectedItem(null);
-          moveToCollection(uid, 'favoris', item.id, item.parfumId, item.nom ?? null, item.marque ?? null, item.imageUrl ?? null);
+          moveToCollection(uid, 'favoris', item.id, item.parfumId, item.nom ?? null, item.marque ?? null, item.imageUrl ?? null).catch(() => {});
         },
       },
       {
@@ -214,7 +214,7 @@ export default function FavoritesPage({ onScroll }: Props) {
         label: 'Déplacer vers Wishlist',
         onPress: () => {
           setSelectedItem(null);
-          moveToWishlist(uid, 'favoris', item.id, item.parfumId, item.nom ?? null, item.marque ?? null, item.imageUrl ?? null, item.familleOlactive ?? null);
+          moveToWishlist(uid, 'favoris', item.id, item.parfumId, item.nom ?? null, item.marque ?? null, item.imageUrl ?? null, item.familleOlactive ?? null).catch(() => {});
         },
       },
       {
@@ -224,7 +224,7 @@ export default function FavoritesPage({ onScroll }: Props) {
         onPress: () => {
           setSelectedItem(null);
           LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
-          removeFavori(item.id);
+          removeFavori(item.id).catch(() => {});
         },
       },
     ];
@@ -263,7 +263,7 @@ export default function FavoritesPage({ onScroll }: Props) {
           <Text style={s.title}>Favoris</Text>
           <ProfileAvatar />
         </View>
-        <ActivityIndicator style={{ marginTop: 24 }} color={theme.colors.primary} />
+        <ActivityIndicator style={s.loadingSpinner} color={theme.colors.primary} />
       </SafeAreaView>
     );
   }
@@ -558,5 +558,6 @@ function getStyles(t: Theme) {
     },
     gridItemWrap: { flex: 1 },
     listItemWrap: { marginBottom: 8 },
+    loadingSpinner: { marginTop: 24 },
   } as const;
 }

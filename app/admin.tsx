@@ -1,6 +1,6 @@
 // app/admin.tsx — Administration (upload images parfum)
 
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo, useCallback } from 'react';
 import {
   View, Text, ScrollView, Pressable, ActivityIndicator,
   Alert,
@@ -32,10 +32,10 @@ export default function AdminPage() {
 
   const selectedParfum = parfums.find(p => p.id === selectedId) ?? null;
 
-  if (!isAuthenticated) return <View style={s.center}><Text style={{color:theme.colors.textMuted}}>Connectez-vous en tant qu'admin.</Text></View>;
-  if (!isAdmin) return <View style={s.center}><Text style={{color:theme.colors.textMuted}}>Accès réservé aux administrateurs.</Text></View>;
+  if (!isAuthenticated) return <View style={s.center}><Text style={{fontFamily:'Inter_400Regular',color:theme.colors.textMuted}}>Connectez-vous en tant qu'admin.</Text></View>;
+  if (!isAdmin) return <View style={s.center}><Text style={{fontFamily:'Inter_400Regular',color:theme.colors.textMuted}}>Accès réservé aux administrateurs.</Text></View>;
 
-  const pickImage = async () => {
+  const pickImage = useCallback(async () => {
     if (!ImagePicker) { Alert.alert('Non disponible', 'Installe expo-image-picker pour uploader des images.'); return; }
     const result = await ImagePicker.launchImageLibraryAsync({
       mediaTypes: ['images'],
@@ -46,9 +46,9 @@ export default function AdminPage() {
       setUploadMsg(null);
       setUploadErr(false);
     }
-  };
+  }, []);
 
-  const doUpload = async () => {
+  const doUpload = useCallback(async () => {
     if (!selectedId || !selectedUri) return;
     setUploading(true); setUploadMsg(null); setUploadErr(false);
     try {
@@ -63,7 +63,7 @@ export default function AdminPage() {
     } finally {
       setUploading(false);
     }
-  };
+  }, [selectedId, selectedUri, selectedParfum]);
 
   return (
     <SafeAreaView style={s.container}>
@@ -77,7 +77,7 @@ export default function AdminPage() {
 
         <Text style={s.fieldLabel}>Parfum cible</Text>
         <ScrollView horizontal showsHorizontalScrollIndicator={false} style={s.pickerRow}>
-          {parfums.length === 0 && <Text style={{color:theme.colors.textMuted,fontSize:13}}>Aucun parfum dans la base.</Text>}
+          {parfums.length === 0 && <Text style={{fontFamily:'Inter_400Regular',color:theme.colors.textMuted,fontSize:13}}>Aucun parfum dans la base.</Text>}
           {parfums.slice(0, 50).map(p => (
             <Pressable
               key={p.id}
@@ -106,7 +106,7 @@ export default function AdminPage() {
           <View style={s.previewWrap}>
             <Image source={{ uri: selectedUri }} style={s.preview} contentFit="cover" transition={200} />
             <Pressable style={s.clearPreview} onPress={() => setSelectedUri(null)}>
-              <Text style={{color:theme.colors.danger,fontSize:13}}>✕ Retirer</Text>
+              <Text style={{fontFamily:'Inter_400Regular',color:theme.colors.danger,fontSize:13}}>✕ Retirer</Text>
             </Pressable>
           </View>
         )}
@@ -120,8 +120,8 @@ export default function AdminPage() {
           </Pressable>
         )}
 
-        {uploadMsg && <Text style={{ marginTop: 12, fontSize: 14, color: uploadErr ? theme.colors.danger : theme.colors.success }}>{uploadMsg}</Text>}
-        <Text style={{fontSize:12,color:theme.colors.textMuted,marginTop:8}}>Parfums dans la base : {parfums.length}</Text>
+        {uploadMsg && <Text style={{fontFamily:'Inter_400Regular',marginTop:12,fontSize:14,color:uploadErr?theme.colors.danger:theme.colors.success}}>{uploadMsg}</Text>}
+        <Text style={{fontFamily:'Inter_400Regular',fontSize:12,color:theme.colors.textMuted,marginTop:8}}>Parfums dans la base : {parfums.length}</Text>
       </ScrollView>
     </SafeAreaView>
   );
@@ -134,7 +134,7 @@ function getStyles(t: Theme) {
     scroll: { padding: 24 },
     title: { fontFamily: 'PlayfairDisplay_700Bold', fontSize: 24, color: t.colors.text, marginBottom: 24 },
     sub: { fontSize: 16, fontFamily: 'Inter_600SemiBold', color: t.colors.text, marginBottom: 8 },
-    desc: { fontSize: 14, color: t.colors.textMuted, marginBottom: 16, lineHeight: 20 },
+    desc: { fontSize: 14, fontFamily: 'Inter_400Regular', color: t.colors.textMuted, marginBottom: 16, lineHeight: 20 },
     btnUpload: { backgroundColor: t.colors.primary, borderRadius: t.radius.base, height: 48, justifyContent: 'center', alignItems: 'center', marginTop: 12, ...t.shadow.button },
     btnUploadText: { color: '#FFF', fontFamily: 'Inter_600SemiBold', fontSize: 15 },
     btnOutline: { borderWidth: 1, borderColor: t.colors.primary, borderRadius: t.radius.base, height: 48, justifyContent: 'center', alignItems: 'center', marginTop: 12 },
@@ -143,7 +143,7 @@ function getStyles(t: Theme) {
     pickerRow: { marginBottom: 12, maxHeight: 60 },
     pickItem: { paddingHorizontal: 14, paddingVertical: 8, borderRadius: 20, backgroundColor: t.colors.surface2, marginRight: 8 },
     pickActive: { backgroundColor: t.colors.violetSoft, borderWidth: 1, borderColor: t.colors.primary },
-    pickText: { fontSize: 13, color: t.colors.text },
+    pickText: { fontSize: 13, fontFamily: 'Inter_500Medium', color: t.colors.text },
     pickTextActive: { color: t.colors.primary, fontFamily: 'Inter_600SemiBold' },
     currentImgWrap: { marginBottom: 12 },
     currentImg: { width: '100%', height: 160, borderRadius: 12, resizeMode: 'cover' },
