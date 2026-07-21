@@ -1,11 +1,16 @@
 import * as fs from 'fs';
 import * as path from 'path';
+import * as os from 'os';
+import { execSync } from 'child_process';
 import { initializeApp, getApps, cert } from 'firebase-admin/app';
 import { getFirestore } from 'firebase-admin/firestore';
 import { getStorage } from 'firebase-admin/storage';
 import sharp from 'sharp';
 
 const SERVICE_ACCOUNT_PATH = path.resolve('service-account.json');
+const BG_REMOVAL_SCRIPT = path.resolve('scripts/bgremoval/remove-bg.cjs');
+const BG_REMOVAL_CWD = path.resolve('scripts/bgremoval');
+const BG_REMOVAL_ENABLED = process.env.BG_REMOVAL === 'true';
 
 // ---------------------------------------------------------------------------
 // Types
@@ -262,11 +267,36 @@ async function downloadAndUpload(
       let buffer = Buffer.from(await res.arrayBuffer());
       if (buffer.length === 0) return null;
 
+      // Optional background removal (env BG_REMOVAL=true)
+      let hasAlpha = false;
+      if (BG_REMOVAL_ENABLED) {
+        try {
+          const tmpIn = path.join(os.tmpdir(), `pscan_${parfumId}_in`);
+          const tmpOut = path.join(os.tmpdir(), `pscan_${parfumId}_out.png`);
+          fs.writeFileSync(tmpIn, buffer);
+          execSync(`node remove-bg.cjs "${tmpIn}" "${tmpOut}"`, {
+            cwd: BG_REMOVAL_CWD,
+            stdio: 'pipe',
+            timeout: 30000,
+          });
+          if (fs.existsSync(tmpOut) && fs.statSync(tmpOut).size > 0) {
+            buffer = fs.readFileSync(tmpOut);
+            hasAlpha = true;
+          }
+          // Cleanup temp files
+          try { fs.unlinkSync(tmpIn); } catch { /* ignore */ }
+          try { fs.unlinkSync(tmpOut); } catch { /* ignore */ }
+        } catch {
+          // BG removal failed — fall back to regular conversion
+        }
+      }
+
       // Convert to WebP (quality 82 — best size/perception tradeoff for 375×500 bottles)
-      const webpBuffer = await sharp(buffer)
-        .flatten({ background: { r: 255, g: 255, b: 255 } })
-        .webp({ quality: 82 })
-        .toBuffer();
+      let sharpPipe = sharp(buffer);
+      if (!hasAlpha) {
+        sharpPipe = sharpPipe.flatten({ background: { r: 255, g: 255, b: 255 } });
+      }
+      const webpBuffer = await sharpPipe.webp({ quality: 82 }).toBuffer();
 
       const filePath = `parfums/${parfumId}/primary.webp`;
       const file = bucket.file(filePath);

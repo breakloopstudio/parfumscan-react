@@ -89,5 +89,11 @@
       "<rootDir>/data/"
     ]
   },
-  "private": true
+  "private": true,
+  "allowScripts": {
+    "onnxruntime-node@1.27.0": true,
+    "onnxruntime-node@1.17.3": true,
+    "sharp@0.32.6": true,
+    "sharp@0.35.3": true
+  }
 }

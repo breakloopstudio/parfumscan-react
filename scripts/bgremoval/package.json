@@ -1,0 +1,12 @@
+{
+  "name": "parfumscan-bgremoval",
+  "private": true,
+  "type": "module",
+  "dependencies": {
+    "@imgly/background-removal-node": "*"
+  },
+  "allowScripts": {
+    "onnxruntime-node@1.17.3": true,
+    "sharp@0.32.6": true
+  }
+}
