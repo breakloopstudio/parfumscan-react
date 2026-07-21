@@ -1,0 +1,30 @@
+// src/hooks/useDensityPreference.ts — Persistance AsyncStorage du mode d'affichage grille
+
+import { useState, useEffect, useCallback } from 'react';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import type { CardMode } from '../components/ParfumCard';
+
+const KEY = '@parfumscan/catalog-density';
+
+const VALID: readonly CardMode[] = ['comfortable', 'compactPlus', 'list'];
+
+function isValid(v: string | null): v is CardMode {
+  return VALID.includes(v as CardMode);
+}
+
+export function useDensityPreference() {
+  const [density, setDensityState] = useState<CardMode>('comfortable');
+
+  useEffect(() => {
+    AsyncStorage.getItem(KEY).then(v => {
+      if (isValid(v)) setDensityState(v);
+    }).catch(() => {});
+  }, []);
+
+  const setDensity = useCallback((mode: CardMode) => {
+    setDensityState(mode);
+    AsyncStorage.setItem(KEY, mode).catch(() => {});
+  }, []);
+
+  return { density, setDensity } as const;
+}

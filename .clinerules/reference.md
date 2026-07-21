@@ -18,8 +18,8 @@ export function getPopularParfums(limit: number): Promise<Parfum[]>;
 export function getPersonalizedSuggestions(uid: string, limit: number): Promise<Parfum[]>;
 export function searchParfumsCached(query: string): Promise<Parfum[]>;
 // Scoring par prefixe (startsWith) + bonus reviewCount, limit 200
-export function getSimilarParfums(familleOlactive: string, excludeId: string, limit?: number): Promise<Parfum[]>;
-// Tire 60 parfums de la meme famille, trie par popularityScore desc, prend le top 40, shuffle journalier (Lehmer RNG)
+export function getSimilarParfums(mainAccords: string[], excludeId: string, limit?: number): Promise<Parfum[]>;
+// Scoring par nombre d'accords partages (array-contains-any) + popularityScore, shuffle journalier (Lehmer RNG)
 ```
 
 ### `src/utils/normalize.ts`
@@ -221,6 +221,16 @@ export function useSotd(uid: string | null): {
   sotd: SotdEntry | null;
   setTodaySotd: (item: WardrobeItem) => Promise<void>;
   refresh: () => Promise<void>;
+};
+```
+
+```
+### `useDensityPreference()` — `src/hooks/useDensityPreference.ts`
+```ts
+// Persistance AsyncStorage du mode d'affichage grille — partage catalogue + recherche
+export function useDensityPreference(): {
+  density: CardMode;     // 'comfortable' | 'compactPlus' | 'list'
+  setDensity: (mode: CardMode) => void;
 };
 ```
 
@@ -475,3 +485,73 @@ interface Props {
 - Haptics integres sur le FAB, delegues au parent pour les onglets
 
 **Dependances** : `expo-blur`, `react-native-reanimated`, `@react-native-vector-icons/ionicons`, `react-native-safe-area-context`
+
+### `ParfumCard` — `src/components/ParfumCard.tsx`
+
+Carte parfum 4 modes — point d'entree unique pour l'affichage catalogue, recherche, favoris, historique, wardrove.
+
+```ts
+export type CardMode = 'compact' | 'comfortable' | 'compactPlus' | 'list';
+
+interface Props {
+  parfum: Parfum;
+  mode?: CardMode;         // defaut: 'comfortable'
+  onPressOverride?: () => void;
+}
+```
+
+| Mode | Usage | Taille image | Contenu |
+|---|---|---|---|
+| `compact` | Rangees horizontales | 140×186 | Marque + nom (2 lignes) + prix + badge promo (>10%) |
+| `comfortable` | Grille 2 col (defaut) | ratio 3:4 | Marque + nom + tags (famille, annee) + notes de tete (3) + price dot (deal/fair/overpriced) + prix + badge promo |
+| `compactPlus` | Grille 2 col dense | 90px | Marque (abregee) + nom (1 ligne) + price dot + prix |
+| `list` | Liste verticale | 56×74 | Marque + nom + tags + price dot + prix + prix barre + chevron |
+
+### `CatalogPage` — `src/features/catalog/CatalogPage.tsx`
+
+Page catalogue principale — structure hybride rangees editoriales + grille filtrable.
+
+```ts
+interface Props {
+  onScroll?: (y: number) => void;  // drive le show/hide du DockBar parent
+}
+```
+
+**Structure** : capsules marques → « Pour vous » (rangee) → « Meilleures affaires » (rangee) → « Explorer par famille » (ambiance cards) → « Icones intemporelles » (rangee, repliee) → grille « Tous les parfums » avec controles densite + filtre.
+
+### `BrandCapsules` — `src/features/catalog/BrandCapsules.tsx`
+
+Pastilles marques rectangulaires (42px hauteur, nom complet) en scroll horizontal.
+
+```ts
+interface Props {
+  onViewAll: () => void;
+  onBrandTap: (brand: string) => void;
+}
+```
+
+### `CatalogRow` — `src/features/catalog/CatalogRow.tsx`
+
+Rangee editoriale horizontale avec titre Playfair Display, sous-titre optionnel, chevron collapse/expand, et action « Voir tout → ».
+
+```ts
+interface Props {
+  title: string;
+  subtitle?: string;
+  actionLabel?: string;
+  onAction?: () => void;
+  collapsible?: boolean;
+  defaultCollapsed?: boolean;
+  children: React.ReactNode;  // cartes ParfumCard en mode compact
+}
+```
+
+### `FamilyAmbianceCards` — `src/features/catalog/FamilyAmbianceCards.tsx`
+
+6 cartes d'ambiance (140×80) pour explorer les familles olfactives. Chaque carte utilise un fond `theme.colors[*Soft]` + icone Ionicons + couleur d'accent — entierement theme-aware (light + dark).
+
+```ts
+interface Props {
+  onFamilyTap: (query: string) => void;
+}
+```

@@ -1,20 +1,39 @@
-// src/components/ParfumCard.tsx — Carte parfum réutilisable
+// src/components/ParfumCard.tsx — Carte parfum réutilisable (4 modes)
+// compact (rangées horizontales), comfortable (grille 2 col), compactPlus (grille dense), list
 
 import { useMemo, useState } from 'react';
-import { View, Text, Pressable, Linking, StyleSheet } from 'react-native';
+import { View, Text, Pressable, StyleSheet } from 'react-native';
 import { Image } from 'expo-image';
 import { useRouter } from 'expo-router';
-import Ionicons from "@react-native-vector-icons/ionicons/static";
 import { useTheme, type Theme } from '../theme/ThemeContext';
 import type { Parfum } from '../models';
 import { setPendingParfum } from '../services/catalog-bridge';
 import { translateNote } from '../utils/translate-note';
 
-interface Props { parfum: Parfum; showDeal?: boolean; compact?: boolean; onPressOverride?: () => void; }
+export type CardMode = 'compact' | 'comfortable' | 'compactPlus' | 'list';
+
+interface Props {
+  parfum: Parfum;
+  mode?: CardMode;
+  onPressOverride?: () => void;
+}
 
 function getDiscount(p: Parfum): number | null {
   if (typeof p.referencePrice === 'number' && p.referencePrice > 0 && typeof p.bestPrice === 'number') {
-    return Math.round((1 - p.bestPrice / p.referencePrice) * 100);
+    const d = Math.round((1 - p.bestPrice / p.referencePrice) * 100);
+    return d >= 10 ? d : null;
+  }
+  return null;
+}
+
+type PriceTier = 'deal' | 'fair' | 'overpriced' | null;
+function getPriceTier(p: Parfum): PriceTier {
+  if (typeof p.bestPrice !== 'number' || p.bestPrice <= 0) return null;
+  if (typeof p.referencePrice === 'number' && p.referencePrice > 0) {
+    const ratio = p.bestPrice / p.referencePrice;
+    if (ratio <= 0.8) return 'deal';
+    if (ratio >= 1.15) return 'overpriced';
+    if (ratio <= 0.95) return 'fair';
   }
   return null;
 }
@@ -31,12 +50,14 @@ function resolveImageUrl(p: Parfum): string | null {
   return p.imageUrl ?? null;
 }
 
-export default function ParfumCard({ parfum, showDeal = false, compact = false, onPressOverride }: Props) {
+export default function ParfumCard({ parfum, mode = 'comfortable', onPressOverride }: Props) {
   const { theme } = useTheme();
   const s = useMemo(() => getStyles(theme), [theme]);
   const router = useRouter();
   const [imgFailed, setImgFailed] = useState(false);
+
   const discount = getDiscount(parfum);
+  const priceTier = getPriceTier(parfum);
   const bestPrice = parfum.bestPrice ?? null;
   const imageUrl = resolveImageUrl(parfum);
   const hasImage = imageUrl !== null;
@@ -45,135 +66,268 @@ export default function ParfumCard({ parfum, showDeal = false, compact = false, 
   const imageSource = useMemo(() => (imageUrl ? { uri: imageUrl } : null), [imageUrl]);
 
   const goToDetail = () => {
-    if (onPressOverride) {
-      onPressOverride();
-      return;
-    }
+    if (onPressOverride) { onPressOverride(); return; }
     setPendingParfum(parfum);
     router.push(`/catalog/${parfum.id}`);
   };
 
-  return (
-    <Pressable style={compact ? s.cardCompact : s.card} onPress={goToDetail}>
+  // ── Mode: compact (rangées horizontales) ──
+  if (mode === 'compact') {
+    return (
+      <Pressable style={s.cardCompact} onPress={goToDetail}>
         {showImage ? (
-          <View style={compact ? s.imgWrapCompact : s.imgWrap}>
-            <View style={compact ? s.imgBgCompact : s.imgBg} />
-            <Image source={imageSource!} style={compact ? s.imgCompact : s.img} contentFit={compact ? 'contain' : 'cover'} transition={300} onError={() => setImgFailed(true)} />
-            {discount !== null && <View style={compact ? s.dealBadgeCompact : s.dealBadge}><Text style={compact ? s.dealBadgeTextCompact : s.dealBadgeText}>-{discount}%</Text></View>}
+          <View style={s.imgWrapCompact}>
+            <View style={s.imgBgCompact} />
+            <Image source={imageSource!} style={s.imgCompact} contentFit="contain" transition={300} onError={() => setImgFailed(true)} />
+            {discount !== null && <View style={s.dealBadgeCompact}><Text style={s.dealBadgeTextCompact}>-{discount}%</Text></View>}
           </View>
         ) : (
-          <View style={[compact ? s.imgPlaceholderCompact : s.imgPlaceholder, { backgroundColor: tint }]}>
-            <Text style={compact ? s.placeholderInitCompact : s.placeholderInit}>
-              {parfum.marque.charAt(0).toUpperCase()}
-            </Text>
+          <View style={[s.imgPlaceholderCompact, { backgroundColor: tint }]}>
+            <Text style={s.placeholderInitCompact}>{parfum.marque.charAt(0).toUpperCase()}</Text>
           </View>
         )}
-        <View style={compact ? s.headerCompact : s.header}>
-          <Text style={compact ? s.brandCompact : s.brand}>{parfum.marque}</Text>
-          <Text style={compact ? s.titleCompact : s.title} numberOfLines={compact ? 2 : undefined} ellipsizeMode="tail">{parfum.nom}</Text>
+        <View style={s.headerCompact}>
+          <Text style={s.brandCompact} numberOfLines={1}>{parfum.marque}</Text>
+          <Text style={s.titleCompact} numberOfLines={2} ellipsizeMode="tail">{parfum.nom}</Text>
         </View>
-        <View style={compact ? s.bodyCompact : s.body}>
-          <View style={compact ? s.tagsCompact : s.tags}>
-            <View style={compact ? s.tagFamilyCompact : s.tagFamily}><Text style={compact ? s.tagFamilyTextCompact : s.tagFamilyText}>{translateNote(parfum.familleOlactive)}</Text></View>
-            {parfum.annee && <View style={compact ? s.tagYearCompact : s.tagYear}><Text style={compact ? s.tagYearTextCompact : s.tagYearText}>{parfum.annee}</Text></View>}
-          </View>
-          {!compact && parfum.notesTete.length > 0 && (
-            <View style={s.notes}>
-              <Text style={s.notesLabel}>Tête</Text>
-              <Text style={s.notesText}>{parfum.notesTete.slice(0, 3).map(translateNote).join(' · ')}</Text>
-            </View>
+        <View style={s.priceRowCompact}>
+          {bestPrice !== null ? (
+            <>
+              <Text style={s.priceCompact}>{bestPrice.toFixed(0)} €</Text>
+              {parfum.referencePrice && bestPrice < parfum.referencePrice && (
+                <Text style={s.priceRefCompact}>{parfum.referencePrice.toFixed(0)} €</Text>
+              )}
+            </>
+          ) : (
+            <Text style={s.priceCompactMuted}>— €</Text>
           )}
         </View>
-        {!compact && showDeal && (
-          <View style={s.dealZone}>
-            <View style={s.dealPrice}>
-              {bestPrice !== null ? (
-                <>
-                  <Text style={s.dealFrom}>Dès</Text>
-                  <Text style={s.dealAmount}>{bestPrice.toFixed(2)} €</Text>
-                  {parfum.referencePrice && <Text style={s.dealRef}>{parfum.referencePrice.toFixed(2)} €</Text>}
-                </>
-              ) : (
-                <>
-                  <Ionicons name="trending-down-outline" size={18} color={theme.colors.deal} />
-                  <Text style={s.dealTeaser}>Comparer les prix</Text>
-                </>
-              )}
-            </View>
-            {bestPrice !== null && parfum.purchaseUrl ? (
-              <Pressable style={s.dealCta} onPress={() => Linking.openURL(parfum.purchaseUrl!)} hitSlop={8}>
-                <Text style={s.dealCtaText}>Voir l'offre</Text>
-                <Ionicons name="chevron-forward" size={15} color={theme.colors.primary} />
-              </Pressable>
-            ) : (
-              <View style={s.dealCta}>
-                <Text style={s.dealCtaGhost}>Bientôt</Text>
-                <Ionicons name="chevron-forward" size={15} color={theme.colors.textMuted} />
-              </View>
-            )}
-          </View>
-        )}
       </Pressable>
     );
+  }
+
+  // ── Mode: comfortable (grille 2 col, défaut) ──
+  if (mode === 'comfortable') {
+    return (
+      <Pressable style={s.cardComfortable} onPress={goToDetail}>
+        {showImage ? (
+          <View style={s.imgWrapComfortable}>
+            <View style={s.imgBgComfortable} />
+            <Image source={imageSource!} style={s.imgComfortable} contentFit="contain" transition={300} onError={() => setImgFailed(true)} />
+            {discount !== null && <View style={s.dealBadge}><Text style={s.dealBadgeText}>-{discount}%</Text></View>}
+          </View>
+        ) : (
+          <View style={[s.imgPlaceholderComfortable, { backgroundColor: tint }]}>
+            <Text style={s.placeholderInitComfortable}>{parfum.marque.charAt(0).toUpperCase()}</Text>
+          </View>
+        )}
+        <View style={s.bodyComfortable}>
+          <Text style={s.brandComfortable} numberOfLines={1}>{parfum.marque}</Text>
+          <Text style={s.titleComfortable} numberOfLines={2} ellipsizeMode="tail">{parfum.nom}</Text>
+          {parfum.familleOlactive || parfum.annee ? (
+            <View style={s.tags}>
+              {parfum.familleOlactive ? (
+                <View style={s.tagFamily}><Text style={s.tagFamilyText}>{translateNote(parfum.familleOlactive)}</Text></View>
+              ) : null}
+              {parfum.annee ? (
+                <View style={s.tagYear}><Text style={s.tagYearText}>{parfum.annee}</Text></View>
+              ) : null}
+            </View>
+          ) : null}
+          {parfum.notesTete.length > 0 && (
+            <Text style={s.notesText} numberOfLines={1}>{parfum.notesTete.slice(0, 3).map(translateNote).join(' · ')}</Text>
+          )}
+          <View style={s.priceRowComfortable}>
+            {priceTier && <View style={[s.priceDot, { backgroundColor: theme.colors[priceTier] }]} />}
+            {bestPrice !== null ? (
+              <>
+                <Text style={s.priceComfortable}>{bestPrice.toFixed(0)} €</Text>
+                {parfum.referencePrice && bestPrice < parfum.referencePrice && (
+                  <Text style={s.priceRefComfortable}>{parfum.referencePrice.toFixed(0)} €</Text>
+                )}
+              </>
+            ) : (
+              <Text style={s.priceComfortableMuted}>— €</Text>
+            )}
+          </View>
+        </View>
+      </Pressable>
+    );
+  }
+
+  // ── Mode: compactPlus (grille 2 col dense) ──
+  if (mode === 'compactPlus') {
+    return (
+      <Pressable style={s.cardCompactPlus} onPress={goToDetail}>
+        {showImage ? (
+          <View style={s.imgWrapCompactPlus}>
+            <View style={s.imgBgCompactPlus} />
+            <Image source={imageSource!} style={s.imgCompactPlus} contentFit="contain" transition={300} onError={() => setImgFailed(true)} />
+            {discount !== null && <View style={s.dealBadgeCompactPlus}><Text style={s.dealBadgeTextCompactPlus}>-{discount}%</Text></View>}
+          </View>
+        ) : (
+          <View style={[s.imgPlaceholderCompactPlus, { backgroundColor: tint }]}>
+            <Text style={s.placeholderInitCompactPlus}>{parfum.marque.charAt(0).toUpperCase()}</Text>
+          </View>
+        )}
+        <View style={s.bodyCompactPlus}>
+          <Text style={s.brandCompactPlus} numberOfLines={1}>{parfum.marque}</Text>
+          <Text style={s.titleCompactPlus} numberOfLines={1} ellipsizeMode="tail">{parfum.nom}</Text>
+          <View style={s.priceRowCompactPlus}>
+            {priceTier && <View style={[s.priceDotSmall, { backgroundColor: theme.colors[priceTier] }]} />}
+            {bestPrice !== null ? (
+              <>
+                <Text style={s.priceCompactPlus}>{bestPrice.toFixed(0)} €</Text>
+                {parfum.referencePrice && bestPrice < parfum.referencePrice && (
+                  <Text style={s.priceRefCompactPlus}>{parfum.referencePrice.toFixed(0)} €</Text>
+                )}
+              </>
+            ) : (
+              <Text style={s.priceCompactPlusMuted}>— €</Text>
+            )}
+          </View>
+        </View>
+      </Pressable>
+    );
+  }
+
+  // ── Mode: list ──
+  if (mode === 'list') {
+    return (
+      <Pressable style={s.cardList} onPress={goToDetail}>
+        {showImage ? (
+          <View style={s.imgWrapList}>
+            <Image source={imageSource!} style={s.imgList} contentFit="contain" transition={300} onError={() => setImgFailed(true)} />
+          </View>
+        ) : (
+          <View style={[s.imgPlaceholderList, { backgroundColor: tint }]}>
+            <Text style={s.placeholderInitList}>{parfum.marque.charAt(0).toUpperCase()}</Text>
+          </View>
+        )}
+        <View style={s.bodyList}>
+          <Text style={s.brandList} numberOfLines={1}>{parfum.marque}</Text>
+          <Text style={s.titleList} numberOfLines={1} ellipsizeMode="tail">{parfum.nom}</Text>
+          <View style={s.tagsList}>
+            {parfum.familleOlactive ? (
+              <View style={s.tagFamily}><Text style={s.tagFamilyText}>{translateNote(parfum.familleOlactive)}</Text></View>
+            ) : null}
+            {parfum.annee ? (
+              <View style={s.tagYear}><Text style={s.tagYearText}>{parfum.annee}</Text></View>
+            ) : null}
+          </View>
+        </View>
+        <View style={s.priceColList}>
+          <View style={s.priceRowList}>
+            {priceTier && <View style={[s.priceDotSmall, { backgroundColor: theme.colors[priceTier] }]} />}
+            {bestPrice !== null ? (
+              <Text style={s.priceList}>{bestPrice.toFixed(0)} €</Text>
+            ) : (
+              <Text style={s.priceListMuted}>— €</Text>
+            )}
+          </View>
+          {parfum.referencePrice && bestPrice && bestPrice < parfum.referencePrice && (
+            <Text style={s.priceRefList}>{parfum.referencePrice.toFixed(0)} €</Text>
+          )}
+        </View>
+      </Pressable>
+    );
+  }
+
+  return null;
 }
 
 function getStyles(t: Theme) {
   return {
-    card: {
-      marginHorizontal: 16, marginVertical: 6,
-      borderRadius: t.radius.card, backgroundColor: t.colors.surface,
-      overflow: 'hidden', ...t.shadow.card,
+    // ── Shared ──
+    tagFamily: { backgroundColor: t.colors.violetSoft, paddingHorizontal: 8, paddingVertical: 3, borderRadius: 20 },
+    tagFamilyText: { fontSize: 10, fontFamily: 'Inter_500Medium', color: t.colors.violetInk },
+    tagYear: { backgroundColor: t.colors.rewardSoft, paddingHorizontal: 8, paddingVertical: 3, borderRadius: 20 },
+    tagYearText: { fontSize: 10, fontFamily: 'Inter_500Medium', color: t.colors.reward },
+    priceDot: { width: 8, height: 8, borderRadius: 4, marginRight: 4 },
+    priceDotSmall: { width: 7, height: 7, borderRadius: 3.5, marginRight: 4 },
+
+    // ── Compact (horizontal rows) ──
+    cardCompact: {
+      width: 140, borderRadius: t.radius.card, backgroundColor: t.colors.surface,
+      overflow: 'hidden', ...t.shadow.card, marginBottom: 2,
     },
-    imgWrap: { position: 'relative', maxHeight: 180, overflow: 'hidden', backgroundColor: t.colors.surface },
-    imgBg: { position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: t.colors.surface },
-    img: { width: '100%', height: 180, resizeMode: 'cover', backgroundColor: t.colors.surface },
-    dealBadge: {
-      position: 'absolute', top: 12, right: 12,
-      backgroundColor: t.colors.reward, paddingHorizontal: 10, paddingVertical: 5, borderRadius: 20,
-    },
-    dealBadgeText: { color: '#1F1A2E', fontFamily: 'Inter_800ExtraBold', fontSize: 13 },
-    header: { padding: 16, paddingBottom: 0 },
-    brand: { fontSize: 12, textTransform: 'uppercase', letterSpacing: 1.5, color: t.colors.textMuted, marginBottom: 2 },
-    title: { fontFamily: 'PlayfairDisplay_600SemiBold', fontSize: 18, color: t.colors.text },
-    body: { paddingHorizontal: 16, paddingTop: 8, paddingBottom: 8 },
-    tags: { flexDirection: 'row', gap: 8, flexWrap: 'wrap', marginBottom: 6 },
-    tagFamily: { backgroundColor: t.colors.violetSoft, paddingHorizontal: 10, paddingVertical: 4, borderRadius: 20 },
-    tagFamilyText: { fontSize: 11, fontFamily: 'Inter_500Medium', color: t.colors.violetInk },
-    tagYear: { backgroundColor: t.colors.rewardSoft, paddingHorizontal: 10, paddingVertical: 4, borderRadius: 20 },
-    tagYearText: { fontSize: 11, fontFamily: 'Inter_500Medium', color: t.colors.reward },
-    notes: { flexDirection: 'row', alignItems: 'center', gap: 8, marginTop: 2 },
-    notesLabel: { fontSize: 10, textTransform: 'uppercase', letterSpacing: 1, color: t.colors.reward, backgroundColor: t.colors.rewardSoft, paddingHorizontal: 8, paddingVertical: 2, borderRadius: 10 },
-    notesText: { fontSize: 12, color: t.colors.textMuted, flex: 1 },
-    dealZone: {
-      flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
-      padding: 12, borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: t.colors.border, backgroundColor: t.colors.dealSoft,
-    },
-    dealPrice: { flexDirection: 'row', alignItems: 'baseline', gap: 6 },
-    dealFrom: { fontSize: 11, color: t.colors.textMuted },
-    dealAmount: { fontSize: 18, fontFamily: 'Inter_800ExtraBold', color: t.colors.deal },
-    dealRef: { fontSize: 12, color: t.colors.textMuted, textDecorationLine: 'line-through' },
-    dealTeaser: { fontSize: 14, fontFamily: 'Inter_600SemiBold', color: t.colors.text },
-    dealCta: { flexDirection: 'row', alignItems: 'center', gap: 2 },
-    dealCtaText: { fontSize: 13, fontFamily: 'Inter_700Bold', color: t.colors.primary },
-    dealCtaGhost: { fontSize: 13, fontFamily: 'Inter_600SemiBold', color: t.colors.textMuted },
-    cardCompact: { margin: 4, borderRadius: t.radius.card, backgroundColor: t.colors.surface, overflow: 'hidden', ...t.shadow.card },
-    imgWrapCompact: { position: 'relative', maxHeight: 130, overflow: 'hidden', backgroundColor: t.colors.surface },
+    imgWrapCompact: { position: 'relative', height: 186, overflow: 'hidden', backgroundColor: t.colors.surface },
     imgBgCompact: { position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: t.colors.surface },
-    imgCompact: { width: '100%', height: 130, resizeMode: 'cover', backgroundColor: t.colors.surface },
-    dealBadgeCompact: { position: 'absolute', top: 6, right: 6, backgroundColor: t.colors.reward, paddingHorizontal: 6, paddingVertical: 3, borderRadius: 20 },
-    dealBadgeTextCompact: { color: '#1F1A2E', fontFamily: 'Inter_800ExtraBold', fontSize: 10 },
-    headerCompact: { padding: 10, paddingBottom: 0 },
-    brandCompact: { fontSize: 10, textTransform: 'uppercase', letterSpacing: 1, color: t.colors.textMuted, marginBottom: 1 },
-    titleCompact: { fontFamily: 'PlayfairDisplay_600SemiBold', fontSize: 14, color: t.colors.text, lineHeight: 18 },
-    bodyCompact: { paddingHorizontal: 10, paddingTop: 4, paddingBottom: 8 },
-    tagsCompact: { flexDirection: 'row', gap: 4, flexWrap: 'wrap' },
-    tagFamilyCompact: { backgroundColor: t.colors.violetSoft, paddingHorizontal: 6, paddingVertical: 2, borderRadius: 20 },
-    tagFamilyTextCompact: { fontSize: 9, fontFamily: 'Inter_500Medium', color: t.colors.violetInk },
-    tagYearCompact: { backgroundColor: t.colors.rewardSoft, paddingHorizontal: 6, paddingVertical: 2, borderRadius: 20 },
-    tagYearTextCompact: { fontSize: 9, fontFamily: 'Inter_500Medium', color: t.colors.reward },
-    imgPlaceholder: { width: '100%', height: 180, justifyContent: 'center', alignItems: 'center' },
-    imgPlaceholderCompact: { width: '100%', height: 130, justifyContent: 'center', alignItems: 'center' },
-    placeholderInit: { fontSize: 72, fontFamily: 'Inter_700Bold', color: '#FFFFFF', opacity: 0.5 },
+    imgCompact: { width: '100%', height: '100%', backgroundColor: t.colors.surface },
+    imgPlaceholderCompact: { width: '100%', height: 186, justifyContent: 'center', alignItems: 'center' },
     placeholderInitCompact: { fontSize: 48, fontFamily: 'Inter_700Bold', color: '#FFFFFF', opacity: 0.5 },
+    dealBadgeCompact: { position: 'absolute', top: 8, left: 8, backgroundColor: t.colors.deal, paddingHorizontal: 6, paddingVertical: 3, borderRadius: 6 },
+    dealBadgeTextCompact: { color: '#FFFFFF', fontFamily: 'Inter_600SemiBold', fontSize: 10 },
+    headerCompact: { padding: 10, paddingBottom: 2 },
+    brandCompact: { fontSize: 10, textTransform: 'uppercase', letterSpacing: 1, color: t.colors.textMuted, fontFamily: 'Inter_400Regular' },
+    titleCompact: { fontFamily: 'PlayfairDisplay_600SemiBold', fontSize: 14, color: t.colors.text, lineHeight: 18 },
+    priceRowCompact: { flexDirection: 'row', alignItems: 'baseline', paddingHorizontal: 10, paddingBottom: 10, gap: 4 },
+    priceCompact: { fontFamily: 'Inter_700Bold', fontSize: 14, color: t.colors.text },
+    priceRefCompact: { fontFamily: 'Inter_400Regular', fontSize: 11, color: t.colors.textMuted, textDecorationLine: 'line-through' },
+    priceCompactMuted: { fontFamily: 'Inter_400Regular', fontSize: 14, color: t.colors.textMuted },
+
+    // ── Comfortable (grid 2 col) ──
+    cardComfortable: {
+      borderRadius: t.radius.card, backgroundColor: t.colors.surface,
+      overflow: 'hidden', borderWidth: 1, borderColor: t.colors.border,
+    },
+    imgWrapComfortable: { position: 'relative', aspectRatio: 3/4, overflow: 'hidden', backgroundColor: t.colors.surface },
+    imgBgComfortable: { position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: t.colors.surface },
+    imgComfortable: { width: '100%', height: '100%', backgroundColor: t.colors.surface },
+    imgPlaceholderComfortable: { aspectRatio: 3/4, justifyContent: 'center', alignItems: 'center' },
+    placeholderInitComfortable: { fontSize: 56, fontFamily: 'Inter_700Bold', color: '#FFFFFF', opacity: 0.5 },
+    dealBadge: { position: 'absolute', top: 8, left: 8, backgroundColor: t.colors.deal, paddingHorizontal: 8, paddingVertical: 4, borderRadius: 6 },
+    dealBadgeText: { color: '#FFFFFF', fontFamily: 'Inter_600SemiBold', fontSize: 11 },
+    bodyComfortable: { padding: 10 },
+    brandComfortable: { fontSize: 11, textTransform: 'uppercase', letterSpacing: 1.5, color: t.colors.textMuted, fontFamily: 'Inter_400Regular', marginBottom: 2 },
+    titleComfortable: { fontFamily: 'PlayfairDisplay_600SemiBold', fontSize: 16, color: t.colors.text, lineHeight: 19, marginBottom: 6 },
+    tags: { flexDirection: 'row', gap: 5, flexWrap: 'wrap', marginBottom: 4 },
+    notesText: { fontSize: 11, color: t.colors.textMuted, fontFamily: 'Inter_400Regular', marginBottom: 6 },
+    priceRowComfortable: { flexDirection: 'row', alignItems: 'baseline', gap: 0 },
+    priceComfortable: { fontFamily: 'Inter_700Bold', fontSize: 17, color: t.colors.text },
+    priceRefComfortable: { fontFamily: 'Inter_400Regular', fontSize: 11, color: t.colors.textMuted, textDecorationLine: 'line-through', marginLeft: 4 },
+    priceComfortableMuted: { fontFamily: 'Inter_400Regular', fontSize: 17, color: t.colors.textMuted },
+
+    // ── CompactPlus (grid dense) ──
+    cardCompactPlus: {
+      borderRadius: t.radius.base, backgroundColor: t.colors.surface,
+      overflow: 'hidden', borderWidth: 1, borderColor: t.colors.border,
+    },
+    imgWrapCompactPlus: { position: 'relative', height: 90, overflow: 'hidden', backgroundColor: t.colors.surface },
+    imgBgCompactPlus: { position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: t.colors.surface },
+    imgCompactPlus: { width: '100%', height: '100%', backgroundColor: t.colors.surface },
+    imgPlaceholderCompactPlus: { width: '100%', height: 90, justifyContent: 'center', alignItems: 'center' },
+    placeholderInitCompactPlus: { fontSize: 32, fontFamily: 'Inter_700Bold', color: '#FFFFFF', opacity: 0.5 },
+    dealBadgeCompactPlus: { position: 'absolute', top: 4, left: 4, backgroundColor: t.colors.deal, paddingHorizontal: 5, paddingVertical: 2, borderRadius: 4 },
+    dealBadgeTextCompactPlus: { color: '#FFFFFF', fontFamily: 'Inter_600SemiBold', fontSize: 9 },
+    bodyCompactPlus: { padding: 8 },
+    brandCompactPlus: { fontSize: 10, textTransform: 'uppercase', letterSpacing: 0.8, color: t.colors.textMuted, fontFamily: 'Inter_400Regular' },
+    titleCompactPlus: { fontFamily: 'PlayfairDisplay_600SemiBold', fontSize: 13, color: t.colors.text, lineHeight: 16, marginBottom: 6 },
+    priceRowCompactPlus: { flexDirection: 'row', alignItems: 'baseline' },
+    priceCompactPlus: { fontFamily: 'Inter_700Bold', fontSize: 14, color: t.colors.text },
+    priceRefCompactPlus: { fontFamily: 'Inter_400Regular', fontSize: 10, color: t.colors.textMuted, textDecorationLine: 'line-through', marginLeft: 3 },
+    priceCompactPlusMuted: { fontFamily: 'Inter_400Regular', fontSize: 14, color: t.colors.textMuted },
+
+    // ── List ──
+    cardList: {
+      flexDirection: 'row', alignItems: 'center',
+      borderRadius: t.radius.base, backgroundColor: t.colors.surface,
+      padding: 10, gap: 12,
+      borderWidth: 1, borderColor: t.colors.border,
+    },
+    imgWrapList: { width: 56, height: 74, borderRadius: t.radius.sm, overflow: 'hidden', backgroundColor: t.colors.surface },
+    imgList: { width: '100%', height: '100%', backgroundColor: t.colors.surface },
+    imgPlaceholderList: { width: 56, height: 74, borderRadius: t.radius.sm, justifyContent: 'center', alignItems: 'center' },
+    placeholderInitList: { fontSize: 24, fontFamily: 'Inter_700Bold', color: '#FFFFFF', opacity: 0.5 },
+    bodyList: { flex: 1, minWidth: 0 },
+    brandList: { fontSize: 11, textTransform: 'uppercase', letterSpacing: 1, color: t.colors.textMuted, fontFamily: 'Inter_400Regular' },
+    titleList: { fontFamily: 'PlayfairDisplay_600SemiBold', fontSize: 15, color: t.colors.text, marginBottom: 4 },
+    tagsList: { flexDirection: 'row', gap: 4, flexWrap: 'wrap' },
+    priceColList: { alignItems: 'flex-end', flexShrink: 0 },
+    priceRowList: { flexDirection: 'row', alignItems: 'baseline' },
+    priceList: { fontFamily: 'Inter_700Bold', fontSize: 16, color: t.colors.text },
+    priceListMuted: { fontFamily: 'Inter_400Regular', fontSize: 16, color: t.colors.textMuted },
+    priceRefList: { fontFamily: 'Inter_400Regular', fontSize: 11, color: t.colors.textMuted, textDecorationLine: 'line-through', marginTop: 2 },
+
   } as const;
 }

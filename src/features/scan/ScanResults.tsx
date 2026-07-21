@@ -43,7 +43,7 @@ export function ScanResults({ parfums, onOpenCatalog }: Props) {
         keyExtractor={(p, i) => `${p.id}_${i}`}
         extraData={resolvedMode}
         renderItem={({ item }) => (
-          <ParfumCard parfum={item} showDeal onPressOverride={() => handleParfumPress(item)} />
+          <ParfumCard parfum={item} mode="comfortable" onPressOverride={() => handleParfumPress(item)} />
         )}
         contentContainerStyle={s.list}
         showsVerticalScrollIndicator={false}

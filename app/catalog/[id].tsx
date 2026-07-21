@@ -23,6 +23,7 @@ import AlertPriceToggle from '../../src/components/AlertPriceToggle';
 import WardrobeAddSheet from '../../src/features/wardrobe/WardrobeAddSheet';
 import NoteDetailPopup from '../../src/components/NoteDetailPopup';
 import ImageViewerPopup from '../../src/components/ImageViewerPopup';
+import ParfumCard from '../../src/components/ParfumCard';
 import HeroPriceOverlay from '../../src/features/catalog/HeroPriceOverlay';
 import CollapsingHeader from '../../src/features/catalog/CollapsingHeader';
 import StickyBottomBar from '../../src/features/catalog/StickyBottomBar';
@@ -259,36 +260,39 @@ export default function CatalogDetailPage() {
   }, [user?.uid, id]);
 
 
-  // Parfums similaires — recherche Firestore par famille olfactive
+  // Parfums similaires — recherche Firestore par accords partagés
   useEffect(() => {
-    if (!parfum?.familleOlactive || !parfum?.id) return;
+    if (!parfum?.mainAccords || parfum.mainAccords.length === 0 || !parfum?.id) return;
 
     const loadSimilars = async () => {
       setSimilarsLoading(true);
 
-      // Step 1: check Firestore cache via similarIds
-      if (parfum.similarIds && parfum.similarIds.length > 0) {
-        const cached = (await Promise.all(
-          parfum.similarIds.map((id: string) => getParfumById(id).catch(() => undefined))
-        )).filter(Boolean) as Parfum[];
+      // Step 1: check Firestore cache via similarIds (TTL 24h)
+      if (parfum.similarIds && parfum.similarIds.length > 0 && parfum.similarIdsCachedAt) {
+        const age = Date.now() - parfum.similarIdsCachedAt.getTime();
+        if (age < 86400000) {
+          const cached = (await Promise.all(
+            parfum.similarIds.map((id: string) => getParfumById(id).catch(() => undefined))
+          )).filter(Boolean) as Parfum[];
 
-        if (cached.length >= 3) {
-          setSimilars(cached);
-          setSimilarsLoading(false);
-          return;
+          if (cached.length >= 3) {
+            setSimilars(cached);
+            setSimilarsLoading(false);
+            return;
+          }
         }
       }
 
-      // Step 2: recherche Firestore par famille olfactive
+      // Step 2: recherche Firestore par accords partagés
       try {
-        const results = await getSimilarParfums(parfum.familleOlactive, parfum.id!, 6);
+        const results = await getSimilarParfums(parfum.mainAccords!, parfum.id!, 6);
 
         if (results.length > 0) {
           setSimilars(results);
 
-          // Persist similarIds pour les prochains visiteurs
+          // Persist similarIds + timestamp pour les prochains visiteurs
           const ids = results.map((p: Parfum) => p.id);
-          updateParfum(parfum.id!, { similarIds: ids }).catch(() => {});
+          updateParfum(parfum.id!, { similarIds: ids, similarIdsCachedAt: new Date() }).catch(() => {});
         }
       } catch {
         // silent fail
@@ -571,23 +575,16 @@ export default function CatalogDetailPage() {
               <SectionTitle icon="🔄" title="Parfums similaires" s={s} />
               <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={s.similarRow}>
                 {similars.map(sim => (
-                  <Pressable
-                    key={sim.id}
-                    style={s.similarCard}
-                    onPress={() => {
-                      setPendingParfum(sim);
-                      router.push(`/catalog/${sim.id}`);
-                    }}
-                  >
-                    <View style={s.similarImgWrap}>
-                      <Ionicons name="flask-outline" size={24} color={t.colors.textMuted} />
-                    </View>
-                    <Text style={s.similarBrand} numberOfLines={1}>{sim.marque}</Text>
-                    <Text style={s.similarName} numberOfLines={2}>{sim.nom}</Text>
-                    {sim.bestPrice && (
-                      <Text style={s.similarPrice}>{sim.bestPrice.toFixed(0)} €</Text>
-                    )}
-                  </Pressable>
+                  <View key={sim.id} style={s.similarCardWrap}>
+                    <ParfumCard
+                      parfum={sim}
+                      mode="compact"
+                      onPressOverride={() => {
+                        setPendingParfum(sim);
+                        router.push(`/catalog/${sim.id}`);
+                      }}
+                    />
+                  </View>
                 ))}
               </ScrollView>
             </View>
@@ -700,11 +697,7 @@ function getStyles(t: Theme) {
   accordDot: { width: 8, height: 8, borderRadius: 4 },
   // ─── Similaires ───
   similarRow: { gap: 12, paddingTop: 4 },
-  similarCard: { width: 130, backgroundColor: t.colors.surface2, borderRadius: t.radius.card, padding: 12, alignItems: 'center', borderWidth: 1, borderColor: t.colors.border },
-  similarImgWrap: { width: 56, height: 56, borderRadius: 28, backgroundColor: t.colors.border, justifyContent: 'center', alignItems: 'center', marginBottom: 8 },
-  similarBrand: { fontFamily: 'Inter_600SemiBold', fontSize: 11, color: t.colors.textMuted, textAlign: 'center' },
-  similarName: { fontFamily: 'Inter_500Medium', fontSize: 12, color: t.colors.text, textAlign: 'center', marginTop: 2 },
-  similarPrice: { fontFamily: 'Inter_700Bold', fontSize: 14, color: t.colors.primary, marginTop: 6 },
+  similarCardWrap: { width: 160 },
   // ─── Multi-offres ───
   offerRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingVertical: 10, borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: t.colors.border },
   offerLeft: { flexDirection: 'row', alignItems: 'center', gap: 8 },

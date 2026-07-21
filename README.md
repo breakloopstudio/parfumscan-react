@@ -21,7 +21,7 @@
 | 🎨 **UI/UX « Luxe malin »** | Design system violet profond + doré/ambré + teal, 0 fontWeight, Inter + Playfair Display |
 | 📸 **Scan intelligent** | Burst 3 photos → GPT-4o Vision (adaptatif : 70% en 1 appel, 30% en cross-ref 2 photos) → searchParfumsCached() |
 | 🖼️ **Import galerie** | Photo existante → même pipeline IA, sans permissions supplémentaires |
-| 📚 **Catalogue** | Recherche 100% Firestore (21K parfums seed), navigation par famille olfactive, tri (prix/pertinence), suggestions personnalisées |
+| 📚 **Catalogue** | Catalogue 21K parfums (seed Firestore), navigation par familles (rangées éditoriales), capsules marques (top 10), grille 3 densités + persistance, recherche 100% Firestore |
 | 🧪 **Parfumerie** | Parfums possédés/souhaités/échantillons/décants, étagères custom, parfum signature (max 3), SOTD compact |
 | 🧪 **Décants & échantillons** | Tailles dédiées 2–30ml, distinctes des formats full-size (30–200ml) |
 | ⭐ **Wishlist** | Parfums à acheter, alertes prix |
@@ -133,7 +133,7 @@ app/
 │   ├── history.tsx           # Historique des scans
 │   ├── collection.tsx        # Parfumerie (grid, étagères, SOTD, parfum signature) — ex « Garde-robe »
 │   ├── scan.tsx              # Scanner overlay (push FAB)
-│   └── search.tsx            # Overlay recherche plein écran (barre persistante → push)
+│   └── search.tsx            # Overlay recherche (résultats en grille 3 densités, recherches récentes)
 ├── auth/
 │   ├── login.tsx             # Connexion email + Google
 │   └── register.tsx          # Inscription
@@ -147,13 +147,13 @@ app/
 
 src/
 ├── services/     (12)        # Firebase, Firestore, GPT-4o, user-data, wardrobe, theme-storage…
-├── hooks/        (11)        # useAuth, useScanReducer, useCatalog, useFavoris, useCollection, useWishlist, useScans, useWardrobe, useShelves, useSotd, useNetwork
+├── hooks/        (12)        # useAuth, useScanReducer, useCatalog, useFavoris, useCollection, useWishlist, useScans, useWardrobe, useShelves, useSotd, useNetwork, useDensityPreference
 ├── contexts/     (1)         # AuthContext (ThemeContext est dans src/theme/)
 ├── components/   (13)        # ParfumCard, Button, PriceDisplay, SectionHeader, EmptyState, OfflineBanner, AlertPriceToggle, AppLoader, ErrorBoundary, ProfileAvatar, NoteDetailPopup, ImageViewerPopup, ActionSheet
 ├── theme/        (2)         # theme.ts (double palette light/dark), ThemeContext.tsx (SystemUI + NavigationBar theming)
 ├── features/
 │   ├── scan/     (8)         # ScanScreen + 7 sous-états
-│   ├── catalog/  (5)         # CatalogPage, OlfactoryPyramid v5 (SVG unifié, touch, onNotePress), HeroPriceOverlay, CollapsingHeader, StickyBottomBar
+│   ├── catalog/ (8)    # CatalogPage, BrandCapsules, CatalogRow, FamilyAmbianceCards, OlfactoryPyramid v5, HeroPriceOverlay, CollapsingHeader, StickyBottomBar
 │   ├── wardrobe/ (9)         # WardrobeAddSheet, WardrobeCard, WardrobeGrid, WardrobeQuickSheet, SOTDCard (compact redesign), SOTDPicker, FilterBar, StarRating, ShelfManager
 │   └── navigation/ (1)       # DockBar (barre flottante 5 positions + FAB, indicateur doré, pulse ring, show/hide)
 ├── models/       (8)         # Parfum, WardrobeItem, Shelf, SotdEntry, UserFavori, UserScan, UserCollectionItem, UserWishlistItem
@@ -311,13 +311,24 @@ dénormalisés → affichage direct sans appel API Firestore supplémentaire.
 - **Firebase modular API** : migration namespaced → modular (v25+)
 - **Onboarding** : 3 slides swipe au 1er lancement, AsyncStorage `@parfumscan_onboarding_done` (⏸️ désactivé temporairement)
 
+## v6.8 — Refonte Catalogue v2 (21/07/2026)
+
+- **Structure hybride** : rangées éditoriales horizontales (façon Spotify/Netflix) + grille filtrable en dessous
+- **Suppression chips famille olfactive** : remplacés par dilution dans sections nommées + cartes d'ambiance « Explorer par famille » (6 cartes theme-aware avec Ionicons)
+- **Capsules marques** : top 10 marques en pastilles rectangulaires + « Toutes → » (à venir : bottom sheet A-Z)
+- **ParfumCard 4 modes** : `compact` (rangées, 140px), `comfortable` (grille défaut, tags famille/année + notes de tête + price dot deal/fair/overpriced), `compactPlus` (grille dense, image 90px), `list`
+- **Densité persistée** : AsyncStorage (`@parfumscan/catalog-density`), partagée entre catalogue et recherche
+- **Recherche** : chips famille supprimées, contrôles de densité identiques à la grille (Confort./Compact/Liste)
+- **Nouveaux composants** : `BrandCapsules`, `CatalogRow` (collapse/expand avec chevron), `FamilyAmbianceCards` (6 cartes d'ambiance avec couleurs du thème)
+- **Nouveau hook** : `useDensityPreference` (lecture/écriture AsyncStorage, partagé catalogue + recherche)
+
 ## v6.7 — Pipeline seed autonome + ImageViewer + Search améliorée (20/07/2026)
 
 - **Pipeline seed autonome** : catalogue 21K parfums importé depuis scrape Apify → `data/clean/` → Firestore. Zéro dépendance à l'API Fragella. Images hébergées sur Firebase Storage.
 - **ImageViewerPopup** : tap sur la photo du parfum (fiche détail) → popup plein écran avec animation fade+scale, tap n'importe où pour fermer.
 - **Recherche en grille** : `numColumns={2}` + `ParfumCard compact`, affichage 2 colonnes pour les résultats de recherche.
 - **Images en `contain`** : `contentFit="contain"` sur les cartes compactes et la fiche détail — plus de crop/zoom, le flacon est visible en entier.
-- **Parfums similaires** : tri par `popularityScore` décroissant, pool de 40, shuffle journalier (Lehmer RNG) — plus les mêmes 6 parfums en boucle.
+- **Parfums similaires** : scoring par nombre d'accords partagés (`array-contains-any`) + `popularityScore`, shuffle journalier — parfums qui partagent les mêmes accords, pas juste la même famille.
 - **Recherche par préfixes** : scoring `startsWith` + bonus `reviewCount`, limit 200, génération de préfixes dans `buildSearchKeywords()`.
 - **Dark mode fixes** : `extraData={resolvedMode}` et `key={resolvedMode}` dans les FlatList/PagerView pour re-render correct au changement de thème.
 - **New components** : `ImageViewerPopup` (popup image plein écran)

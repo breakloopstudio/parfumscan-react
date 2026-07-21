@@ -1,5 +1,6 @@
 // app/(tabs)/search.tsx — Overlay recherche plein écran
 // Ouvert depuis la barre de recherche persistante (index.tsx) ou les chips famille (CatalogPage)
+// Mêmes contrôles de densité que la grille catalogue
 
 import { useState, useEffect, useRef, useMemo, useCallback } from 'react';
 import { View, Text, TextInput, FlatList, Pressable, ActivityIndicator, StyleSheet } from 'react-native';
@@ -7,21 +8,19 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import Ionicons from '@react-native-vector-icons/ionicons/static';
 import { useCatalog } from '../../src/hooks/useCatalog';
-import ParfumCard from '../../src/components/ParfumCard';
+import ParfumCard, { type CardMode } from '../../src/components/ParfumCard';
 import { useTheme, type Theme } from '../../src/theme/ThemeContext';
 import { consumePendingCatalogQuery } from '../../src/services/catalog-bridge';
+import { useDensityPreference } from '../../src/hooks/useDensityPreference';
+
+const GRID_MODES: { key: CardMode; label: string }[] = [
+  { key: 'comfortable', label: 'Confort.' },
+  { key: 'compactPlus', label: 'Compact' },
+  { key: 'list', label: 'Liste' },
+];
 
 // Persiste les recherches recentes entre les navigations
 let _recentSearches: string[] = [];
-
-const FAMILIES = [
-  { label: 'Tous',    query: null },
-  { label: 'Floral',  query: 'floral' },
-  { label: 'Oriental',query: 'oriental' },
-  { label: 'Boisé',   query: 'woody' },
-  { label: 'Frais',   query: 'fresh' },
-  { label: 'Fougère', query: 'fougere' },
-];
 
 export default function SearchScreen() {
   const { theme, resolvedMode } = useTheme();
@@ -34,7 +33,7 @@ export default function SearchScreen() {
   const inputRef = useRef<TextInput>(null);
   const [searchText, setSearchText] = useState(initialQuery ?? '');
   const { parfums, searching, search, clear } = useCatalog();
-  const [activeFamily, setActiveFamily] = useState<string | null>(null);
+  const { density: searchDensity, setDensity: setSearchDensity } = useDensityPreference();
   const [recentSearches, setRecentSearches] = useState<string[]>(_recentSearches);
 
   useEffect(() => {
@@ -52,17 +51,6 @@ export default function SearchScreen() {
   const handleTextChange = useCallback((t: string) => {
     setSearchText(t);
     t.trim().length >= 3 ? search(t) : clear();
-  }, [search, clear]);
-
-  const handleFamily = useCallback((query: string | null) => {
-    setActiveFamily(query);
-    if (query) {
-      setSearchText(query);
-      search(query);
-    } else {
-      clear();
-      setSearchText('');
-    }
   }, [search, clear]);
 
   const handleResultPress = useCallback((id: string) => {
@@ -104,7 +92,7 @@ export default function SearchScreen() {
             keyboardAppearance={keyboardAppearance}
           />
           {searchText.length > 0 && (
-            <Pressable onPress={() => { setSearchText(''); clear(); setActiveFamily(null); }} hitSlop={8}>
+            <Pressable onPress={() => { setSearchText(''); clear(); }} hitSlop={8}>
               <Ionicons name="close-circle" size={18} color={theme.colors.textMuted} />
             </Pressable>
           )}
@@ -130,45 +118,41 @@ export default function SearchScreen() {
         </View>
       )}
 
-      <FlatList
-        horizontal
-        showsHorizontalScrollIndicator={false}
-        style={s.filterRow}
-        contentContainerStyle={s.filterChips}
-        data={FAMILIES}
-        renderItem={({ item }) => (
-          <Pressable
-            style={[s.filterChip, activeFamily === item.query && s.filterChipActive]}
-            onPress={() => handleFamily(item.query)}
-          >
-            <Text style={[s.filterChipText, activeFamily === item.query && s.filterChipTextActive]}>
-              {item.label}
-            </Text>
-          </Pressable>
-        )}
-        keyExtractor={f => f.label}
-      />
-
       {searching && <ActivityIndicator style={{ marginTop: 24 }} color={theme.colors.primary} />}
 
       {hasResults ? (
-        <FlatList
-          key={`search-results-${resolvedMode}`}
-          data={parfums}
-          numColumns={2}
-          keyExtractor={(p, i) => `${p.id}_${i}`}
-          renderItem={({ item }) => (
-            <View style={s.resultCardWrap}>
-              <Pressable onPress={() => handleResultPress(item.id)}>
-                <ParfumCard parfum={item} compact />
+        <>
+          <View style={s.densityRow}>
+            {GRID_MODES.map(m => (
+              <Pressable
+                key={m.key}
+                style={[s.segmentBtn, searchDensity === m.key && s.segmentBtnActive]}
+                onPress={() => setSearchDensity(m.key)}
+              >
+                <Text style={[s.segmentBtnText, searchDensity === m.key && s.segmentBtnTextActive]}>
+                  {m.label}
+                </Text>
               </Pressable>
-            </View>
-          )}
-          columnWrapperStyle={s.resultRow}
-          contentContainerStyle={{ paddingHorizontal: 16, paddingBottom: 16 }}
-          showsVerticalScrollIndicator={false}
-          keyboardShouldPersistTaps="handled"
-        />
+            ))}
+          </View>
+          <FlatList
+            key={`search-${searchDensity}-${resolvedMode}`}
+            data={parfums}
+            numColumns={searchDensity === 'list' ? 1 : 2}
+            keyExtractor={(p, i) => `${p.id}_${i}`}
+            renderItem={({ item }) => (
+              <View style={searchDensity === 'list' ? s.resultCardWrapFull : s.resultCardWrap}>
+                <Pressable onPress={() => handleResultPress(item.id)}>
+                  <ParfumCard parfum={item} mode={searchDensity} />
+                </Pressable>
+              </View>
+            )}
+            columnWrapperStyle={searchDensity !== 'list' ? s.resultRow : undefined}
+            contentContainerStyle={{ paddingHorizontal: 16, paddingBottom: 16 }}
+            showsVerticalScrollIndicator={false}
+            keyboardShouldPersistTaps="handled"
+          />
+        </>
       ) : searchText.length >= 3 && !searching ? (
         <View style={s.empty}>
           <Ionicons name="search-outline" size={48} color={theme.colors.textMuted} style={{ opacity: 0.4 }} />
@@ -261,37 +245,35 @@ function getStyles(t: Theme) {
       fontSize: 13,
       color: t.colors.textMuted,
     },
-    filterRow: {
-      maxHeight: 44,
-      marginBottom: 4,
-    },
-    filterChips: {
-      paddingHorizontal: 16,
-      gap: 8,
-      alignItems: 'center',
-    },
-    filterChip: {
-      paddingHorizontal: 14,
-      paddingVertical: 8,
-      borderRadius: 20,
-      backgroundColor: t.colors.surface,
-      borderWidth: 1,
-      borderColor: t.colors.border,
-    },
-    filterChipActive: {
-      backgroundColor: t.colors.primarySoft,
-      borderColor: t.colors.primary,
-    },
-    filterChipText: {
-      fontFamily: 'Inter_500Medium',
-      fontSize: 13,
-      color: t.colors.textMuted,
-    },
-    filterChipTextActive: {
-      color: t.colors.primaryInk,
-    },
     resultRow: { gap: 8, marginBottom: 8 },
     resultCardWrap: { flex: 1, maxWidth: '50%' },
+    resultCardWrapFull: { width: '100%' },
+    densityRow: {
+      flexDirection: 'row',
+      gap: 6,
+      paddingHorizontal: 16,
+      paddingVertical: 10,
+      borderBottomWidth: StyleSheet.hairlineWidth,
+      borderBottomColor: t.colors.border,
+    },
+    segmentBtn: {
+      paddingHorizontal: 14,
+      paddingVertical: 9,
+      borderRadius: 6,
+      backgroundColor: t.colors.surface2,
+      minHeight: 42,
+      justifyContent: 'center',
+    },
+    segmentBtnActive: {
+      backgroundColor: t.colors.surface,
+      ...t.shadow.card,
+    },
+    segmentBtnText: {
+      fontFamily: 'Inter_500Medium', fontSize: 12, color: t.colors.textMuted,
+    },
+    segmentBtnTextActive: {
+      fontFamily: 'Inter_600SemiBold', color: t.colors.text,
+    },
     empty: {
       alignItems: 'center',
       paddingTop: 48,

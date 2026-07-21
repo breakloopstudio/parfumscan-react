@@ -33,7 +33,7 @@ export default function WardrobeCard({ item, onPress }: Props) {
   return (
     <View style={s.wrapper}>
       <View style={s.cardWrap}>
-        <ParfumCard parfum={cardItem} compact onPressOverride={onPress} />
+        <ParfumCard parfum={cardItem} mode="compact" onPressOverride={onPress} />
 
         {item.rating !== null && item.rating > 0 && (
           <View style={s.ratingOverlay}>

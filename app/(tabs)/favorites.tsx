@@ -337,7 +337,7 @@ export default function FavoritesPage({ onScroll }: Props) {
         <Pressable onLongPress={() => showContextMenu(item)} delayLongPress={400} style={{ flex: 1 }}>
           <ParfumCard
             parfum={cardData}
-            compact
+            mode="compact"
             onPressOverride={() => goToDetail(item.parfumId)}
           />
         </Pressable>
