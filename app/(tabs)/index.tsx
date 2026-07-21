@@ -1,23 +1,25 @@
 // app/(tabs)/index.tsx — Pager horizontal 4 pages (Catalogue, Favoris, Historique, Parfumerie)
-// Dock flottant 5 positions + FAB scan avec indicateur doré
-// Barre de recherche persistante synchronisée avec le dock
-// Utilise react-native-pager-view pour la gestion native des conflits de swipe
-// (les ScrollView horizontaux dans les pages n'entrent plus en conflit avec le swipe du pager)
+// Dock flottant 5 positions + FAB scan avec indicateur dore
+// Barre de recherche persistante synchronisee avec le dock
+// Pager custom GestureDetector + Reanimated — resolution native des conflits de swipe
+// avec les ScrollView horizontaux internes (catalogue v2)
 
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { View, Text, Pressable, useWindowDimensions, StyleSheet, type ViewStyle } from 'react-native';
 import { useRouter, useFocusEffect } from 'expo-router';
 import Ionicons from '@react-native-vector-icons/ionicons/static';
 import { BlurView } from 'expo-blur';
+import { Gesture, GestureDetector } from 'react-native-gesture-handler';
 import Animated, {
   useSharedValue,
   useAnimatedStyle,
   useAnimatedReaction,
   withTiming,
+  withSpring,
+  runOnJS,
   Easing,
 } from 'react-native-reanimated';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import PagerView from 'react-native-pager-view';
 import { useTheme, type Theme } from '../../src/theme/ThemeContext';
 import { hapticsLight } from '../../src/services/haptics';
 import { consumePendingParfum, setPendingParfum } from '../../src/services/catalog-bridge';
@@ -30,23 +32,29 @@ import DockBar from '../../src/features/navigation/DockBar';
 const DOCK_DURATION = 200;
 const PAGES = 4;
 const SCROLL_HIDE_OFFSET = 60;
+const SWIPE_THRESHOLD = 80;
+const MIN_VELOCITY = 400;
+const ACTIVATE_X = 30;
+const FAIL_Y = 15;
 
 export default function TabPager() {
   const { theme, resolvedMode } = useTheme();
   const { width: windowWidth } = useWindowDimensions();
   const router = useRouter();
-  const pagerRef = useRef<PagerView>(null);
 
   const pageWidth = useSharedValue(windowWidth || 400);
   const currentPage = useSharedValue(0);
   const [activePage, setActivePage] = useState(0);
+  const pageAnimating = useSharedValue(false);
 
   const scrollY = useSharedValue(0);
   const dockTranslateY = useSharedValue(0);
   const searchBarTranslateY = useSharedValue(0);
   const dockSheetVisible = useSharedValue(false);
   const [sheetOpen, setSheetOpen] = useState(false);
-  const [catalogSwipeLock, setCatalogSwipeLock] = useState(false);
+
+  const translateX = useSharedValue(0);
+  const startX = useSharedValue(0);
 
   useAnimatedReaction(
     () => scrollY.value,
@@ -89,20 +97,22 @@ export default function TabPager() {
     setSheetOpen(visible);
   }, []);
 
-  const handlePageSelected = useCallback((e: { nativeEvent: { position: number } }) => {
-    const p = e.nativeEvent.position;
-    currentPage.value = p;
+  const setActivePageJS = useCallback((p: number) => {
     setActivePage(p);
   }, []);
 
+  // Naviguer vers une page (depuis le DockBar)
   const goTo = useCallback((p: number) => {
-    pagerRef.current?.setPage(p);
+    pageAnimating.value = true;
     currentPage.value = p;
     setActivePage(p);
     scrollY.value = 0;
+    translateX.value = withTiming(-p * pageWidth.value, { duration: 300, easing: Easing.out(Easing.cubic) }, () => {
+      pageAnimating.value = false;
+    });
     dockTranslateY.value = withTiming(0, { duration: DOCK_DURATION, easing: Easing.out(Easing.cubic) });
     searchBarTranslateY.value = withTiming(0, { duration: DOCK_DURATION, easing: Easing.out(Easing.cubic) });
-  }, []);
+  }, [pageWidth]);
 
   const dockActiveIndex = activePage < 2 ? activePage : activePage + 1;
 
@@ -124,6 +134,51 @@ export default function TabPager() {
   const dockFadeStyle = useAnimatedStyle(() => ({
     opacity: withTiming(dockSheetVisible.value ? 0 : 1, { duration: 150 }),
   }));
+
+  const pagesStyle = useAnimatedStyle(() => ({
+    transform: [{ translateX: translateX.value }],
+    width: pageWidth.value * PAGES,
+    height: '100%',
+  }));
+
+  // Gesture Pan pour le pager
+  const pagerPan = useMemo(() => Gesture.Pan()
+    .enabled(!sheetOpen)
+    .activeOffsetX([-ACTIVATE_X, ACTIVATE_X])
+    .failOffsetY([-FAIL_Y, FAIL_Y])
+    .onStart(() => {
+      startX.value = translateX.value;
+    })
+    .onUpdate((e) => {
+      const target = startX.value + e.translationX;
+      const minX = -(PAGES - 1) * pageWidth.value;
+      translateX.value = Math.max(minX, Math.min(0, target));
+    })
+    .onEnd((e) => {
+      const velocity = e.velocityX;
+      const currentOffset = -translateX.value / pageWidth.value;
+      let targetPage = Math.round(currentOffset);
+
+      if (Math.abs(velocity) > MIN_VELOCITY) {
+        targetPage = velocity > 0 ? Math.floor(currentOffset) : Math.ceil(currentOffset);
+      } else {
+        const diff = currentOffset - activePage;
+        targetPage = activePage + (diff > 0.3 ? 1 : diff < -0.3 ? -1 : 0);
+      }
+
+      targetPage = Math.max(0, Math.min(PAGES - 1, targetPage));
+
+      currentPage.value = targetPage;
+      runOnJS(setActivePageJS)(targetPage);
+
+      translateX.value = withSpring(-targetPage * pageWidth.value, {
+        damping: 25,
+        stiffness: 250,
+        mass: 0.8,
+        velocity: velocity,
+      });
+    }),
+  [sheetOpen, pageWidth, activePage, setActivePageJS]);
 
   const m = useMemo(() => getSearchStyles(theme), [theme]);
 
@@ -149,28 +204,24 @@ export default function TabPager() {
         </Pressable>
       </Animated.View>
 
-      <PagerView
-        ref={pagerRef}
-        key={resolvedMode}
-        style={s.pager}
-        initialPage={activePage}
-        scrollEnabled={!sheetOpen && !catalogSwipeLock}
-        offscreenPageLimit={PAGES - 1}
-        onPageSelected={handlePageSelected}
-      >
-        <View key="0" style={s.page}>
-          <CatalogPage onScroll={handlePageScroll} onHorizontalScrollActive={setCatalogSwipeLock} />
-        </View>
-        <View key="1" style={s.page}>
-          <FavoritesPage onScroll={handlePageScroll} />
-        </View>
-        <View key="2" style={s.page}>
-          <HistoryPage onScroll={handlePageScroll} />
-        </View>
-        <View key="3" style={s.page}>
-          <CollectionPage onScroll={handlePageScroll} onSheetOpen={handleSheetOpen} />
-        </View>
-      </PagerView>
+      <GestureDetector gesture={pagerPan}>
+        <Animated.View style={s.pagerClip}>
+          <Animated.View style={[s.pages, pagesStyle]}>
+            <View style={[s.page, { width: pageWidth.value }]}>
+              <CatalogPage onScroll={handlePageScroll} />
+            </View>
+            <View style={[s.page, { width: pageWidth.value }]}>
+              <FavoritesPage onScroll={handlePageScroll} />
+            </View>
+            <View style={[s.page, { width: pageWidth.value }]}>
+              <HistoryPage onScroll={handlePageScroll} />
+            </View>
+            <View style={[s.page, { width: pageWidth.value }]}>
+              <CollectionPage onScroll={handlePageScroll} onSheetOpen={handleSheetOpen} />
+            </View>
+          </Animated.View>
+        </Animated.View>
+      </GestureDetector>
 
       <Animated.View style={dockFadeStyle} pointerEvents={sheetOpen ? 'none' : 'box-none'}>
         <DockBar
@@ -186,7 +237,8 @@ export default function TabPager() {
 
 const s = StyleSheet.create({
   root: { flex: 1 },
-  pager: { flex: 1 },
+  pagerClip: { flex: 1, overflow: 'hidden' },
+  pages: { flexDirection: 'row' },
   page: { flex: 1 },
 });
 
