@@ -4,6 +4,7 @@
 import { useMemo, useState } from 'react';
 import { View, Text, Pressable, StyleSheet } from 'react-native';
 import { Image } from 'expo-image';
+import { LinearGradient } from 'expo-linear-gradient';
 import { useRouter } from 'expo-router';
 import { useTheme, type Theme } from '../theme/ThemeContext';
 import type { Parfum } from '../models';
@@ -64,6 +65,7 @@ export default function ParfumCard({ parfum, mode = 'comfortable', onPressOverri
   const showImage = hasImage && !imgFailed;
   const tint = brandColor(parfum.marque);
   const imageSource = useMemo(() => (imageUrl ? { uri: imageUrl } : null), [imageUrl]);
+  const gradientColors = useMemo(() => [theme.colors.surface, theme.colors.surfaceImgBottom] as const, [theme.colors]);
 
   const goToDetail = () => {
     if (onPressOverride) { onPressOverride(); return; }
@@ -74,10 +76,10 @@ export default function ParfumCard({ parfum, mode = 'comfortable', onPressOverri
   // ── Mode: compact (rangées horizontales) ──
   if (mode === 'compact') {
     return (
-      <Pressable style={s.cardCompact} onPress={goToDetail}>
+      <Pressable style={s.cardCompact} onPress={goToDetail} accessible={true} accessibilityRole="button">
         {showImage ? (
           <View style={s.imgWrapCompact}>
-            <View style={s.imgBgCompact} />
+            <LinearGradient colors={gradientColors} style={s.imgBgFull} />
             <Image source={imageSource!} style={s.imgCompact} contentFit="contain" transition={300} onError={() => setImgFailed(true)} />
             {discount !== null && <View style={s.dealBadgeCompact}><Text style={s.dealBadgeTextCompact}>-{discount}%</Text></View>}
           </View>
@@ -91,6 +93,7 @@ export default function ParfumCard({ parfum, mode = 'comfortable', onPressOverri
           <Text style={s.titleCompact} numberOfLines={2} ellipsizeMode="tail">{parfum.nom}</Text>
         </View>
         <View style={s.priceRowCompact}>
+          {priceTier && <View style={[s.priceDotSmall, { backgroundColor: theme.colors[priceTier] }]} />}
           {bestPrice !== null ? (
             <>
               <Text style={s.priceCompact}>{bestPrice.toFixed(0)} €</Text>
@@ -108,11 +111,19 @@ export default function ParfumCard({ parfum, mode = 'comfortable', onPressOverri
 
   // ── Mode: comfortable (grille 2 col, défaut) ──
   if (mode === 'comfortable') {
+    const a11yLabel = [parfum.nom, parfum.marque, bestPrice !== null ? `${bestPrice.toFixed(0)} euros` : '', parfum.referencePrice && bestPrice && bestPrice < parfum.referencePrice ? `au lieu de ${parfum.referencePrice.toFixed(0)}` : ''].filter(Boolean).join(', ');
     return (
-      <Pressable style={s.cardComfortable} onPress={goToDetail}>
+      <Pressable
+        style={s.cardComfortable}
+        onPress={goToDetail}
+        accessible={true}
+        accessibilityLabel={a11yLabel}
+        accessibilityHint="Appuyez pour voir le détail du parfum"
+        accessibilityRole="button"
+      >
         {showImage ? (
           <View style={s.imgWrapComfortable}>
-            <View style={s.imgBgComfortable} />
+            <LinearGradient colors={gradientColors} style={s.imgBgFull} />
             <Image source={imageSource!} style={s.imgComfortable} contentFit="contain" transition={300} onError={() => setImgFailed(true)} />
             {discount !== null && <View style={s.dealBadge}><Text style={s.dealBadgeText}>-{discount}%</Text></View>}
           </View>
@@ -123,7 +134,7 @@ export default function ParfumCard({ parfum, mode = 'comfortable', onPressOverri
         )}
         <View style={s.bodyComfortable}>
           <Text style={s.brandComfortable} numberOfLines={1}>{parfum.marque}</Text>
-          <Text style={s.titleComfortable} numberOfLines={2} ellipsizeMode="tail">{parfum.nom}</Text>
+          <Text style={s.titleComfortable} numberOfLines={2} ellipsizeMode="tail" maxFontSizeMultiplier={1.3}>{parfum.nom}</Text>
           {parfum.familleOlactive || parfum.annee ? (
             <View style={s.tags}>
               {parfum.familleOlactive ? (
@@ -141,7 +152,7 @@ export default function ParfumCard({ parfum, mode = 'comfortable', onPressOverri
             {priceTier && <View style={[s.priceDot, { backgroundColor: theme.colors[priceTier] }]} />}
             {bestPrice !== null ? (
               <>
-                <Text style={s.priceComfortable}>{bestPrice.toFixed(0)} €</Text>
+                <Text style={s.priceComfortable} maxFontSizeMultiplier={1.3}>{bestPrice.toFixed(0)} €</Text>
                 {parfum.referencePrice && bestPrice < parfum.referencePrice && (
                   <Text style={s.priceRefComfortable}>{parfum.referencePrice.toFixed(0)} €</Text>
                 )}
@@ -157,11 +168,19 @@ export default function ParfumCard({ parfum, mode = 'comfortable', onPressOverri
 
   // ── Mode: compactPlus (grille 2 col dense) ──
   if (mode === 'compactPlus') {
+    const a11yLabelCompact = [parfum.nom, parfum.marque, bestPrice !== null ? `${bestPrice.toFixed(0)} euros` : ''].filter(Boolean).join(', ');
     return (
-      <Pressable style={s.cardCompactPlus} onPress={goToDetail}>
+      <Pressable
+        style={s.cardCompactPlus}
+        onPress={goToDetail}
+        accessible={true}
+        accessibilityLabel={a11yLabelCompact}
+        accessibilityHint="Appuyez pour voir le détail du parfum"
+        accessibilityRole="button"
+      >
         {showImage ? (
           <View style={s.imgWrapCompactPlus}>
-            <View style={s.imgBgCompactPlus} />
+            <LinearGradient colors={gradientColors} style={s.imgBgFull} />
             <Image source={imageSource!} style={s.imgCompactPlus} contentFit="contain" transition={300} onError={() => setImgFailed(true)} />
             {discount !== null && <View style={s.dealBadgeCompactPlus}><Text style={s.dealBadgeTextCompactPlus}>-{discount}%</Text></View>}
           </View>
@@ -172,12 +191,19 @@ export default function ParfumCard({ parfum, mode = 'comfortable', onPressOverri
         )}
         <View style={s.bodyCompactPlus}>
           <Text style={s.brandCompactPlus} numberOfLines={1}>{parfum.marque}</Text>
-          <Text style={s.titleCompactPlus} numberOfLines={1} ellipsizeMode="tail">{parfum.nom}</Text>
+          <Text style={s.titleCompactPlus} numberOfLines={1} ellipsizeMode="tail" maxFontSizeMultiplier={1.3}>{parfum.nom}</Text>
+          {parfum.familleOlactive ? (
+            <View style={s.tagsCompact}>
+              <View style={s.tagFamily}><Text style={s.tagFamilyText}>{translateNote(parfum.familleOlactive)}</Text></View>
+            </View>
+          ) : (
+            <View style={s.tagsCompact} />
+          )}
           <View style={s.priceRowCompactPlus}>
             {priceTier && <View style={[s.priceDotSmall, { backgroundColor: theme.colors[priceTier] }]} />}
             {bestPrice !== null ? (
               <>
-                <Text style={s.priceCompactPlus}>{bestPrice.toFixed(0)} €</Text>
+                <Text style={s.priceCompactPlus} maxFontSizeMultiplier={1.3}>{bestPrice.toFixed(0)} €</Text>
                 {parfum.referencePrice && bestPrice < parfum.referencePrice && (
                   <Text style={s.priceRefCompactPlus}>{parfum.referencePrice.toFixed(0)} €</Text>
                 )}
@@ -193,10 +219,19 @@ export default function ParfumCard({ parfum, mode = 'comfortable', onPressOverri
 
   // ── Mode: list ──
   if (mode === 'list') {
+    const a11yLabelList = [parfum.nom, parfum.marque, bestPrice !== null ? `${bestPrice.toFixed(0)} euros` : ''].filter(Boolean).join(', ');
     return (
-      <Pressable style={s.cardList} onPress={goToDetail}>
+      <Pressable
+        style={s.cardList}
+        onPress={goToDetail}
+        accessible={true}
+        accessibilityLabel={a11yLabelList}
+        accessibilityHint="Appuyez pour voir le détail du parfum"
+        accessibilityRole="button"
+      >
         {showImage ? (
           <View style={s.imgWrapList}>
+            <LinearGradient colors={gradientColors} style={s.imgBgFull} />
             <Image source={imageSource!} style={s.imgList} contentFit="contain" transition={300} onError={() => setImgFailed(true)} />
           </View>
         ) : (
@@ -206,7 +241,7 @@ export default function ParfumCard({ parfum, mode = 'comfortable', onPressOverri
         )}
         <View style={s.bodyList}>
           <Text style={s.brandList} numberOfLines={1}>{parfum.marque}</Text>
-          <Text style={s.titleList} numberOfLines={1} ellipsizeMode="tail">{parfum.nom}</Text>
+          <Text style={s.titleList} numberOfLines={1} ellipsizeMode="tail" maxFontSizeMultiplier={1.3}>{parfum.nom}</Text>
           <View style={s.tagsList}>
             {parfum.familleOlactive ? (
               <View style={s.tagFamily}><Text style={s.tagFamilyText}>{translateNote(parfum.familleOlactive)}</Text></View>
@@ -220,7 +255,7 @@ export default function ParfumCard({ parfum, mode = 'comfortable', onPressOverri
           <View style={s.priceRowList}>
             {priceTier && <View style={[s.priceDotSmall, { backgroundColor: theme.colors[priceTier] }]} />}
             {bestPrice !== null ? (
-              <Text style={s.priceList}>{bestPrice.toFixed(0)} €</Text>
+              <Text style={s.priceList} maxFontSizeMultiplier={1.3}>{bestPrice.toFixed(0)} €</Text>
             ) : (
               <Text style={s.priceListMuted}>— €</Text>
             )}
@@ -239,6 +274,7 @@ export default function ParfumCard({ parfum, mode = 'comfortable', onPressOverri
 function getStyles(t: Theme) {
   return {
     // ── Shared ──
+    imgBgFull: { position: 'absolute', top: 0, left: 0, right: 0, bottom: 0 },
     tagFamily: { backgroundColor: t.colors.violetSoft, paddingHorizontal: 8, paddingVertical: 3, borderRadius: 20 },
     tagFamilyText: { fontSize: 10, fontFamily: 'Inter_500Medium', color: t.colors.violetInk },
     tagYear: { backgroundColor: t.colors.rewardSoft, paddingHorizontal: 8, paddingVertical: 3, borderRadius: 20 },
@@ -251,8 +287,7 @@ function getStyles(t: Theme) {
       width: 140, borderRadius: t.radius.card, backgroundColor: t.colors.surface,
       overflow: 'hidden', ...t.shadow.card, marginBottom: 2,
     },
-    imgWrapCompact: { position: 'relative', height: 186, overflow: 'hidden', backgroundColor: t.colors.surface },
-    imgBgCompact: { position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: t.colors.surface },
+    imgWrapCompact: { position: 'relative', height: 186, overflow: 'hidden', borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: t.colors.border },
     imgCompact: { width: '100%', height: '100%', backgroundColor: t.colors.surface },
     imgPlaceholderCompact: { width: '100%', height: 186, justifyContent: 'center', alignItems: 'center' },
     placeholderInitCompact: { fontSize: 48, fontFamily: 'Inter_700Bold', color: '#FFFFFF', opacity: 0.5 },
@@ -269,10 +304,9 @@ function getStyles(t: Theme) {
     // ── Comfortable (grid 2 col) ──
     cardComfortable: {
       borderRadius: t.radius.card, backgroundColor: t.colors.surface,
-      overflow: 'hidden', borderWidth: 1, borderColor: t.colors.border,
+      overflow: 'hidden', borderWidth: 1, borderColor: t.colors.border, ...t.shadow.card,
     },
-    imgWrapComfortable: { position: 'relative', aspectRatio: 3/4, overflow: 'hidden', backgroundColor: t.colors.surface },
-    imgBgComfortable: { position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: t.colors.surface },
+    imgWrapComfortable: { position: 'relative', aspectRatio: 3/4, overflow: 'hidden', borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: t.colors.border },
     imgComfortable: { width: '100%', height: '100%', backgroundColor: t.colors.surface },
     imgPlaceholderComfortable: { aspectRatio: 3/4, justifyContent: 'center', alignItems: 'center' },
     placeholderInitComfortable: { fontSize: 56, fontFamily: 'Inter_700Bold', color: '#FFFFFF', opacity: 0.5 },
@@ -293,14 +327,14 @@ function getStyles(t: Theme) {
       borderRadius: t.radius.base, backgroundColor: t.colors.surface,
       overflow: 'hidden', borderWidth: 1, borderColor: t.colors.border,
     },
-    imgWrapCompactPlus: { position: 'relative', height: 90, overflow: 'hidden', backgroundColor: t.colors.surface },
-    imgBgCompactPlus: { position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: t.colors.surface },
+    imgWrapCompactPlus: { position: 'relative', height: 90, overflow: 'hidden', borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: t.colors.border },
     imgCompactPlus: { width: '100%', height: '100%', backgroundColor: t.colors.surface },
     imgPlaceholderCompactPlus: { width: '100%', height: 90, justifyContent: 'center', alignItems: 'center' },
     placeholderInitCompactPlus: { fontSize: 32, fontFamily: 'Inter_700Bold', color: '#FFFFFF', opacity: 0.5 },
     dealBadgeCompactPlus: { position: 'absolute', top: 4, left: 4, backgroundColor: t.colors.deal, paddingHorizontal: 5, paddingVertical: 2, borderRadius: 4 },
     dealBadgeTextCompactPlus: { color: '#FFFFFF', fontFamily: 'Inter_600SemiBold', fontSize: 9 },
     bodyCompactPlus: { padding: 8 },
+    tagsCompact: { flexDirection: 'row', gap: 4, marginBottom: 5, minHeight: 18 },
     brandCompactPlus: { fontSize: 10, textTransform: 'uppercase', letterSpacing: 0.8, color: t.colors.textMuted, fontFamily: 'Inter_400Regular' },
     titleCompactPlus: { fontFamily: 'PlayfairDisplay_600SemiBold', fontSize: 13, color: t.colors.text, lineHeight: 16, marginBottom: 6 },
     priceRowCompactPlus: { flexDirection: 'row', alignItems: 'baseline' },
@@ -313,9 +347,9 @@ function getStyles(t: Theme) {
       flexDirection: 'row', alignItems: 'center',
       borderRadius: t.radius.base, backgroundColor: t.colors.surface,
       padding: 10, gap: 12,
-      borderWidth: 1, borderColor: t.colors.border,
+      borderWidth: 1, borderColor: t.colors.border, ...t.shadow.card,
     },
-    imgWrapList: { width: 56, height: 74, borderRadius: t.radius.sm, overflow: 'hidden', backgroundColor: t.colors.surface },
+    imgWrapList: { width: 56, height: 74, borderRadius: t.radius.sm, overflow: 'hidden' },
     imgList: { width: '100%', height: '100%', backgroundColor: t.colors.surface },
     imgPlaceholderList: { width: 56, height: 74, borderRadius: t.radius.sm, justifyContent: 'center', alignItems: 'center' },
     placeholderInitList: { fontSize: 24, fontFamily: 'Inter_700Bold', color: '#FFFFFF', opacity: 0.5 },

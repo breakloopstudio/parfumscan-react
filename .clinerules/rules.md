@@ -172,7 +172,7 @@ src/
 - Catalogue 100% autonome : ~25 100 parfums importés dans Firestore via `scripts/import-firestore.ts`
 - `src/utils/normalize.ts` — `normalize()`, `normalizeId()`, `buildSearchKeywords()` pour le cache Firestore
 - Règles Firestore : `parfums` en lecture publique, écriture réservée aux admins (vérification `admins/{uid}`)
-- Images hébergées sur Firebase Storage : `parfums/{parfumId}/primary.jpg`
+- Images hébergées sur Firebase Storage : `parfums/{parfumId}/primary.webp`
 - `source: 'seed'` — distingue les données importées des données saisies manuellement (`'manual'`)
 - Pas d'API externe pour les données de catalogue
 

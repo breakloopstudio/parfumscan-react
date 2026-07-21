@@ -1,0 +1,22 @@
+{
+  "indexes": [
+    {
+      "collectionGroup": "parfums",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "searchKeywords", "arrayConfig": "CONTAINS" },
+        { "fieldPath": "reviewCount", "order": "DESCENDING" },
+        { "fieldPath": "__name__", "order": "DESCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "parfums",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "mainAccords", "arrayConfig": "CONTAINS" },
+        { "fieldPath": "popularityScore", "order": "DESCENDING" },
+        { "fieldPath": "__name__", "order": "DESCENDING" }
+      ]
+    }
+  ]
+}

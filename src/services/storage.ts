@@ -8,7 +8,7 @@ export async function uploadParfumImage(
   filename?: string,
 ): Promise<string> {
   try {
-    const name = filename || `image_${Date.now()}.jpg`;
+    const name = filename || `image_${Date.now()}.webp`;
     const path = `parfums/${parfumId}_${Date.now()}_${name}`;
     const storageRef = ref(getStorage(), path) as unknown as {
       putFile: (uri: string) => Promise<void>;

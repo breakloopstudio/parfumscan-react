@@ -6,6 +6,7 @@ import { useState, useEffect, useRef, useMemo, useCallback } from 'react';
 import { View, Text, TextInput, FlatList, Pressable, ActivityIndicator, StyleSheet } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter, useLocalSearchParams } from 'expo-router';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import Ionicons from '@react-native-vector-icons/ionicons/static';
 import { useCatalog } from '../../src/hooks/useCatalog';
 import ParfumCard from '../../src/components/ParfumCard';
@@ -13,8 +14,27 @@ import { useTheme, type Theme } from '../../src/theme/ThemeContext';
 import { consumePendingCatalogQuery } from '../../src/services/catalog-bridge';
 import { useDensityPreference, GRID_MODES } from '../../src/hooks/useDensityPreference';
 
-// Persiste les recherches recentes entre les navigations
+const RECENT_KEY = '@parfumscan/recent-searches';
+
+// Persiste les recherches recentes entre les navigations et sessions
 const recentStore = { items: [] as string[] };
+
+async function loadRecentFromStorage(): Promise<string[]> {
+  try {
+    const raw = await AsyncStorage.getItem(RECENT_KEY);
+    if (raw) {
+      const parsed = JSON.parse(raw);
+      if (Array.isArray(parsed)) return parsed.slice(0, 5);
+    }
+  } catch { /* ignore */ }
+  return [];
+}
+
+async function saveRecentToStorage(items: string[]): Promise<void> {
+  try {
+    await AsyncStorage.setItem(RECENT_KEY, JSON.stringify(items.slice(0, 5)));
+  } catch { /* ignore */ }
+}
 
 export default function SearchScreen() {
   const { theme, resolvedMode } = useTheme();
@@ -22,10 +42,11 @@ export default function SearchScreen() {
   const keyboardAppearance = resolvedMode === 'dark' ? 'dark' : 'light';
   const router = useRouter();
   const { q: routeQuery } = useLocalSearchParams<{ q?: string }>();
-  const initialQuery = routeQuery ?? consumePendingCatalogQuery();
+  const [initialQuery] = useState(() => routeQuery ?? consumePendingCatalogQuery());
 
   const inputRef = useRef<TextInput>(null);
   const [searchText, setSearchText] = useState(initialQuery ?? '');
+  const recentLoadedRef = useRef(false);
   const { parfums, searching, search, clear } = useCatalog();
   const { density: searchDensity, setDensity: setSearchDensity } = useDensityPreference();
   const [recentSearches, setRecentSearches] = useState<string[]>(recentStore.items);
@@ -33,6 +54,15 @@ export default function SearchScreen() {
   useEffect(() => {
     const t = setTimeout(() => inputRef.current?.focus(), 250);
     return () => clearTimeout(t);
+  }, []);
+
+  useEffect(() => {
+    loadRecentFromStorage().then(items => {
+      if (!recentLoadedRef.current && items.length > 0) {
+        recentStore.items = items;
+        setRecentSearches(items);
+      }
+    });
   }, []);
 
   useEffect(() => {
@@ -50,8 +80,10 @@ export default function SearchScreen() {
   const handleResultPress = useCallback((id: string) => {
     const text = searchText.trim();
     if (text && text.length >= 3) {
+      recentLoadedRef.current = true;
       recentStore.items = [text, ...recentStore.items.filter(x => x.toLowerCase() !== text.toLowerCase())].slice(0, 5);
       setRecentSearches(recentStore.items);
+      saveRecentToStorage(recentStore.items);
     }
     router.push(`/catalog/${id}`);
   }, [searchText, router]);
@@ -255,7 +287,7 @@ function getStyles(t: Theme) {
       paddingVertical: 9,
       borderRadius: 6,
       backgroundColor: t.colors.surface2,
-      minHeight: 42,
+      minHeight: 44,
       justifyContent: 'center',
     },
     segmentBtnActive: {

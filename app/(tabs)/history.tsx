@@ -15,7 +15,7 @@ import { addToWardrobe } from '../../src/services/wardrobe';
 import { hapticsLight } from '../../src/services/haptics';
 import { translateNote } from '../../src/utils/translate-note';
 import { useTheme, type Theme } from '../../src/theme/ThemeContext';
-import { useDensityPreference, GRID_MODES } from '../../src/hooks/useDensityPreference';
+
 import EmptyState from '../../src/components/EmptyState';
 import ProfileAvatar from '../../src/components/ProfileAvatar';
 import ActionSheet from '../../src/components/ActionSheet';
@@ -242,8 +242,6 @@ export default function HistoryPage({ onScroll }: Props) {
   const uid = user?.uid ?? null;
   const { scans, loading, removeScan } = useScans(uid);
   const keyboardAppearance = resolvedMode === 'dark' ? 'dark' : 'light';
-  const { density: gridDensity, setDensity: setGridDensity } = useDensityPreference();
-
   const [searchQuery, setSearchQuery] = useState('');
   const [sortNewest, setSortNewest] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
@@ -431,20 +429,7 @@ export default function HistoryPage({ onScroll }: Props) {
                 <Text style={s.sortLabel}>{sortNewest ? 'Récents' : 'Anciens'}</Text>
               </Pressable>
             </View>
-            <View style={s.controlsRow}>
-              <View style={{ flex: 1 }} />
-              {GRID_MODES.map(m => (
-                <Pressable
-                  key={m.key}
-                  style={[s.segmentBtn, gridDensity === m.key && s.segmentBtnActive]}
-                  onPress={() => setGridDensity(m.key)}
-                >
-                  <Text style={[s.segmentBtnText, gridDensity === m.key && s.segmentBtnTextActive]}>
-                    {m.label}
-                  </Text>
-                </Pressable>
-              ))}
-            </View>
+
           </View>
         )}
 
@@ -471,7 +456,7 @@ export default function HistoryPage({ onScroll }: Props) {
                 onPress={item.scan.parfumId ? () => goToDetail(item.scan.parfumId!) : undefined}
                 onLongPress={() => handleLongPress(item.scan)}
                 opacity={anim}
-                density={gridDensity as 'comfortable' | 'compactPlus' | 'list'}
+                density="list"
               />
             );
           })
@@ -640,15 +625,6 @@ function getStyles(t: Theme) {
     searchInput: { flex: 1, fontFamily: 'Inter_400Regular', fontSize: 13, color: t.colors.text },
     sortBtn: { flexDirection: 'row', alignItems: 'center', gap: 2, paddingHorizontal: 6, paddingVertical: 6 },
     sortLabel: { fontFamily: 'Inter_500Medium', fontSize: 11, color: t.colors.primary },
-    controlsRow: { flexDirection: 'row', alignItems: 'center', gap: 6 },
-    segmentBtn: {
-      paddingHorizontal: 11, paddingVertical: 8,
-      borderRadius: 6, backgroundColor: t.colors.surface2,
-      minHeight: 38, justifyContent: 'center',
-    },
-    segmentBtnActive: { backgroundColor: t.colors.surface, ...t.shadow.card },
-    segmentBtnText: { fontFamily: 'Inter_500Medium', fontSize: 11, color: t.colors.textMuted },
-    segmentBtnTextActive: { fontFamily: 'Inter_600SemiBold', color: t.colors.text },
     sectionHeader: { paddingHorizontal: 20, paddingTop: 16, paddingBottom: 6 },
     sectionTitle: { fontFamily: 'PlayfairDisplay_600SemiBold', fontSize: 17, color: t.colors.text },
     bottomSpacer: { height: 40 },

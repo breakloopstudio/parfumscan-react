@@ -1,4 +1,4 @@
-import { normalize, normalizeId, buildSearchKeywords } from '../../src/utils/normalize';
+import { normalize, normalizeId, buildSearchKeywords, generateTrigrams, STOP_WORDS } from '../../src/utils/normalize';
 
 describe('normalize', () => {
   it('lowercases the string', () => {
@@ -39,12 +39,13 @@ describe('normalizeId', () => {
 
 describe('buildSearchKeywords', () => {
   it('includes full brand and name tokens', () => {
-    const kw = buildSearchKeywords('Jean Paul Gaultier', 'Le Mâle');
+    // "Le Mâle" → "le" is a stop word, so only "male" from name
+    // Using a name without stop words to test properly
+    const kw = buildSearchKeywords('Jean Paul Gaultier', 'Sauvage');
     expect(kw).toContain('jean');
     expect(kw).toContain('paul');
     expect(kw).toContain('gaultier');
-    expect(kw).toContain('le');
-    expect(kw).toContain('male');
+    expect(kw).toContain('sauvage');
   });
 
   it('generates prefix tokens for partial search (length >= 3)', () => {
@@ -89,5 +90,81 @@ describe('buildSearchKeywords', () => {
     const kw = buildSearchKeywords('', 'Sauvage');
     expect(kw.length).toBeGreaterThan(0);
     expect(kw).toContain('sauvage');
+  });
+});
+
+// ─── buildSearchKeywords v2 (trigrams, stop words, family, full name) ───
+
+describe('buildSearchKeywords v2', () => {
+  it('filters out stop words (le, de, la, eau...)', () => {
+    const kw = buildSearchKeywords('Bleu de Chanel', 'Eau de Parfum');
+    expect(kw).not.toContain('de');
+    expect(kw).not.toContain('eau');
+    expect(kw).toContain('bleu');
+    expect(kw).toContain('chanel');
+    expect(kw).toContain('parfum');
+  });
+
+  it('includes trigrams prefixed with ~ for each non-stop word', () => {
+    const kw = buildSearchKeywords('Dior', 'Sauvage');
+    const trigrams = kw.filter(k => k.startsWith('~'));
+    expect(trigrams.length).toBeGreaterThan(0);
+    // 'dior' has trigrams like ~$di ~dio ~ior ~or$
+    expect(trigrams.some(t => t === '~dio')).toBe(true);
+    expect(trigrams.some(t => t === '~ior')).toBe(true);
+    // 'sauvage' has trigrams
+    expect(trigrams.some(t => t === '~sau')).toBe(true);
+  });
+
+  it('includes the full normalized name as a standalone token', () => {
+    const kw = buildSearchKeywords('Chanel', 'Bleu de Chanel');
+    // n = 'bleu_de_chanel' — full name
+    expect(kw).toContain('bleu_de_chanel');
+    // 'de' is filtered individually, but present in the combined token
+    expect(kw).not.toContain('de');
+  });
+
+  it('includes familleOlactive words and trigrams when provided', () => {
+    const kw = buildSearchKeywords('Dior', 'Sauvage', 'Oriental Floral');
+    expect(kw).toContain('oriental');
+    expect(kw).toContain('floral');
+    // family words also get trigrams
+    const famTrigrams = kw.filter(k => k.startsWith('~') && (k.includes('ori') || k.includes('flo')));
+    expect(famTrigrams.length).toBeGreaterThan(0);
+  });
+
+  it('does not generate trigrams for stop words', () => {
+    const kw = buildSearchKeywords('Bleu de Chanel', 'Le Male');
+    // 'de' and 'le' are stop words — neither word nor trigrams
+    expect(kw.some(k => k === 'de')).toBe(false);
+    expect(kw.some(k => k === 'le')).toBe(false);
+    // no trigram starting with ~$de or ~$le
+    expect(kw.some(k => k === '~$de')).toBe(false);
+    expect(kw.some(k => k === '~$le')).toBe(false);
+    // but 'male' and its trigrams are present
+    expect(kw).toContain('male');
+    expect(kw.some(k => k.startsWith('~') && k.includes('mal'))).toBe(true);
+  });
+
+  it('generateTrigrams produces correct output', () => {
+    const tri = generateTrigrams('abc');
+    // "$abc$" → "$ab", "abc", "bc$"
+    expect(tri).toEqual(['$ab', 'abc', 'bc$']);
+  });
+
+  it('generateTrigrams handles short words', () => {
+    expect(generateTrigrams('ab')).toEqual(['$ab', 'ab$']);
+    expect(generateTrigrams('a')).toEqual(['$a$']);
+  });
+
+  it('STOP_WORDS contains common French and English filler words', () => {
+    expect(STOP_WORDS.has('de')).toBe(true);
+    expect(STOP_WORDS.has('le')).toBe(true);
+    expect(STOP_WORDS.has('eau')).toBe(true);
+    expect(STOP_WORDS.has('the')).toBe(true);
+    expect(STOP_WORDS.has('of')).toBe(true);
+    // Non-stop words
+    expect(STOP_WORDS.has('parfum')).toBe(false);
+    expect(STOP_WORDS.has('sauvage')).toBe(false);
   });
 });

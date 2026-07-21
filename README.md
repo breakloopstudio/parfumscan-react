@@ -189,7 +189,7 @@ scrape Fragrantica      données factuelles     images hébergées
 ### Images
 
 - **Format** : JPG 375×500 (vignettes scrape, pas de PNG transparent)
-- **Stockage** : Firebase Storage → `parfums/{parfumId}/primary.jpg`
+- **Stockage** : Firebase Storage → `parfums/{parfumId}/primary.webp`
 - **Fallback UI** : initiale de la marque sur fond coloré (si image absente)
 - **Amélioration future** : upscale IA ou re-scrape pages détail
 

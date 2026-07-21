@@ -493,7 +493,7 @@ function getStyles(t: Theme) {
       backgroundColor: t.colors.surface,
       borderWidth: 1,
       borderColor: t.colors.border,
-      minHeight: 38,
+      minHeight: 44,
     },
     familyBtnText: {
       fontFamily: 'Inter_500Medium',
@@ -523,7 +523,7 @@ function getStyles(t: Theme) {
       paddingVertical: 8,
       borderRadius: 6,
       backgroundColor: t.colors.surface2,
-      minHeight: 38,
+      minHeight: 44,
       justifyContent: 'center',
     },
     segmentBtnActive: {

@@ -1,6 +1,6 @@
 // app/settings.tsx — Page de paramètres
 
-import { useState, useEffect, useMemo, useCallback } from 'react';
+import { useState, useEffect, useMemo, useCallback, useRef } from 'react';
 import { View, Text, ScrollView, Switch, Pressable, Alert, StyleSheet } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
@@ -10,6 +10,7 @@ import { getUserSettings, updateUserSetting } from '../src/services/user-data';
 import { requestFcmPermission, deleteFcmToken } from '../src/services/fcm';
 import { useTheme, type Theme } from '../src/theme/ThemeContext';
 import type { ThemeMode } from '../src/services/theme-storage';
+import RunnerGame from '../src/features/runner/RunnerGame';
 
 export default function SettingsPage() {
   const { user, logout } = useAuthContext();
@@ -18,6 +19,27 @@ export default function SettingsPage() {
   const s = useMemo(() => getStyles(theme), [theme]);
   const [priceAlerts, setPriceAlerts] = useState(false);
   const [pushNotifs, setPushNotifs] = useState(true);
+
+  const [showRunner, setShowRunner] = useState(false);
+  const easterEggTaps = useRef(0);
+  const easterEggTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  const handleVersionTap = useCallback(() => {
+    easterEggTaps.current += 1;
+    if (easterEggTimer.current) { clearTimeout(easterEggTimer.current); }
+    if (easterEggTaps.current >= 5) {
+      easterEggTaps.current = 0;
+      setShowRunner(true);
+      return;
+    }
+    easterEggTimer.current = setTimeout(() => {
+      easterEggTaps.current = 0;
+    }, 2000);
+  }, []);
+
+  const handleRunnerClose = useCallback(() => {
+    setShowRunner(false);
+  }, []);
 
   const handleThemeChange = useCallback((m: ThemeMode) => {
     setMode(m);
@@ -174,8 +196,15 @@ export default function SettingsPage() {
           </Pressable>
         </View>
 
-        <Text style={s.version}>ParfumScan v1.0.0</Text>
+        <Pressable onPress={handleVersionTap}>
+          <Text style={s.version}>ParfumScan v1.0.0</Text>
+        </Pressable>
       </ScrollView>
+      {showRunner && (
+        <View style={StyleSheet.absoluteFill}>
+          <RunnerGame onClose={handleRunnerClose} />
+        </View>
+      )}
     </SafeAreaView>
   );
 }

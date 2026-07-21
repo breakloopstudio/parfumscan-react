@@ -3,6 +3,7 @@ import * as path from 'path';
 import { initializeApp, getApps, cert } from 'firebase-admin/app';
 import { getFirestore } from 'firebase-admin/firestore';
 import { getStorage } from 'firebase-admin/storage';
+import sharp from 'sharp';
 
 const SERVICE_ACCOUNT_PATH = path.resolve('service-account.json');
 
@@ -148,15 +149,35 @@ function normaliseTokens(s: string): string {
   return normaliseTexte(s).replace(/[^a-z0-9]+/g, '_').replace(/^_|_$/g, '');
 }
 
-function buildSearchKeywords(marque: string, nom: string): string[] {
+function buildSearchKeywords(marque: string, nom: string, familleOlactive?: string): string[] {
+  const STOP_WORDS_SCRIPT = new Set([
+    'de', 'la', 'le', 'eau', 'pour', 'l', 'd', 'du', 'des', 'et',
+    'a', 'un', 'une', 'en', 'sur', 'par', 'au', 'aux', 'les',
+    'dans', 'avec', 'sans', 'sous', 'ou', 'est', 'ce', 'son', 'sa',
+    'the', 'of', 'and', 'for', 'by', 'to', 'in', 'is', 'it', 'on',
+  ]);
+
   const m = normaliseTokens(marque);
   const n = normaliseTokens(nom);
   const tokens = new Set<string>();
 
+  const generateTri = (word: string): string[] => {
+    const padded = `$${word}$`;
+    const out: string[] = [];
+    for (let i = 0; i < padded.length - 2; i++) {
+      out.push(padded.substring(i, i + 3));
+    }
+    return out;
+  };
+
   const addWordAndPrefixes = (word: string) => {
+    if (STOP_WORDS_SCRIPT.has(word)) return;
     tokens.add(word);
     for (let i = 3; i < word.length; i++) {
       tokens.add(word.slice(0, i));
+    }
+    for (const tg of generateTri(word)) {
+      tokens.add(`~${tg}`);
     }
   };
 
@@ -170,6 +191,14 @@ function buildSearchKeywords(marque: string, nom: string): string[] {
   tokens.add(`${m}_${n}`);
   tokens.add(`${m} ${n}`.trim());
   tokens.add(m);
+  tokens.add(n);
+
+  if (familleOlactive) {
+    const famWords = normaliseTokens(familleOlactive).split('_').filter(Boolean);
+    for (const w of famWords) {
+      addWordAndPrefixes(w);
+    }
+  }
 
   return [...tokens];
 }
@@ -230,15 +259,20 @@ async function downloadAndUpload(
         throw new Error(`HTTP ${res.status}`);
       }
 
-      const buffer = Buffer.from(await res.arrayBuffer());
+      let buffer = Buffer.from(await res.arrayBuffer());
       if (buffer.length === 0) return null;
 
-      const ext = sourceUrl.split('.').pop()?.split('?')[0] ?? 'jpg';
-      const filePath = `parfums/${parfumId}/primary.${ext}`;
+      // Convert to WebP (quality 82 — best size/perception tradeoff for 375×500 bottles)
+      const webpBuffer = await sharp(buffer)
+        .flatten({ background: { r: 255, g: 255, b: 255 } })
+        .webp({ quality: 82 })
+        .toBuffer();
+
+      const filePath = `parfums/${parfumId}/primary.webp`;
       const file = bucket.file(filePath);
 
-      await file.save(buffer, {
-        contentType: ext === 'png' ? 'image/png' : 'image/jpeg',
+      await file.save(webpBuffer, {
+        contentType: 'image/webp',
         metadata: { cacheControl: 'public, max-age=31536000' },
       });
 
@@ -360,7 +394,7 @@ async function processFile(
       await sleep(delayMs);
 
       const now = new Date();
-      const searchKeywords = buildSearchKeywords(brandName, nom);
+      const searchKeywords = buildSearchKeywords(brandName, nom, familleOlactive ?? undefined);
 
       const doc = {
         nom,
