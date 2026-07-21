@@ -134,8 +134,8 @@ export default function ParfumCard({ parfum, mode = 'comfortable', onPressOverri
               ) : null}
             </View>
           ) : null}
-          {parfum.notesTete.length > 0 && (
-            <Text style={s.notesText} numberOfLines={1}>{parfum.notesTete.slice(0, 3).map(translateNote).join(' · ')}</Text>
+          {parfum.notesTete?.length > 0 && (
+            <Text style={s.notesText} numberOfLines={1}>{parfum.notesTete!.slice(0, 3).map(translateNote).join(' · ')}</Text>
           )}
           <View style={s.priceRowComfortable}>
             {priceTier && <View style={[s.priceDot, { backgroundColor: theme.colors[priceTier] }]} />}
