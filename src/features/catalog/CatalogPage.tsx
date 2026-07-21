@@ -13,6 +13,7 @@ import SectionHeader from '../../components/SectionHeader';
 import BrandCapsules from './BrandCapsules';
 import CatalogRow from './CatalogRow';
 import FamilyAmbianceCards from './FamilyAmbianceCards';
+import BrandSheet from './BrandSheet';
 import { getPopularParfums, getPersonalizedSuggestions } from '../../services/firestore';
 import { useDensityPreference, GRID_MODES } from '../../hooks/useDensityPreference';
 import { useTheme, type Theme } from '../../theme/ThemeContext';
@@ -65,6 +66,7 @@ export default function CatalogPage({ onScroll, onHorizontalScrollActive }: Prop
 
   const [gridParfums, setGridParfums] = useState<Parfum[]>([]);
   const [gridLoading, setGridLoading] = useState(true);
+  const [brandSheetVisible, setBrandSheetVisible] = useState(false);
 
   const today = Math.floor(Date.now() / 86400000);
 
@@ -158,9 +160,8 @@ export default function CatalogPage({ onScroll, onHorizontalScrollActive }: Prop
   }, [router]);
 
   const handleViewAllBrands = useCallback(() => {
-    // TODO: Bottom sheet marques A-Z
-    router.push(`/(tabs)/search?q=`);
-  }, [router]);
+    setBrandSheetVisible(true);
+  }, []);
 
   const renderGridItem = useCallback(({ item }: { item: Parfum }) => (
     <View style={gridDensity === 'list' ? s.listItemWrap : s.gridItemWrap}>
@@ -297,6 +298,12 @@ export default function CatalogPage({ onScroll, onHorizontalScrollActive }: Prop
           scrollEventThrottle={16}
         />
       )}
+
+      <BrandSheet
+        visible={brandSheetVisible}
+        onClose={() => setBrandSheetVisible(false)}
+        onSelectBrand={handleBrandTap}
+      />
     </SafeAreaView>
   );
 }
