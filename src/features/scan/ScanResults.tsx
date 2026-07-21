@@ -1,4 +1,4 @@
-// src/features/scan/ScanResults.tsx — Résultats triés par prix croissant
+// src/features/scan/ScanResults.tsx — Résultats triés par pertinence (score de recherche)
 
 import { useMemo } from 'react';
 import { View, Text, FlatList, Pressable } from 'react-native';
@@ -19,12 +19,6 @@ export function ScanResults({ parfums, onOpenCatalog }: Props) {
   const s = useMemo(() => getStyles(theme), [theme]);
   const router = useRouter();
 
-  const sorted = [...parfums].sort((a, b) => {
-    const aPrice = 'bestPrice' in a ? a.bestPrice ?? Infinity : Infinity;
-    const bPrice = 'bestPrice' in b ? b.bestPrice ?? Infinity : Infinity;
-    return aPrice - bPrice;
-  });
-
   const handleParfumPress = (parfum: Parfum) => {
     setPendingParfum(parfum);
     router.dismissTo('/(tabs)');
@@ -35,11 +29,11 @@ export function ScanResults({ parfums, onOpenCatalog }: Props) {
       <View style={s.header}>
         <Ionicons name="checkmark-circle" size={36} color={theme.colors.deal} />
         <Text style={s.title}>
-          {sorted.length} parfum{sorted.length > 1 ? 's' : ''} trouvé{sorted.length > 1 ? 's' : ''}
+          {parfums.length} parfum{parfums.length > 1 ? 's' : ''} trouvé{parfums.length > 1 ? 's' : ''}
         </Text>
       </View>
       <FlatList<Parfum>
-        data={sorted}
+        data={parfums}
         keyExtractor={(p, i) => `${p.id}_${i}`}
         extraData={resolvedMode}
         renderItem={({ item }) => (

@@ -17,18 +17,29 @@ export function updateParfum(id: string, data: Partial<Parfum>): Promise<void>;
 export function getPopularParfums(limit: number): Promise<Parfum[]>;
 export function getPersonalizedSuggestions(uid: string, limit: number): Promise<Parfum[]>;
 export function searchParfumsCached(query: string): Promise<Parfum[]>;
-// Cache Map (exact + prefix), dual query Firestore (1 token → array-contains + orderBy reviewCount, 2+ tokens → array-contains-any), scoring single-pass, 50 résultats
-// Cache Map (prefix cache local + hit complet), dual query Firestore (1 token → array-contains + orderBy reviewCount, 2+ tokens → array-contains-any), `exactMatch` réservé aux queries multi-mots, signal composite `Math.max(reviewCount, ratingCount, popularityScore)`, bonus `/2`, scoring single-pass (boucle for), tri pop-first pour 1 token, 50 résultats, debounce 150ms, requestIdRef anti-race.
+```
+→ Voir **§7 — Algorithme de recherche** pour la spécification complète.
+
+```ts
+export function searchParfumFromScan(marque: string | null, nom: string | null): Promise<Parfum[]>;
+// Wrapper scan-spécifique : appelle searchParfumsCached puis rescore avec bonus nom/marque
+// Bonus : +50 (nom exact), +25 (nom partiel), +15 (marque exacte), +8 (marque partielle)
+// Les résultats de searchParfumsCached et searchParfumFromScan sont dédoublonnés par marque+nom normalisé.
+```
+
+```ts
 export function getSimilarParfums(mainAccords: string[], excludeId: string, limit?: number): Promise<Parfum[]>;
 // Scoring par nombre d'accords partagés (array-contains-any) + orderBy popularityScore, shuffle journalier (Lehmer RNG), ParfumCard compact dans UI, cache TTL 24h via similarIdsCachedAt
 ```
 
 ### `src/utils/normalize.ts`
 ```ts
-// Utilitaires de normalisation — extraits de l'ancien fragella.ts
+// Utilitaires de normalisation des chaînes
+export const STOP_WORDS: Set<string>;   // 38 mots vides FR/EN
 export function normalize(s: string): string;
 export function normalizeId(s: string): string;
-export function buildSearchKeywords(marque: string, nom: string): string[];
+export function generateTrigrams(word: string): string[];  // trigrammes $-padded
+export function buildSearchKeywords(marque: string, nom: string, familleOlactive?: string): string[];
 ```
 
 ### `src/services/user-data.ts`
@@ -624,4 +635,162 @@ interface Props {
 ### `TabPager` — `app/(tabs)/index.tsx`
 
 Pager horizontal 4 pages (Catalogue / Favoris / Historique / Parfumerie) avec `GestureDetector` + Reanimated. Gesture config : `activeOffsetX([-30, 30])`, `failOffsetY([-15, 15])`, spring animation (damping 25, stiffness 250). 4 pages rendues en `flexDirection: 'row'`, translatées via `translateX` animé. DockBar hide/show au scroll vertical, barre de recherche persistante `BlurView`.
+
+---
+
+## §7 — Algorithme de recherche
+
+### Vue d'ensemble
+
+La recherche est 100 % Firestore, sans API externe. Chaque parfum (~25 100 documents dans `parfums/{id}`) possède un champ `searchKeywords: string[]` pré-calculé à l'import. L'utilisateur tape → debounce 150ms → requête Firestore → scoring local → top 50 résultats.
+
+### Couche 1 — Indexation (`buildSearchKeywords`, `src/utils/normalize.ts`)
+
+Pour un parfum donné (marque, nom, famille olfactive), la fonction génère un tableau de tokens :
+
+| Étape | Description | Exemple pour "Jean Paul Gaultier" / "Le Mâle" |
+|---|---|---|
+| **Normalisation** | NFD → strip accents → lowercase → `[^a-z0-9]` → `_` | `jean_paul_gaultier`, `le_male` |
+| **Stop words** | 38 mots vides FR/EN filtrés (`de`, `la`, `le`, `eau`, `the`, `of`…) | `le` est exclu |
+| **Mots complets** | Chaque mot non-stop ajouté tel quel | `jean`, `paul`, `gaultier`, `male` |
+| **Préfixes (≥3)** | Tous les préfixes de chaque mot | `jea`, `jean`, `pau`, `paul`, `gau`, `gaul`, `gault`… |
+| **Trigrammes (~)** | Trigrammes $-padded pour fuzzy matching | `~$je`, `~jea`, `~ean`, `~an$`, `~$pa`, `~pau`… |
+| **Token marque** | Marque normalisée complète | `jean_paul_gaultier` |
+| **Token nom** | Nom normalisé complet | `le_male` |
+| **Token combiné** | `marque_nom` pour l'exact match | `jean_paul_gaultier_le_male` |
+| **Famille olfactive** | Mots de la famille ajoutés avec trigrammes | `oriental`, `floral`, `~$or`, `~ori`… |
+
+Total : ~20–50 tokens par parfum selon la longueur des noms.
+
+### Couche 2 — Tokenisation de la requête (`searchParfumsCached`)
+
+```
+"Guerlain L'Homme Idéal Parfum"
+  → lowercased: "guerlain l'homme idéal parfum"
+  → split whitespace: ["guerlain", "l'homme", "idéal", "parfum"]
+  → normalize chaque token + split sur _ + filtre stop words + min 2 chars
+  → searchTokens: ["guerlain", "homme", "ideal", "parfum"]
+```
+
+### Couche 3 — Requêtes Firestore (dual mode)
+
+| Mode | Condition | Requête | Limite |
+|---|---|---|---|
+| **Mono-token** | `searchTokens.length === 1` | `where('searchKeywords', 'array-contains', token)` + `orderBy('reviewCount', 'desc')` | 100 docs |
+| **Multi-token** | `searchTokens.length ≥ 2` | N queries `array-contains` en parallèle, déduplication par ID | 300 docs/token |
+
+Index composite requis : `searchKeywords ARRAY-CONTAINS` + `reviewCount DESC` + `__name__ DESC`.
+
+### Couche 4 — Scoring local (`_scoreDocs`)
+
+Chaque document candidat reçoit un score composite :
+
+```
+matchScore  = Σ (token.length / bestKeyword.length)  pour chaque token
+              ex: token "jea" → keyword "jean" → 3/4 = 0.75
+              ex: token "homme" → keyword "homme" → 5/5 = 1.0
+
+exactMatch  = 10 si multi-token ET la query normalisée complète est dans searchKeywords
+
+popBonus    = log(max(reviewCount, ratingCount, popularityScore) + 1) / 2
+
+score       = matchScore + exactMatch + popBonus
+```
+
+Règle importante : le scoring ignore les trigrammes (tokens préfixés `~`) — ils ne sont utilisés que par le fuzzy fallback.
+
+### Couche 5 — Tri
+
+Score de pertinence **toujours** primaire, popularité en tiebreaker (quel que soit le nombre de tokens).
+
+```
+.sort((a, b) => {
+  const diff = b._score - a._score;
+  if (Math.abs(diff) < 0.001) return b._pop - a._pop;  // tiebreaker
+  return diff;
+})
+```
+
+Top 50 résultats retournés.
+
+### Couche 6 — Caches
+
+#### Cache exact (LRU, max 200 entrées)
+`Map<string, Parfum[]>` — chaque requête exacte est cachée. Éviction LRU : l'entrée la plus ancienne est supprimée quand la limite est atteinte.
+
+#### Prefix cache
+Si la query est une extension d'une query déjà en cache (ex: `"jean paul"` → `"jean paul gau"`), les résultats cachés sont re-scorés localement avec les nouveaux tokens — aucun appel Firestore.
+
+**Garde-fou** : le prefix cache est désactivé quand la nouvelle query a **plus de mots** que la query cachée. Ex : cache `"l'homme"` (1 mot) → query `"l'homme idéal parfum"` (3 mots) → pas de prefix cache → Firestore direct. Cela évite qu'un cache mono-token masque des résultats qui nécessitent les tokens supplémentaires.
+
+#### Cache des recherches récentes (AsyncStorage)
+Les 5 dernières recherches sont persistées dans `@parfumscan/recent-searches` et survivent aux redémarrages de l'app.
+
+### Couche 7 — Fuzzy fallback (trigrammes)
+
+Déclenché quand la recherche primaire retourne **< 5 résultats** :
+
+1. Générer les trigrammes $-padded de chaque mot de la query
+2. Requête Firestore : `array-contains-any` avec les trigrammes préfixés `~` (max 30), `orderBy reviewCount DESC`, limit 200
+3. Pour chaque doc candidat, calculer le **score de Jaccard** entre les trigrammes de la query et les trigrammes du doc
+4. Garder les docs avec Jaccard > 0.25, triés par score décroissant, top 10
+5. Ajouter aux résultats primaires (hors doublons)
+
+**Exemple** : query `"chanell"` (typo) → trigrammes `$ch, cha, han, ane, nel, ell, ll$` → matche `"Chanel"` (trigrammes `$ch, cha, han, ane, nel, el$`) → Jaccard = 5/8 = 0.625 → trouvé.
+
+### Couche 8 — Debounce et anti-race (`useCatalog`)
+
+| Mécanisme | Détail |
+|---|---|
+| **Debounce** | 150ms avant d'appeler `searchParfumsCached` |
+| **Seuil** | Query < 3 caractères → pas de requête |
+| **Anti-race** | `requestIdRef` incrémenté à chaque nouvelle frappe ; seuls les résultats du dernier ID sont appliqués |
+| **Unmount safety** | `mountedRef` empêche `setState` après démontage du composant |
+
+### Flux complet (catalogue)
+
+```
+Frappe utilisateur
+  → useCatalog.search() [debounce 150ms, requestIdRef anti-race]
+    → searchParfumsCached(query)
+      → Cache exact (LRU) ? return
+      → Tokenisation + filtrage stop words
+      → Prefix cache (si même nombre de mots) ? re-score local → return
+      → Firestore : array-contains (mono/multi token)
+      → Scoring local (matchScore + exactMatch + popBonus)
+      → Tri (pertinence primaire, popularité tiebreaker)
+      → < 5 résultats ? Fuzzy fallback trigrammes (Jaccard)
+      → Dédoublonnage par marque+nom normalisé (garde le 1er = meilleur score)
+      → Cache (LRU) + return top 50
+    → setParfums(results)
+```
+
+### Couche 9 — Dédoublonnage marque+nom (`_dedupByMarqueNom`)
+
+Après scoring et tri, les résultats sont filtrés par clé `normalize(marque) + '_' + normalize(nom)` pour éliminer les documents Firestore en doublon (même parfum importé plusieurs fois avec des IDs différents). Le premier résultat (meilleur score) est conservé.
+
+Appliqué dans 3 points :
+- Fin de `searchParfumsCached` (catalogue + scan)
+- Après re-scoring du prefix cache
+- En sortie de `searchParfumFromScan` (sécurité)
+
+### `searchParfumFromScan` — Recherche optimisée scan
+
+Le scan GPT-4o Vision fournit la marque et le nom de façon **structurée** (champs séparés), contrairement à la recherche catalogue (texte libre). `searchParfumFromScan` exploite cette structure :
+
+```
+searchParfumFromScan(marque, nom)
+  → Construit query = [marque, nom].join(' ')
+  → searchParfumsCached(query)     // scoring catalogue (matchScore + exactMatch + popBonus)
+  → Rescoring scan-spécifique :
+      Bonus nom exact      = +50   (doc.nom normalisé === gptNom normalisé)
+      Bonus nom partiel    = +25   (l'un contient l'autre)
+      Bonus marque exacte  = +15   (doc.marque normalisée === gptMarque normalisée)
+      Bonus marque partiel = +8    (l'un contient l'autre)
+  → Tri par bonus scan décroissant, tiebreaker bestPrice croissant
+  → Dédoublonnage marque+nom
+  → Return
+```
+
+**Pourquoi** : contrairement au catalogue (exploration), le scan est de l'**identification** — l'utilisateur sait déjà quel parfum il scanne. Le bonus +50 garantit que le match de nom exact écrase systématiquement les variants/flankers plus populaires.
 ```

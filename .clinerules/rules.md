@@ -88,7 +88,9 @@ src/
 
 ## §7 — Scan
 
-- Flux : Idle → Camera → Burst (3 photos) → GPT-4o Vision → searchParfumsCached() → Résultats
+- Flux : Idle → Camera → Burst (3 photos) → GPT-4o Vision → `searchParfumFromScan()` (wrapper scan-spécifique avec bonus nom/marque structurés) → Résultats
+- `searchParfumFromScan` score : +50 nom exact, +25 nom partiel, +15 marque exacte, +8 marque partielle (écrase le scoring catalogue pour garantir le match exact en tête)
+- `ScanResults` affiche les résultats dans l'ordre de pertinence (pas de tri par prix)
 - Import galerie : même pipeline, sans permission caméra
 - États : `idle | camera | scanning | results | no-result | clarify | error`
 - Reducer géré par `useScanReducer`
@@ -100,6 +102,7 @@ src/
 - Recherche 100% Firestore (searchParfumsCached, ~25K parfums seed, cache Map + prefix cache, debounce 150ms)
 - Navigation par famille olfactive (chips horizontaux)
 - Tri : pertinence / prix croissant / prix décroissant
+- Dédoublonnage automatique par `marque+nom` normalisé (élimine les doublons Firestore)
 - Suggestions personnalisées (si connecté) ou populaires (fallback)
 
 ---

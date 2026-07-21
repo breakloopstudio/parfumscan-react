@@ -8,7 +8,7 @@ import * as ImagePicker from 'expo-image-picker';
 import { useAuthContext } from '../../contexts/AuthContext';
 import { useScanReducer } from '../../hooks/useScanReducer';
 import { analyzeImage, analyzeMultipleImages } from '../../services/openai-vision';
-import { searchParfumsCached } from '../../services/firestore';
+import { searchParfumFromScan } from '../../services/firestore';
 import { saveScan } from '../../services/user-data';
 import { hapticsSuccess, hapticsError } from '../../services/haptics';
 import { setPendingCatalogQuery } from '../../services/catalog-bridge';
@@ -67,9 +67,7 @@ export function ScanScreen() {
 
   const trySearch = useCallback(async (m: string | null, n: string | null): Promise<Parfum[]> => {
     if (!m && !n) return [];
-    const query = [m, n].filter(Boolean).join(' ');
-    if (query.length < 2) return [];
-    try { return await searchParfumsCached(query); } catch { return []; }
+    try { return await searchParfumFromScan(m, n); } catch { return []; }
   }, []);
 
   const reset = useCallback(() => { pendingAnalysis.current = null; dispatch({ type: 'RESET' }); }, [dispatch]);
