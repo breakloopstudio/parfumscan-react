@@ -1,7 +1,7 @@
 // src/features/catalog/CatalogRow.tsx — Rangée éditoriale horizontale avec collapse
 
-import { useState, useMemo } from 'react';
-import { View, Text, Pressable, ScrollView } from 'react-native';
+import { useState, useMemo, useCallback } from 'react';
+import { View, Text, Pressable, ScrollView, type NativeSyntheticEvent, type NativeScrollEvent } from 'react-native';
 import Ionicons from '@react-native-vector-icons/ionicons/static';
 import { useTheme, type Theme } from '../../theme/ThemeContext';
 import SectionHeader from '../../components/SectionHeader';
@@ -13,6 +13,7 @@ interface Props {
   onAction?: () => void;
   collapsible?: boolean;
   defaultCollapsed?: boolean;
+  onHorizontalScrollActive?: (active: boolean) => void;
   children: React.ReactNode;
 }
 
@@ -23,11 +24,20 @@ export default function CatalogRow({
   onAction,
   collapsible = true,
   defaultCollapsed = false,
+  onHorizontalScrollActive,
   children,
 }: Props) {
   const { theme } = useTheme();
   const s = useMemo(() => getStyles(theme), [theme]);
   const [collapsed, setCollapsed] = useState(defaultCollapsed);
+
+  const handleScrollBeginDrag = useCallback(() => {
+    onHorizontalScrollActive?.(true);
+  }, [onHorizontalScrollActive]);
+
+  const handleScrollEndDrag = useCallback(() => {
+    onHorizontalScrollActive?.(false);
+  }, [onHorizontalScrollActive]);
 
   return (
     <View style={s.container}>
@@ -76,6 +86,9 @@ export default function CatalogRow({
           showsHorizontalScrollIndicator={false}
           contentContainerStyle={s.scrollContent}
           style={s.scrollView}
+          onScrollBeginDrag={handleScrollBeginDrag}
+          onScrollEndDrag={handleScrollEndDrag}
+          onMomentumScrollEnd={handleScrollEndDrag}
         >
           {children}
         </ScrollView>

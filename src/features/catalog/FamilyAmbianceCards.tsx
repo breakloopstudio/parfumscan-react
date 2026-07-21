@@ -1,7 +1,7 @@
 // src/features/catalog/FamilyAmbianceCards.tsx — Cartes d'ambiance « Explorer par famille »
 // 6 cartes visuelles avec dégradés theme-aware + icônes Ionicons
 
-import { useMemo } from 'react';
+import { useMemo, useCallback } from 'react';
 import { View, Text, Pressable, ScrollView } from 'react-native';
 import Ionicons from '@react-native-vector-icons/ionicons/static';
 import SectionHeader from '../../components/SectionHeader';
@@ -27,11 +27,15 @@ const FAMILIES: FamilyDef[] = [
 
 interface Props {
   onFamilyTap: (query: string) => void;
+  onHorizontalScrollActive?: (active: boolean) => void;
 }
 
-export default function FamilyAmbianceCards({ onFamilyTap }: Props) {
+export default function FamilyAmbianceCards({ onFamilyTap, onHorizontalScrollActive }: Props) {
   const { theme } = useTheme();
   const s = useMemo(() => getStyles(theme), [theme]);
+
+  const handleBeginDrag = useCallback(() => onHorizontalScrollActive?.(true), [onHorizontalScrollActive]);
+  const handleEndDrag = useCallback(() => onHorizontalScrollActive?.(false), [onHorizontalScrollActive]);
 
   return (
     <View style={s.container}>
@@ -43,6 +47,9 @@ export default function FamilyAmbianceCards({ onFamilyTap }: Props) {
         horizontal
         showsHorizontalScrollIndicator={false}
         contentContainerStyle={s.scrollContent}
+        onScrollBeginDrag={handleBeginDrag}
+        onScrollEndDrag={handleEndDrag}
+        onMomentumScrollEnd={handleEndDrag}
       >
         {FAMILIES.map(f => {
           const bg = theme.colors[f.bgKey] ?? theme.colors.surface2;

@@ -1,6 +1,6 @@
 // src/features/catalog/BrandCapsules.tsx — Pastilles marques rectangulaires en scroll horizontal
 
-import { useMemo } from 'react';
+import { useMemo, useCallback } from 'react';
 import { View, Text, Pressable, ScrollView } from 'react-native';
 import { useRouter } from 'expo-router';
 import SectionHeader from '../../components/SectionHeader';
@@ -14,12 +14,16 @@ const TOP_BRANDS = [
 interface Props {
   onViewAll: () => void;
   onBrandTap: (brand: string) => void;
+  onHorizontalScrollActive?: (active: boolean) => void;
 }
 
-export default function BrandCapsules({ onViewAll, onBrandTap }: Props) {
+export default function BrandCapsules({ onViewAll, onBrandTap, onHorizontalScrollActive }: Props) {
   const { theme } = useTheme();
   const s = useMemo(() => getStyles(theme), [theme]);
   const router = useRouter();
+
+  const handleBeginDrag = useCallback(() => onHorizontalScrollActive?.(true), [onHorizontalScrollActive]);
+  const handleEndDrag = useCallback(() => onHorizontalScrollActive?.(false), [onHorizontalScrollActive]);
 
   return (
     <View style={s.container}>
@@ -33,6 +37,9 @@ export default function BrandCapsules({ onViewAll, onBrandTap }: Props) {
         horizontal
         showsHorizontalScrollIndicator={false}
         contentContainerStyle={s.scrollContent}
+        onScrollBeginDrag={handleBeginDrag}
+        onScrollEndDrag={handleEndDrag}
+        onMomentumScrollEnd={handleEndDrag}
       >
         {TOP_BRANDS.map(brand => (
           <Pressable

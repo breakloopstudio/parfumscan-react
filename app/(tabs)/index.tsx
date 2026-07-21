@@ -46,6 +46,7 @@ export default function TabPager() {
   const searchBarTranslateY = useSharedValue(0);
   const dockSheetVisible = useSharedValue(false);
   const [sheetOpen, setSheetOpen] = useState(false);
+  const [catalogSwipeLock, setCatalogSwipeLock] = useState(false);
 
   useAnimatedReaction(
     () => scrollY.value,
@@ -153,12 +154,12 @@ export default function TabPager() {
         key={resolvedMode}
         style={s.pager}
         initialPage={activePage}
-        scrollEnabled={!sheetOpen}
+        scrollEnabled={!sheetOpen && !catalogSwipeLock}
         offscreenPageLimit={PAGES - 1}
         onPageSelected={handlePageSelected}
       >
         <View key="0" style={s.page}>
-          <CatalogPage onScroll={handlePageScroll} />
+          <CatalogPage onScroll={handlePageScroll} onHorizontalScrollActive={setCatalogSwipeLock} />
         </View>
         <View key="1" style={s.page}>
           <FavoritesPage onScroll={handlePageScroll} />

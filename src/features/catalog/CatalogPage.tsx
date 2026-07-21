@@ -43,9 +43,10 @@ function getDiscount(p: Parfum): number {
 
 interface Props {
   onScroll?: (y: number) => void;
+  onHorizontalScrollActive?: (active: boolean) => void;
 }
 
-export default function CatalogPage({ onScroll }: Props) {
+export default function CatalogPage({ onScroll, onHorizontalScrollActive }: Props) {
   const { theme, resolvedMode } = useTheme();
   const s = useMemo(() => getStyles(theme), [theme]);
   const { user, authReady, isAuthenticated } = useAuthContext();
@@ -176,6 +177,7 @@ export default function CatalogPage({ onScroll }: Props) {
       <BrandCapsules
         onViewAll={handleViewAllBrands}
         onBrandTap={handleBrandTap}
+        onHorizontalScrollActive={onHorizontalScrollActive}
       />
 
       {/* Row: Pour vous / Tendances */}
@@ -187,6 +189,7 @@ export default function CatalogPage({ onScroll }: Props) {
           onAction={() => router.push('/(tabs)/search')}
           collapsible
           defaultCollapsed={false}
+          onHorizontalScrollActive={onHorizontalScrollActive}
         >
           {suggestionParfums.map(p => (
             <ParfumCard key={p.id} parfum={p} mode="compact" />
@@ -201,6 +204,7 @@ export default function CatalogPage({ onScroll }: Props) {
           subtitle="Les meilleurs rapports qualité-prix"
           collapsible
           defaultCollapsed={false}
+          onHorizontalScrollActive={onHorizontalScrollActive}
         >
           {bestDeals.map(p => (
             <ParfumCard key={p.id} parfum={p} mode="compact" />
@@ -209,7 +213,7 @@ export default function CatalogPage({ onScroll }: Props) {
       )}
 
       {/* Row: Explorer par famille (ambiance cards) */}
-      <FamilyAmbianceCards onFamilyTap={handleFamilyTap} />
+      <FamilyAmbianceCards onFamilyTap={handleFamilyTap} onHorizontalScrollActive={onHorizontalScrollActive} />
 
       {/* Row: Icônes intemporelles (collapsed) */}
       {iconicParfums.length > 0 && (
@@ -218,6 +222,7 @@ export default function CatalogPage({ onScroll }: Props) {
           subtitle="Les parfums qui ont marqué l'histoire"
           collapsible
           defaultCollapsed={true}
+          onHorizontalScrollActive={onHorizontalScrollActive}
         >
           {iconicParfums.map(p => (
             <ParfumCard key={p.id} parfum={p} mode="compact" />
