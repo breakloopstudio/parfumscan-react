@@ -1,4 +1,4 @@
-// app/(tabs)/favorites.tsx — Moodboard olfactif : favoris en grille
+// app/(tabs)/favorites.tsx — Moodboard olfactif : favoris en grille 3 densités
 
 import { useState, useMemo, useEffect, useRef } from 'react';
 import { View, Text, ScrollView, Pressable, ActivityIndicator, FlatList, Animated, Easing, LayoutAnimation, TextInput, RefreshControl } from 'react-native';
@@ -13,6 +13,8 @@ import { addToWardrobe } from '../../src/services/wardrobe';
 import { setPendingParfum } from '../../src/services/catalog-bridge';
 import { translateNote } from '../../src/utils/translate-note';
 import { useTheme, type Theme } from '../../src/theme/ThemeContext';
+import { useDensityPreference, GRID_MODES } from '../../src/hooks/useDensityPreference';
+import type { CardMode } from '../../src/components/ParfumCard';
 import EmptyState from '../../src/components/EmptyState';
 import ProfileAvatar from '../../src/components/ProfileAvatar';
 import ActionSheet, { type ActionItem } from '../../src/components/ActionSheet';
@@ -45,12 +47,14 @@ export default function FavoritesPage({ onScroll }: Props) {
   const uid = user?.uid ?? null;
   const { favoris, loading, removeFavori } = useFavoris(uid);
   const keyboardAppearance = resolvedMode === 'dark' ? 'dark' : 'light';
+  const { density: gridDensity, setDensity: setGridDensity } = useDensityPreference();
 
   const [searchQuery, setSearchQuery] = useState('');
   const [activeFamily, setActiveFamily] = useState<string | null>(null);
   const [sortMode, setSortMode] = useState<'recent' | 'az' | 'za' | 'price'>('recent');
   const [refreshing, setRefreshing] = useState(false);
   const [selectedItem, setSelectedItem] = useState<UserFavori | null>(null);
+  const [showFamilySheet, setShowFamilySheet] = useState(false);
 
   const animatedValues = useRef<Map<string, Animated.Value>>(new Map());
   const prevFilterKey = useRef<string | null>(null);
@@ -67,6 +71,25 @@ export default function FavoritesPage({ onScroll }: Props) {
     }
     return [...m.entries()].sort((a, b) => b[1] - a[1]);
   }, [favoris]);
+
+  const familySheetActions: ActionItem[] = useMemo(() => {
+    const actions: ActionItem[] = [
+      {
+        icon: activeFamily === null ? 'checkmark-circle' : 'ellipse-outline',
+        label: `Toutes (${favoris.length})`,
+        onPress: () => { setActiveFamily(null); setShowFamilySheet(false); },
+      },
+    ];
+    for (const [family, count] of familyCounts) {
+      const isActive = activeFamily === family;
+      actions.push({
+        icon: isActive ? 'checkmark-circle' : 'ellipse-outline',
+        label: `${translateNote(family)} (${count})`,
+        onPress: () => { setActiveFamily(family); setShowFamilySheet(false); },
+      });
+    }
+    return actions;
+  }, [familyCounts, activeFamily, favoris.length]);
 
   const filtered = useMemo(() => {
     let result = [...favoris];
@@ -167,12 +190,12 @@ export default function FavoritesPage({ onScroll }: Props) {
     return [
       {
         icon: 'eye-outline',
-        label: 'Voir le detail',
+        label: 'Voir le détail',
         onPress: () => { setSelectedItem(null); goToDetail(item.parfumId); },
       },
       {
         icon: 'shirt-outline',
-        label: 'Ajouter a ma garde-robe',
+        label: 'Ajouter à ma parfumerie',
         onPress: () => {
           setSelectedItem(null);
           addToWardrobe(uid, item.parfumId, 'have', item.nom ?? undefined, item.marque ?? undefined, item.imageUrl ?? undefined);
@@ -180,7 +203,7 @@ export default function FavoritesPage({ onScroll }: Props) {
       },
       {
         icon: 'swap-horizontal-outline',
-        label: 'Deplacer vers Garde-robe',
+        label: 'Déplacer vers Parfumerie',
         onPress: () => {
           setSelectedItem(null);
           moveToCollection(uid, 'favoris', item.id, item.parfumId, item.nom ?? null, item.marque ?? null, item.imageUrl ?? null);
@@ -188,7 +211,7 @@ export default function FavoritesPage({ onScroll }: Props) {
       },
       {
         icon: 'bookmark-outline',
-        label: 'Deplacer vers Wishlist',
+        label: 'Déplacer vers Wishlist',
         onPress: () => {
           setSelectedItem(null);
           moveToWishlist(uid, 'favoris', item.id, item.parfumId, item.nom ?? null, item.marque ?? null, item.imageUrl ?? null, item.familleOlactive ?? null);
@@ -206,6 +229,9 @@ export default function FavoritesPage({ onScroll }: Props) {
       },
     ];
   }, [selectedItem, uid]);
+
+  const gridNumCols = gridDensity === 'list' ? 1 : 2;
+  const gridKey = `${gridNumCols}col-${resolvedMode}`;
 
   if (!authReady) {
     return (
@@ -295,27 +321,35 @@ export default function FavoritesPage({ onScroll }: Props) {
             </Pressable>
           </View>
 
-          {familyCounts.length >= 2 && (
-            <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={s.chipsRow}>
-              <Pressable
-                style={[s.chip, activeFamily === null && s.chipActive]}
-                onPress={() => setActiveFamily(null)}
-              >
-                <Text style={[s.chipText, activeFamily === null && s.chipTextActive]}>Tous</Text>
+          <View style={s.controlsRow}>
+            <Pressable style={s.familyBtn} onPress={() => setShowFamilySheet(true)}>
+              <Ionicons name="options-outline" size={16} color={activeFamily ? theme.colors.primary : theme.colors.textMuted} />
+              <Text style={[s.familyBtnText, activeFamily ? s.familyBtnTextActive : undefined]}>
+                {activeFamily ? translateNote(activeFamily) : 'Famille'}
+              </Text>
+            </Pressable>
+
+            {activeFamily && (
+              <Pressable style={s.dismissChip} onPress={() => setActiveFamily(null)}>
+                <Text style={s.dismissChipText}>{translateNote(activeFamily)}</Text>
+                <Ionicons name="close-circle" size={14} color={theme.colors.primaryInk} />
               </Pressable>
-              {familyCounts.map(([family, count]) => (
-                <Pressable
-                  key={family}
-                  style={[s.chip, activeFamily === family && s.chipActive]}
-                  onPress={() => setActiveFamily(activeFamily === family ? null : family)}
-                >
-                  <Text style={[s.chipText, activeFamily === family && s.chipTextActive]}>
-                    {translateNote(family)} · {count}
-                  </Text>
-                </Pressable>
-              ))}
-            </ScrollView>
-          )}
+            )}
+
+            <View style={{ flex: 1 }} />
+
+            {GRID_MODES.map(m => (
+              <Pressable
+                key={m.key}
+                style={[s.segmentBtn, gridDensity === m.key && s.segmentBtnActive]}
+                onPress={() => setGridDensity(m.key)}
+              >
+                <Text style={[s.segmentBtnText, gridDensity === m.key && s.segmentBtnTextActive]}>
+                  {m.label}
+                </Text>
+              </Pressable>
+            ))}
+          </View>
         </View>
       )}
 
@@ -333,11 +367,11 @@ export default function FavoritesPage({ onScroll }: Props) {
     const opacity = animVal ?? 1;
 
     return (
-      <Animated.View style={{ flex: 0.5, opacity }}>
+      <Animated.View style={[gridDensity === 'list' ? s.listItemWrap : s.gridItemWrap, { opacity }]}>
         <Pressable onLongPress={() => showContextMenu(item)} delayLongPress={400} style={{ flex: 1 }}>
           <ParfumCard
             parfum={cardData}
-            mode="compact"
+            mode={gridDensity}
             onPressOverride={() => goToDetail(item.parfumId)}
           />
         </Pressable>
@@ -349,12 +383,13 @@ export default function FavoritesPage({ onScroll }: Props) {
     <>
       <SafeAreaView edges={['bottom']} style={s.container}>
         <FlatList
+          key={gridKey}
           data={filtered}
           keyExtractor={item => item.id}
           renderItem={renderItem}
-          extraData={resolvedMode}
-          numColumns={2}
-          columnWrapperStyle={s.row}
+          extraData={`${gridDensity}|${resolvedMode}`}
+          numColumns={gridNumCols}
+          columnWrapperStyle={gridNumCols === 2 ? s.row : undefined}
           contentContainerStyle={s.content}
           ListHeaderComponent={ListHeader}
           showsVerticalScrollIndicator={false}
@@ -372,6 +407,12 @@ export default function FavoritesPage({ onScroll }: Props) {
         title={selectedItem?.nom ?? undefined}
         actions={sheetActions}
         onClose={() => setSelectedItem(null)}
+      />
+      <ActionSheet
+        visible={showFamilySheet}
+        title="Filtrer par famille"
+        actions={familySheetActions}
+        onClose={() => setShowFamilySheet(false)}
       />
     </>
   );
@@ -406,7 +447,7 @@ function getStyles(t: Theme) {
       flexDirection: 'row',
       alignItems: 'center',
       gap: 8,
-      marginBottom: 4,
+      marginBottom: 8,
     },
     searchWrap: {
       flex: 1,
@@ -436,30 +477,67 @@ function getStyles(t: Theme) {
       fontSize: 12,
       color: t.colors.primary,
     },
-    chipsRow: {
-      paddingVertical: 4,
-      gap: 8,
+    controlsRow: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 6,
+      marginBottom: 4,
     },
-    chip: {
+    familyBtn: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 5,
       paddingHorizontal: 12,
-      paddingVertical: 7,
+      paddingVertical: 8,
       borderRadius: 20,
-      backgroundColor: t.colors.surface2,
-    },
-    chipActive: {
-      backgroundColor: t.colors.primarySoft,
+      backgroundColor: t.colors.surface,
       borderWidth: 1,
-      borderColor: t.colors.primary,
+      borderColor: t.colors.border,
+      minHeight: 38,
     },
-    chipText: {
+    familyBtnText: {
       fontFamily: 'Inter_500Medium',
       fontSize: 12,
       color: t.colors.textMuted,
     },
-    chipTextActive: {
+    familyBtnTextActive: {
+      color: t.colors.primary,
+      fontFamily: 'Inter_600SemiBold',
+    },
+    dismissChip: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 4,
+      paddingHorizontal: 10,
+      paddingVertical: 7,
+      borderRadius: 20,
+      backgroundColor: t.colors.primarySoft,
+    },
+    dismissChipText: {
       fontFamily: 'Inter_600SemiBold',
       fontSize: 12,
       color: t.colors.primaryInk,
+    },
+    segmentBtn: {
+      paddingHorizontal: 11,
+      paddingVertical: 8,
+      borderRadius: 6,
+      backgroundColor: t.colors.surface2,
+      minHeight: 38,
+      justifyContent: 'center',
+    },
+    segmentBtnActive: {
+      backgroundColor: t.colors.surface,
+      ...t.shadow.card,
+    },
+    segmentBtnText: {
+      fontFamily: 'Inter_500Medium',
+      fontSize: 11,
+      color: t.colors.textMuted,
+    },
+    segmentBtnTextActive: {
+      fontFamily: 'Inter_600SemiBold',
+      color: t.colors.text,
     },
     emptyFilter: {
       paddingVertical: 24,
@@ -478,5 +556,7 @@ function getStyles(t: Theme) {
       paddingHorizontal: 16,
       paddingBottom: 40,
     },
+    gridItemWrap: { flex: 1 },
+    listItemWrap: { marginBottom: 8 },
   } as const;
 }

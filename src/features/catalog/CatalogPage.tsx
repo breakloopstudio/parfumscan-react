@@ -7,22 +7,16 @@ import { View, Text, FlatList, ActivityIndicator, Pressable, ScrollView, StyleSh
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Link, useRouter } from 'expo-router';
 import { useAuthContext } from '../../contexts/AuthContext';
-import ParfumCard, { type CardMode } from '../../components/ParfumCard';
+import ParfumCard from '../../components/ParfumCard';
 import ProfileAvatar from '../../components/ProfileAvatar';
 import SectionHeader from '../../components/SectionHeader';
 import BrandCapsules from './BrandCapsules';
 import CatalogRow from './CatalogRow';
 import FamilyAmbianceCards from './FamilyAmbianceCards';
 import { getPopularParfums, getPersonalizedSuggestions } from '../../services/firestore';
-import { useDensityPreference } from '../../hooks/useDensityPreference';
+import { useDensityPreference, GRID_MODES } from '../../hooks/useDensityPreference';
 import { useTheme, type Theme } from '../../theme/ThemeContext';
 import type { Parfum } from '../../models';
-
-const GRID_MODES: { key: CardMode; label: string }[] = [
-  { key: 'comfortable', label: 'Confort.' },
-  { key: 'compactPlus', label: 'Compact' },
-  { key: 'list', label: 'Liste' },
-];
 
 const ICONIC_NAMES = [
   'N°5', 'Shalimar', "J'adore", 'Angel', 'Le Mâle',

@@ -4,8 +4,13 @@ import { useState, useEffect, useCallback } from 'react';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import type { CardMode } from '../components/ParfumCard';
 
-const KEY = '@parfumscan/catalog-density';
+export const GRID_MODES: { key: CardMode; label: string }[] = [
+  { key: 'comfortable', label: 'Confort.' },
+  { key: 'compactPlus', label: 'Compact' },
+  { key: 'list', label: 'Liste' },
+];
 
+const KEY = '@parfumscan/catalog-density';
 const VALID: readonly CardMode[] = ['comfortable', 'compactPlus', 'list'];
 
 function isValid(v: string | null): v is CardMode {

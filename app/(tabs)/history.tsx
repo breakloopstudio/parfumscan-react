@@ -1,4 +1,5 @@
 // app/(tabs)/history.tsx — Journal olfactif : historique des scans
+// ScanHistoryCard wrapper : ParfumCard (scans réussis) + overlay statut
 
 import { useState, useMemo, useEffect, useRef, useCallback } from 'react';
 import { View, Text, ScrollView, Pressable, ActivityIndicator, Alert, TextInput, Animated, Easing, RefreshControl } from 'react-native';
@@ -14,11 +15,14 @@ import { addToWardrobe } from '../../src/services/wardrobe';
 import { hapticsLight } from '../../src/services/haptics';
 import { translateNote } from '../../src/utils/translate-note';
 import { useTheme, type Theme } from '../../src/theme/ThemeContext';
+import { useDensityPreference, GRID_MODES } from '../../src/hooks/useDensityPreference';
 import EmptyState from '../../src/components/EmptyState';
 import ProfileAvatar from '../../src/components/ProfileAvatar';
 import ActionSheet from '../../src/components/ActionSheet';
+import ParfumCard from '../../src/components/ParfumCard';
 import type { ActionItem } from '../../src/components/ActionSheet';
 import type { UserScan } from '../../src/models/user-scan.interface';
+import type { Parfum } from '../../src/models';
 
 const PALETTE = ['#5B21B6', '#1E40AF', '#065F46', '#92400E', '#991B1B', '#9D174D', '#3730A3', '#854D0E'];
 
@@ -26,17 +30,6 @@ function brandColor(brand: string): string {
   let hash = 0;
   for (let i = 0; i < brand.length; i++) hash = brand.charCodeAt(i) + ((hash << 5) - hash);
   return PALETTE[Math.abs(hash) % PALETTE.length];
-}
-
-function stripBrandFromName(name: string, brand: string): string {
-  if (!brand) return name;
-  const lc = name.toLowerCase().trim();
-  const lb = brand.toLowerCase().trim();
-  if (lc.startsWith(lb) && (lc.length === lb.length || lc[lb.length] === ' ')) {
-    const stripped = name.slice(lb.length).trim();
-    return stripped || name;
-  }
-  return name;
 }
 
 function getScanDate(d: Date | { toDate: () => Date } | undefined): Date | null {
@@ -137,7 +130,25 @@ function getDotColor(status: UserScan['status'], t: Theme): string {
   return t.colors.textMuted;
 }
 
-// ── Sous-composants ──
+function formatScanTime(date: Date | null): string {
+  if (!date) return '';
+  return date.toLocaleString([], { weekday: 'short', day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })
+    .replace(/^./, c => c.toUpperCase());
+}
+
+function scanToParfum(scan: UserScan): Parfum {
+  return {
+    id: scan.parfumId ?? scan.id,
+    nom: scan.nom ?? '',
+    marque: scan.marque ?? '',
+    imageUrl: scan.imageUrl ?? undefined,
+    familleOlactive: scan.familleOlactive ?? '',
+    bestPrice: scan.bestPrice ?? undefined,
+    annee: scan.annee ?? undefined,
+  } as Parfum;
+}
+
+// ── ScanHistoryCard (wrapper) ──
 
 function ScanHistoryCard({
   scan,
@@ -145,98 +156,71 @@ function ScanHistoryCard({
   onPress,
   onLongPress,
   opacity,
+  density,
 }: {
   scan: UserScan;
   repeatCount: number;
   onPress: (() => void) | undefined;
   onLongPress: () => void;
   opacity: Animated.Value;
+  density: 'comfortable' | 'compactPlus' | 'list';
 }) {
   const { theme } = useTheme();
   const s = useMemo(() => getCardStyles(theme), [theme]);
-  const [imgFailed, setImgFailed] = useState(false);
-  const tint = brandColor(scan.marque ?? '');
-
   const date = getScanDate(scan.scannedAt);
-  const dateStr = date
-    ? date.toLocaleString([], { weekday: 'short', day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })
-        .replace(/^./, c => c.toUpperCase())
-    : '';
-
+  const dateStr = formatScanTime(date);
   const dotColor = getDotColor(scan.status, theme);
+  const isSuccess = scan.status === 'success' && scan.parfumId;
 
-  const hasChips = !!(scan.familleOlactive) || !!(scan.annee);
+  // No-result / error : layout compact
+  if (!isSuccess) {
+    const tint = brandColor(scan.marque ?? '');
+    return (
+      <Animated.View style={{ opacity, marginBottom: 8 }}>
+        <Pressable style={s.cardNoResult} onLongPress={onLongPress} delayLongPress={400}>
+          <View style={[s.dotBadge, { backgroundColor: dotColor }]} />
+          {scan.imageUrl ? (
+            <Image source={{ uri: scan.imageUrl }} style={s.image} contentFit="cover" />
+          ) : (
+            <View style={[s.imagePlaceholder, { backgroundColor: tint }]}>
+              <Text style={s.placeholderInit}>{(scan.marque ?? '?').charAt(0).toUpperCase()}</Text>
+            </View>
+          )}
+          <View style={s.infoNoResult}>
+            {scan.marque ? <Text style={s.brand} numberOfLines={1}>{scan.marque}</Text> : null}
+            <Text style={s.name} numberOfLines={1}>{scan.nom ?? scan.rawText ?? 'Scan sans résultat'}</Text>
+            <View style={s.footer}>
+              <View style={s.dateRow}>
+                <Ionicons name="time-outline" size={12} color={theme.colors.textMuted} />
+                <Text style={s.dateText}>{dateStr}</Text>
+              </View>
+            </View>
+          </View>
+        </Pressable>
+      </Animated.View>
+    );
+  }
 
+  // Success : ParfumCard avec overlay
+  const cardData = scanToParfum(scan);
   return (
     <Animated.View style={{ opacity, marginBottom: 8 }}>
-      <Pressable
-        style={s.card}
-        onPress={onPress}
-        onLongPress={onLongPress}
-        delayLongPress={400}
-      >
-        <View style={s.dot} />
-        <View style={[s.dot, { backgroundColor: dotColor, position: 'absolute', top: 8, right: 8 }]} />
-
-        {scan.imageUrl && !imgFailed ? (
-          <Image
-            source={{ uri: scan.imageUrl }}
-            style={s.image}
-            contentFit="cover"
-            transition={200}
-            onError={() => setImgFailed(true)}
-          />
-        ) : (
-          <View style={[s.imagePlaceholder, { backgroundColor: tint }]}>
-            <Text style={s.placeholderInit}>{(scan.marque ?? '?').charAt(0).toUpperCase()}</Text>
-          </View>
-        )}
-
-        <View style={s.info}>
-          {scan.marque ? (
-            <Text style={s.brand} numberOfLines={1}>{scan.marque}</Text>
-          ) : null}
-
-          <View style={s.nameRow}>
-            <Text style={s.name} numberOfLines={2}>
-              {scan.nom ? stripBrandFromName(scan.nom, scan.marque ?? '') : (!scan.marque ? 'Scan sans résultat' : '')}
-            </Text>
+      <Pressable onLongPress={onLongPress} delayLongPress={400} onPress={onPress}>
+        <View style={s.successWrap}>
+          <ParfumCard parfum={cardData} mode={density} />
+          <View style={s.overlayRow}>
+            <View style={[s.dotBadge, { backgroundColor: dotColor }]} />
+            <View style={s.overlayInfo}>
+              <View style={s.dateRow}>
+                <Ionicons name="time-outline" size={11} color={theme.colors.textMuted} />
+                <Text style={s.dateTextSmall}>{dateStr}</Text>
+              </View>
+            </View>
             {repeatCount > 1 && (
               <View style={s.repeatBadge}>
                 <Text style={s.repeatText}>×{repeatCount}</Text>
               </View>
             )}
-          </View>
-
-          {(scan.typeParfum || scan.volumeMl) ? (
-            <Text style={s.meta}>
-              {[scan.typeParfum, scan.volumeMl ? `${scan.volumeMl} ml` : null].filter(Boolean).join(' · ')}
-            </Text>
-          ) : null}
-
-          {hasChips && (
-            <View style={s.chips}>
-              {scan.familleOlactive ? (
-                <View style={s.chipFamily}>
-                  <Text style={s.chipFamilyText}>{translateNote(scan.familleOlactive)}</Text>
-                </View>
-              ) : null}
-              {scan.annee ? (
-                <View style={s.chipYear}>
-                  <Text style={s.chipYearText}>{scan.annee}</Text>
-                </View>
-              ) : null}
-            </View>
-          )}
-
-          <View style={s.footer}>
-            <View style={s.dateRow}>
-              <Ionicons name="time-outline" size={12} color={theme.colors.textMuted} />
-              <Text style={s.dateText}>{dateStr}</Text>
-            </View>
-            {scan.bestPrice ? (
-              <Text style={s.price}>{scan.bestPrice.toFixed(2)} €</Text>
-            ) : null}
           </View>
         </View>
       </Pressable>
@@ -258,6 +242,7 @@ export default function HistoryPage({ onScroll }: Props) {
   const uid = user?.uid ?? null;
   const { scans, loading, removeScan } = useScans(uid);
   const keyboardAppearance = resolvedMode === 'dark' ? 'dark' : 'light';
+  const { density: gridDensity, setDensity: setGridDensity } = useDensityPreference();
 
   const [searchQuery, setSearchQuery] = useState('');
   const [sortNewest, setSortNewest] = useState(true);
@@ -270,7 +255,7 @@ export default function HistoryPage({ onScroll }: Props) {
     try {
       const p = await getParfumById(parfumId);
       if (p) setPendingParfum(p);
-    } catch { /* ignore */ }
+    } catch {}
     router.push(`/catalog/${parfumId}`);
   }, [router]);
 
@@ -315,12 +300,10 @@ export default function HistoryPage({ onScroll }: Props) {
     return actions;
   }, [selectedScan, uid, goToDetail, removeScan]);
 
-
   const handleRefresh = useCallback(() => {
     setRefreshing(true);
     setTimeout(() => setRefreshing(false), 800);
   }, []);
-
 
   const filtered = useMemo(() => {
     let result = [...scans];
@@ -430,22 +413,38 @@ export default function HistoryPage({ onScroll }: Props) {
         )}
 
         {showSearch && (
-          <View style={s.searchRow}>
-            <View style={s.searchWrap}>
-              <Ionicons name="search-outline" size={16} color={theme.colors.textMuted} />
-              <TextInput
-                style={s.searchInput}
-                placeholder="Rechercher un scan..."
-                placeholderTextColor={theme.colors.textMuted}
-                value={searchQuery}
-                onChangeText={setSearchQuery}
-                keyboardAppearance={keyboardAppearance}
-              />
+          <View style={s.filterContainer}>
+            <View style={s.searchRow}>
+              <View style={s.searchWrap}>
+                <Ionicons name="search-outline" size={16} color={theme.colors.textMuted} />
+                <TextInput
+                  style={s.searchInput}
+                  placeholder="Rechercher un scan..."
+                  placeholderTextColor={theme.colors.textMuted}
+                  value={searchQuery}
+                  onChangeText={setSearchQuery}
+                  keyboardAppearance={keyboardAppearance}
+                />
+              </View>
+              <Pressable style={s.sortBtn} onPress={() => setSortNewest(p => !p)} hitSlop={8}>
+                <Ionicons name="swap-vertical-outline" size={16} color={theme.colors.primary} />
+                <Text style={s.sortLabel}>{sortNewest ? 'Récents' : 'Anciens'}</Text>
+              </Pressable>
             </View>
-            <Pressable style={s.sortBtn} onPress={() => setSortNewest(p => !p)} hitSlop={8}>
-              <Ionicons name="swap-vertical-outline" size={16} color={theme.colors.primary} />
-              <Text style={s.sortLabel}>{sortNewest ? 'Récents' : 'Anciens'}</Text>
-            </Pressable>
+            <View style={s.controlsRow}>
+              <View style={{ flex: 1 }} />
+              {GRID_MODES.map(m => (
+                <Pressable
+                  key={m.key}
+                  style={[s.segmentBtn, gridDensity === m.key && s.segmentBtnActive]}
+                  onPress={() => setGridDensity(m.key)}
+                >
+                  <Text style={[s.segmentBtnText, gridDensity === m.key && s.segmentBtnTextActive]}>
+                    {m.label}
+                  </Text>
+                </Pressable>
+              ))}
+            </View>
           </View>
         )}
 
@@ -472,6 +471,7 @@ export default function HistoryPage({ onScroll }: Props) {
                 onPress={item.scan.parfumId ? () => goToDetail(item.scan.parfumId!) : undefined}
                 onLongPress={() => handleLongPress(item.scan)}
                 opacity={anim}
+                density={gridDensity as 'comfortable' | 'compactPlus' | 'list'}
               />
             );
           })
@@ -494,7 +494,54 @@ export default function HistoryPage({ onScroll }: Props) {
 
 function getCardStyles(t: Theme) {
   return {
-    card: {
+    // Success wrapper
+    successWrap: {
+      marginHorizontal: 16,
+    },
+    overlayRow: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 6,
+      paddingHorizontal: 4,
+      paddingTop: 4,
+    },
+    overlayInfo: {
+      flex: 1,
+    },
+    dotBadge: {
+      width: 8,
+      height: 8,
+      borderRadius: t.radius.full,
+    },
+    dateRow: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 4,
+    },
+    dateText: {
+      fontFamily: 'Inter_400Regular',
+      fontSize: 11,
+      color: t.colors.textMuted,
+    },
+    dateTextSmall: {
+      fontFamily: 'Inter_400Regular',
+      fontSize: 10,
+      color: t.colors.textMuted,
+    },
+    repeatBadge: {
+      backgroundColor: t.colors.primarySoft,
+      paddingHorizontal: 6,
+      paddingVertical: 2,
+      borderRadius: 10,
+    },
+    repeatText: {
+      fontFamily: 'Inter_600SemiBold',
+      fontSize: 11,
+      color: t.colors.primaryInk,
+    },
+
+    // No-result card
+    cardNoResult: {
       flexDirection: 'row',
       backgroundColor: t.colors.surface,
       borderRadius: t.radius.card,
@@ -503,11 +550,6 @@ function getCardStyles(t: Theme) {
       gap: 12,
       overflow: 'hidden' as const,
       ...t.shadow.card,
-    },
-    dot: {
-      width: 8,
-      height: 8,
-      borderRadius: t.radius.full,
     },
     image: {
       width: 56,
@@ -528,9 +570,10 @@ function getCardStyles(t: Theme) {
       color: '#FFFFFF',
       opacity: 0.5,
     },
-    info: {
+    infoNoResult: {
       flex: 1,
       gap: 2,
+      justifyContent: 'center',
     },
     brand: {
       fontFamily: 'Inter_400Regular',
@@ -539,80 +582,17 @@ function getCardStyles(t: Theme) {
       letterSpacing: 1.5,
       color: t.colors.textMuted,
     },
-    nameRow: {
-      flexDirection: 'row',
-      alignItems: 'center',
-      gap: 6,
-    },
     name: {
       fontFamily: 'PlayfairDisplay_600SemiBold',
       fontSize: 15,
       color: t.colors.text,
       flexShrink: 1,
     },
-    repeatBadge: {
-      backgroundColor: t.colors.primarySoft,
-      paddingHorizontal: 6,
-      paddingVertical: 2,
-      borderRadius: 10,
-    },
-    repeatText: {
-      fontFamily: 'Inter_600SemiBold',
-      fontSize: 11,
-      color: t.colors.primaryInk,
-    },
-    meta: {
-      fontFamily: 'Inter_400Regular',
-      fontSize: 12,
-      color: t.colors.textMuted,
-    },
-    chips: {
-      flexDirection: 'row',
-      gap: 6,
-      marginTop: 2,
-    },
-    chipFamily: {
-      backgroundColor: t.colors.violetSoft,
-      paddingHorizontal: 8,
-      paddingVertical: 2,
-      borderRadius: 20,
-    },
-    chipFamilyText: {
-      fontFamily: 'Inter_500Medium',
-      fontSize: 10,
-      color: t.colors.violetInk,
-    },
-    chipYear: {
-      backgroundColor: t.colors.rewardSoft,
-      paddingHorizontal: 8,
-      paddingVertical: 2,
-      borderRadius: 20,
-    },
-    chipYearText: {
-      fontFamily: 'Inter_500Medium',
-      fontSize: 10,
-      color: t.colors.reward,
-    },
     footer: {
       flexDirection: 'row',
       alignItems: 'center',
       justifyContent: 'space-between',
       marginTop: 4,
-    },
-    dateRow: {
-      flexDirection: 'row',
-      alignItems: 'center',
-      gap: 4,
-    },
-    dateText: {
-      fontFamily: 'Inter_400Regular',
-      fontSize: 11,
-      color: t.colors.textMuted,
-    },
-    price: {
-      fontFamily: 'Inter_700Bold',
-      fontSize: 14,
-      color: t.colors.deal,
     },
   } as const;
 }
@@ -634,11 +614,7 @@ function getStyles(t: Theme) {
       paddingHorizontal: 32,
       paddingVertical: 12,
     },
-    authBtnText: {
-      fontFamily: 'Inter_600SemiBold',
-      fontSize: 15,
-      color: t.colors.primary,
-    },
+    authBtnText: { fontFamily: 'Inter_600SemiBold', fontSize: 15, color: t.colors.primary },
     todayPrompt: {
       flexDirection: 'row',
       alignItems: 'center',
@@ -650,55 +626,30 @@ function getStyles(t: Theme) {
       paddingHorizontal: 14,
       gap: 8,
     },
-    todayPromptText: {
-      fontFamily: 'Inter_500Medium',
-      fontSize: 13,
-      color: t.colors.primaryInk,
-    },
+    todayPromptText: { fontFamily: 'Inter_500Medium', fontSize: 13, color: t.colors.primaryInk },
+    filterContainer: { paddingHorizontal: 12, paddingBottom: 8 },
     searchRow: {
-      flexDirection: 'row',
-      alignItems: 'center',
-      paddingHorizontal: 12,
-      marginBottom: 8,
-      gap: 8,
+      flexDirection: 'row', alignItems: 'center',
+      marginBottom: 8, gap: 8,
     },
     searchWrap: {
-      flex: 1,
-      flexDirection: 'row',
-      alignItems: 'center',
-      backgroundColor: t.colors.surface2,
-      borderRadius: 20,
-      paddingHorizontal: 12,
-      height: 36,
-      gap: 8,
+      flex: 1, flexDirection: 'row', alignItems: 'center',
+      backgroundColor: t.colors.surface2, borderRadius: 20,
+      paddingHorizontal: 12, height: 36, gap: 8,
     },
-    searchInput: {
-      flex: 1,
-      fontFamily: 'Inter_400Regular',
-      fontSize: 13,
-      color: t.colors.text,
+    searchInput: { flex: 1, fontFamily: 'Inter_400Regular', fontSize: 13, color: t.colors.text },
+    sortBtn: { flexDirection: 'row', alignItems: 'center', gap: 2, paddingHorizontal: 6, paddingVertical: 6 },
+    sortLabel: { fontFamily: 'Inter_500Medium', fontSize: 11, color: t.colors.primary },
+    controlsRow: { flexDirection: 'row', alignItems: 'center', gap: 6 },
+    segmentBtn: {
+      paddingHorizontal: 11, paddingVertical: 8,
+      borderRadius: 6, backgroundColor: t.colors.surface2,
+      minHeight: 38, justifyContent: 'center',
     },
-    sortBtn: {
-      flexDirection: 'row',
-      alignItems: 'center',
-      gap: 2,
-      paddingHorizontal: 6,
-      paddingVertical: 6,
-    },
-    sortLabel: {
-      fontFamily: 'Inter_500Medium',
-      fontSize: 11,
-      color: t.colors.primary,
-    },
-    sectionHeader: {
-      paddingHorizontal: 20,
-      paddingTop: 16,
-      paddingBottom: 6,
-    },
-    sectionTitle: {
-      fontFamily: 'PlayfairDisplay_600SemiBold',
-      fontSize: 17,
-      color: t.colors.text,
-    },
+    segmentBtnActive: { backgroundColor: t.colors.surface, ...t.shadow.card },
+    segmentBtnText: { fontFamily: 'Inter_500Medium', fontSize: 11, color: t.colors.textMuted },
+    segmentBtnTextActive: { fontFamily: 'Inter_600SemiBold', color: t.colors.text },
+    sectionHeader: { paddingHorizontal: 20, paddingTop: 16, paddingBottom: 6 },
+    sectionTitle: { fontFamily: 'PlayfairDisplay_600SemiBold', fontSize: 17, color: t.colors.text },
   } as const;
 }

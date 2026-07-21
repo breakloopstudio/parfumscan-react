@@ -8,16 +8,10 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import Ionicons from '@react-native-vector-icons/ionicons/static';
 import { useCatalog } from '../../src/hooks/useCatalog';
-import ParfumCard, { type CardMode } from '../../src/components/ParfumCard';
+import ParfumCard from '../../src/components/ParfumCard';
 import { useTheme, type Theme } from '../../src/theme/ThemeContext';
 import { consumePendingCatalogQuery } from '../../src/services/catalog-bridge';
-import { useDensityPreference } from '../../src/hooks/useDensityPreference';
-
-const GRID_MODES: { key: CardMode; label: string }[] = [
-  { key: 'comfortable', label: 'Confort.' },
-  { key: 'compactPlus', label: 'Compact' },
-  { key: 'list', label: 'Liste' },
-];
+import { useDensityPreference, GRID_MODES } from '../../src/hooks/useDensityPreference';
 
 // Persiste les recherches recentes entre les navigations
 let _recentSearches: string[] = [];
