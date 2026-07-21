@@ -19,6 +19,7 @@ export default function SettingsPage() {
   const s = useMemo(() => getStyles(theme), [theme]);
   const [priceAlerts, setPriceAlerts] = useState(false);
   const [pushNotifs, setPushNotifs] = useState(true);
+  const [weatherNotifs, setWeatherNotifs] = useState(false);
 
   const [showRunner, setShowRunner] = useState(false);
   const easterEggTaps = useRef(0);
@@ -50,6 +51,7 @@ export default function SettingsPage() {
       getUserSettings(user.uid).then(s => {
         setPriceAlerts(s.priceAlerts);
         setPushNotifs(s.pushNotifs);
+        setWeatherNotifs(s.weatherNotifs);
       }).catch(() => {});
     }
   }, [user?.uid]);
@@ -67,6 +69,11 @@ export default function SettingsPage() {
   const handlePriceAlerts = useCallback(async (val: boolean) => {
     setPriceAlerts(val);
     if (user?.uid) updateUserSetting(user.uid, 'priceAlerts', val).catch(() => {});
+  }, [user?.uid]);
+
+  const handleWeatherNotifs = useCallback(async (val: boolean) => {
+    setWeatherNotifs(val);
+    if (user?.uid) updateUserSetting(user.uid, 'weatherNotifs', val).catch(() => {});
   }, [user?.uid]);
 
   return (
@@ -103,6 +110,17 @@ export default function SettingsPage() {
               </View>
             </View>
             <Switch value={pushNotifs} onValueChange={handlePushNotifs} trackColor={{ false: theme.colors.border, true: theme.colors.primarySoft }} thumbColor={pushNotifs ? theme.colors.primary : theme.colors.textMuted} />
+          </View>
+
+          <View style={s.row}>
+            <View style={s.rowLeft}>
+              <Ionicons name="partly-sunny-outline" size={20} color={theme.colors.text} />
+              <View>
+                <Text style={s.rowLabel}>Suggestions météo</Text>
+                <Text style={s.rowDesc}>Recevoir chaque matin une suggestion de parfum adapté à la météo</Text>
+              </View>
+            </View>
+            <Switch value={weatherNotifs} onValueChange={handleWeatherNotifs} trackColor={{ false: theme.colors.border, true: theme.colors.primarySoft }} thumbColor={weatherNotifs ? theme.colors.primary : theme.colors.textMuted} />
           </View>
         </View>
 

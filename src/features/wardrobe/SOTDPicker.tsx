@@ -6,6 +6,8 @@ import { Image } from 'expo-image';
 import Ionicons from '@react-native-vector-icons/ionicons/static';
 import { useTheme, type Theme } from '../../theme/ThemeContext';
 import { hapticsLight } from '../../services/haptics';
+import { scoreWardrobeItemForWeather } from '../../utils/weather-scoring';
+import type { WeatherData } from '../../services/weather';
 import type { WardrobeItem } from '../../models/wardrobe.interface';
 
 interface Props {
@@ -13,11 +15,12 @@ interface Props {
   haveItems: WardrobeItem[];
   currentSotdId: string | null;
   anchorTop: number;
+  weather?: WeatherData | null;
   onSelect: (parfumId: string) => void;
   onClose: () => void;
 }
 
-export default function SOTDPicker({ visible, haveItems, currentSotdId, anchorTop, onSelect, onClose }: Props) {
+export default function SOTDPicker({ visible, haveItems, currentSotdId, anchorTop, weather, onSelect, onClose }: Props) {
   const { theme, resolvedMode } = useTheme();
   const { height: windowHeight } = useWindowDimensions();
   const s = useMemo(() => getStyles(theme), [theme]);
@@ -26,15 +29,20 @@ export default function SOTDPicker({ visible, haveItems, currentSotdId, anchorTo
 
   const maxSheetHeight = Math.min(360, windowHeight - anchorTop - 80);
 
+  const sorted = useMemo(() => {
+    if (!weather) return haveItems;
+    return [...haveItems].sort((a, b) => scoreWardrobeItemForWeather(b, weather) - scoreWardrobeItemForWeather(a, weather));
+  }, [haveItems, weather]);
+
   const filtered = useMemo(() => {
-    if (!query.trim()) return haveItems;
+    if (!query.trim()) return sorted;
     const q = query.trim().toLowerCase();
-    return haveItems.filter(i =>
+    return sorted.filter(i =>
       (i.nom ?? '').toLowerCase().includes(q) ||
       (i.marque ?? '').toLowerCase().includes(q) ||
       (i.parfumId ?? '').replace(/_/g, ' ').toLowerCase().includes(q)
     );
-  }, [haveItems, query]);
+  }, [sorted, query]);
 
   if (!visible) return null;
 
@@ -62,6 +70,13 @@ export default function SOTDPicker({ visible, haveItems, currentSotdId, anchorTo
           keyExtractor={item => item.parfumId}
           renderItem={({ item }) => {
             const isCurrent = item.parfumId === currentSotdId;
+            const score = weather ? scoreWardrobeItemForWeather(item, weather) : null;
+            const scoreColor = score !== null
+              ? score >= 75 ? theme.colors.deal
+              : score >= 50 ? theme.colors.fair
+              : theme.colors.textMuted
+              : undefined;
+
             return (
               <Pressable
                 style={s.item}
@@ -73,7 +88,16 @@ export default function SOTDPicker({ visible, haveItems, currentSotdId, anchorTo
                 <ImageOrPlaceholder imageUrl={item.imageUrl ?? undefined} t={theme} />
                 <View style={s.itemText}>
                   <Text style={s.itemName}>{item.nom ?? item.parfumId.replace(/_/g, ' ')}</Text>
-                  {item.marque && <Text style={s.itemBrand}>{item.marque}</Text>}
+                  {item.marque && (
+                    <View style={s.brandRow}>
+                      <Text style={s.itemBrand}>{item.marque}</Text>
+                      {score !== null && (
+                        <Text allowFontScaling={false} style={[s.scoreBadge, { color: scoreColor }]}>
+                          {' · '}{score}%
+                        </Text>
+                      )}
+                    </View>
+                  )}
                 </View>
                 {isCurrent && (
                   <Ionicons name="checkmark-circle" size={22} color={theme.colors.primary} />
@@ -183,6 +207,14 @@ function getStyles(t: Theme) {
       fontSize: 12,
       color: t.colors.textMuted,
       marginTop: 1,
+    },
+    brandRow: {
+      flexDirection: 'row',
+      alignItems: 'center',
+    },
+    scoreBadge: {
+      fontFamily: 'Inter_500Medium',
+      fontSize: 11,
     },
   } as const;
 }

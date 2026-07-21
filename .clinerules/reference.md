@@ -59,8 +59,9 @@ export function removeFromWishlist(uid: string, parfumId: string): Promise<void>
 export function onScans(uid: string, cb: (s: UserScan[]) => void): () => void;
 export function saveScan(uid: string, data: Omit<UserScan, 'id' | 'scannedAt'> & { status?: 'success' | 'no-result' | 'error'; bestPrice?: number; annee?: number }): Promise<void>;
 export function removeScan(uid: string, scanId: string): Promise<void>;
-export function getUserSettings(uid: string): Promise<{ priceAlerts: boolean; pushNotifs: boolean }>;
-export function updateUserSetting(uid: string, key: 'priceAlerts' | 'pushNotifs', value: boolean): Promise<void>;
+export function getUserSettings(uid: string): Promise<{ priceAlerts: boolean; pushNotifs: boolean; weatherNotifs: boolean; weatherLat: number | null; weatherLon: number | null }>;
+export function updateUserSetting(uid: string, key: 'priceAlerts' | 'pushNotifs' | 'weatherNotifs', value: boolean): Promise<void>;
+export function saveWeatherCoords(uid: string, lat: number, lon: number): Promise<void>;
 export function isPriceAlertActive(uid: string, parfumId: string): Promise<boolean>;
 export function setPriceAlert(uid: string, parfumId: string, active: boolean, currentPrice?: number): Promise<void>;
 export function moveToCollection(uid: string, from: string, itemId: string, parfumId: string, nom: string | null, marque: string | null, imageUrl: string | null): Promise<void>;
@@ -114,6 +115,22 @@ export function uploadParfumImage(parfumId: string, localUri: string): Promise<s
 // Firebase Cloud Messaging — notifications push
 export function requestFcmPermission(): Promise<boolean>;
 export function deleteFcmToken(): Promise<void>;
+```
+
+### `src/services/voice-search.ts`
+```ts
+// Cloud Function transcribeVoice (OpenAI Whisper-1) — fallback vocal
+export function transcribeVoice(audioBase64: string, mimeType: string): Promise<string>;
+```
+
+### `src/services/weather.ts`
+```ts
+// Open-Meteo API (gratuit, sans clé) + cache 30 min localisé
+export interface WeatherData { temperature: number; weatherCode: number; isDay: boolean; dailyMax: number; dailyMin: number; dailyWeatherCode: number; fetchedAt: number; }
+export function fetchWeather(lat: number, lon: number): Promise<WeatherData | null>;
+export function getStoredCity(): Promise<string | null>;
+export function setStoredCity(city: string): Promise<void>;
+export function clearWeatherCache(): void;
 ```
 
 ### `src/services/haptics.ts`
@@ -242,6 +259,32 @@ export function useSotd(uid: string | null): {
 export function useDensityPreference(): {
   density: CardMode;     // 'comfortable' | 'compactPlus' | 'list'
   setDensity: (mode: CardMode) => void;
+};
+```
+
+### `useVoiceSearch()` — `src/hooks/useVoiceSearch.ts`
+```ts
+// Reconnaissance vocale on-device (expo-speech-recognition) + enregistrement audio (expo-audio)
+// Architecture dual-mode : STT local + fallback Whisper (Cloud Function)
+export function useVoiceSearch(): {
+  state: 'idle' | 'listening' | 'processing' | 'error';
+  transcript: string;
+  start(config?: { continuous?: boolean }): Promise<void>;
+  stop(): Promise<void>;
+  cancel(): void;
+  getAudioForFallback(): Promise<{ audioBase64: string; mimeType: string } | null>;
+};
+```
+
+### `useWeather(enabled?: boolean)` — `src/hooks/useWeather.ts`
+```ts
+// Météo actuelle via expo-location (GPS + fallback ville) → Open-Meteo
+export function useWeather(enabled?: boolean): {
+  weather: WeatherData | null;
+  loading: boolean;
+  error: string | null;
+  coords: { lat: number; lon: number } | null;
+  refresh: () => void;
 };
 ```
 

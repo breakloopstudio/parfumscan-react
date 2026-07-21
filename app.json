@@ -16,12 +16,17 @@
       "infoPlist": {
         "NSCameraUsageDescription": "Autoriser ParfumScan à utiliser votre appareil photo pour scanner les flacons de parfum.",
         "NSPhotoLibraryUsageDescription": "Autoriser ParfumScan à accéder à votre photothèque pour télécharger des photos de parfum.",
+        "NSMicrophoneUsageDescription": "Autoriser ParfumScan à utiliser le micro pour rechercher des parfums à la voix.",
         "CFBundleURLTypes": [
           {
-            "CFBundleURLSchemes": ["com.googleusercontent.apps.831514606817-tjenh1vpj086jsho19pvmpelihpsr6h3"]
+            "CFBundleURLSchemes": [
+              "com.googleusercontent.apps.831514606817-tjenh1vpj086jsho19pvmpelihpsr6h3"
+            ]
           }
         ],
-        "UIBackgroundModes": ["remote-notification"],
+        "UIBackgroundModes": [
+          "remote-notification"
+        ],
         "FirebaseMessagingAutoInitEnabled": false
       }
     },
@@ -70,7 +75,15 @@
       "@react-native-google-signin/google-signin",
       "expo-asset",
       "expo-image",
-      "expo-status-bar"
+      "expo-status-bar",
+      [
+        "expo-speech-recognition",
+        {
+          "microphonePermission": "Autoriser ParfumScan à utiliser le micro pour rechercher des parfums à la voix.",
+          "speechRecognitionPermission": "Autoriser ParfumScan à utiliser la reconnaissance vocale."
+        }
+      ],
+      "expo-audio"
     ]
   }
 }

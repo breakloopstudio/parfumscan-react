@@ -190,7 +190,44 @@ src/
 
 ---
 
-## §14 — Environnement
+## §14 — Recherche vocale
+
+- **Architecture dual-mode** : STT on-device (`expo-speech-recognition`) + fallback OpenAI Whisper-1 (Cloud Function `transcribeVoice`)
+- **Trigger** : long-press 400ms sur la barre de recherche (TabPager) ou bouton micro (écran `/search`)
+- **Enregistrement parallèle** : `expo-audio` enregistre en continu pendant que le STT tourne — l'audio brut est disponible pour le fallback
+- **VoiceOverlay** : panneau overlay 5 phases (listening/searching/results/empty/error), intégré dans la page Catalogue
+- **Contextual strings** : 60+ marques de parfum fournies à `expo-speech-recognition` pour améliorer la précision
+- **Permission** : `NSMicrophoneUsageDescription` (iOS) + `RECORD_AUDIO` (Android) via le plugin `expo-speech-recognition`
+- **Dépendances** : `expo-speech-recognition`, `expo-audio`, `expo-file-system`
+
+---
+
+## §15 — Météo & Scoring
+
+- **API** : Open-Meteo (gratuit, sans clé, `GET /v1/forecast`)
+- **Localisation** : `expo-location` — `getLastKnownPositionAsync` (rapide) → `getCurrentPositionAsync` (fallback avec timeout 5s) → ville stockée (geocoding)
+- **Cache** : 30 min en mémoire, keyé par `lat.toFixed(2),lon.toFixed(2)`, déduplication des appels parallèles
+- **Scoring client** : `weather-scoring.ts` — 12 familles olfactives × 31 codes WMO × saisons × jour/nuit × signature × sotdCount
+- **Widget** : `WeatherWidget` pastille `primarySoft` avec icône + température + label + "Parfait pour X" si SOTD
+- **Tri météo** : option "Météo" dans la `FilterBar`, tri par `scoreWardrobeItemForWeather()` décroissant
+- **SOTD suggéré** : `SOTDPicker` pré-trié par score météo, badge `85%` coloré (deal/fair/textMuted)
+- **Notification push** : Cloud Function `sendWeatherNotifications` (cron 7h Europe/Paris) → fetch Open-Meteo → scoring serveur → FCM push
+- **Persistance coordonnées** : `saveWeatherCoords(uid, lat, lon)` écrit dans `users/{uid}/settings/preferences`
+- **Toggle settings** : "Suggestions météo" → `weatherNotifs` bool
+- **Dépendance** : `expo-location`
+
+---
+
+## §16 — Pipeline d'images (WebP + background removal)
+
+- **WebP migration** : `scripts/migrate-webp.ts` — batch conversion JPEG/PNG → WebP (`sharp` quality 82), upload Storage, 8 parallèles, resumable
+- **Background removal** : `scripts/migrate-bgremoval.ts` — `@imgly/background-removal-node` (MODNet), sous-processus Node.js isolé dans `scripts/bgremoval/`
+- **Commandes** : `npm run migrate-webp`, `npm run migrate-bg`
+- **Dépendances dev** : `sharp`, `tsx`
+
+---
+
+## §18 — Environnement
 
 - Windows 11, PowerShell 5.1
 - ANDROID_HOME = `C:\Users\Pierre-Louis\AppData\Local\Android\Sdk`
@@ -199,7 +236,7 @@ src/
 
 ---
 
-## §15 — Contraintes verrouillées
+## §19 — Contraintes verrouillées
 
 - ✅ JetBrains Mono retiré — Inter uniquement, `tabular-nums` pour les prix
 - ✅ Pas de gamification dans le profil
@@ -217,7 +254,7 @@ src/
 
 ---
 
-## §16 — Règles cross-platform
+## §20 — Règles cross-platform
 
 - iOS : `Platform.OS === 'ios'` pour les comportements spécifiques (KeyboardAvoidingView padding)
 - Android : `Platform.OS === 'android'` + `UIManager.setLayoutAnimationEnabledExperimental(true)`

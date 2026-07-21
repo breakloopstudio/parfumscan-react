@@ -1,4 +1,4 @@
-# ParfumScan React — Environment & Commands (v6.13)
+# ParfumScan React — Environment & Commands (v6.14)
 
 ## Environnement local (Windows)
 | Variable | Valeur |
@@ -95,6 +95,21 @@ react-native-gesture-handler ~2.32 · react-native-reanimated ~4.5 · react-nati
 react-native-svg ^15 · react-native-pager-view ^8.0 · @react-native-vector-icons/ionicons ^13
 @react-native-async-storage/async-storage · expo-navigation-bar ~57 · expo-system-ui ~57 · typescript ~6.0
 react-hook-form ^7.81 · zod ^4.4
+expo-speech-recognition ^56 · expo-audio ~57 · expo-file-system ~57 · expo-location ~57
+
+## Notes v6.14 — Voix, Météo & Images WebP (22/07/2026)
+
+**Recherche vocale** : nouveau module complet avec architecture dual-mode. `useVoiceSearch` hook wrappe `expo-speech-recognition` (STT on-device, 60+ marques en `contextualStrings`) + `expo-audio` (enregistrement audio en parallèle). Fallback `transcribeVoice` Cloud Function (OpenAI Whisper-1) quand le STT local ne trouve rien. `VoiceOverlay` — panneau overlay 5 phases (listening/searching/results/empty/error) avec transcript live, top 5 ParfumCard compact, lien "Voir tous les résultats". Intégré dans la barre de recherche du TabPager (long-press 400ms) et dans l'écran `/search` (bouton micro toggle). Dépendances : `expo-speech-recognition`, `expo-audio`, `expo-file-system`.
+
+**Météo & suggestions** : module complet de météo avec suggestion de parfum adapté. `useWeather` hook → `expo-location` (GPS + fallback ville stockée) → Open-Meteo API (gratuit, sans clé). `WeatherWidget` pastille compacte dans la page Parfumerie (icône + température + "Parfait pour X" si SOTD). `weather-scoring.ts` — algorithme de scoring basé sur `familleOlactive` du wardrobe (12 familles × 31 codes WMO × saisons × jour/nuit). Tri "Météo" dans la FilterBar. SOTDPicker pré-trié par score météo + badge `85%` coloré. Cloud Function `sendWeatherNotifications` (every day 07:00 Europe/Paris) — fetch Open-Meteo + scoring serveur-side + FCM push. Coordonnées persistées dans `users/{uid}/settings/preferences`. Toggle "Suggestions météo" dans Settings. Dépendance : `expo-location`.
+
+**Migration images WebP + background removal** : `scripts/migrate-webp.ts` — conversion batch JPEG/PNG → WebP (sharp quality 82), upload Firebase Storage. `scripts/migrate-bgremoval.ts` — suppression de fond bouteilles via `@imgly/background-removal-node` (MODNet) → PNG transparent → WebP alpha. Sous-processus isolé `scripts/bgremoval/`. Commandes : `npm run migrate-webp`, `npm run migrate-bg`. Dépendances dev : `sharp`, `tsx`.
+
+**Cloud Functions mises à jour** : `sendWeatherNotifications` créée, `transcribeVoice` créée, `searchFragrance` supprimée (orpheline). `npm run functions:build && npm run functions:deploy`.
+
+**Settings** : toggle "Suggestions météo" (`weatherNotifs`). `getUserSettings` enrichi : `weatherLat`, `weatherLon`, `weatherNotifs`. Nouvelle méthode `saveWeatherCoords()`.
+
+**Dépendances retirées** : `expo-notifications` (remplacé par FCM push).
 
 ## Notes v6.13 — Scan search & dedup
 **Recherche scan** : nouvelle fonction `searchParfumFromScan()` — wrapper au-dessus de `searchParfumsCached` qui exploite la sortie structurée de GPT-4o (champs marque+nom séparés). Rescoring : +50 nom exact, +25 nom partiel, +15 marque exacte, +8 marque partielle. Le +50 garantit que le match exact écrase les variants/flankers plus populaires.

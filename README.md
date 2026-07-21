@@ -33,7 +33,8 @@
 | 🔐 **Auth optionnelle** | App utilisable sans compte, login demandé uniquement quand nécessaire |
 | 📴 **Mode hors-ligne** | Bannière réseau, contenu dégradé via cache Firestore local |
 | 🌓 **Dark Mode** | 3 modes (système/clair/sombre), persistance AsyncStorage, SystemUI + NavigationBar theming, keyboardAppearance adaptatif |
-| ⚖️ **Légal** | Mentions légales, politique de confidentialité, section soutien (à venir) |
+| 🎙️ **Recherche vocale** | Dictée vocale (expo-speech-recognition, on-device) + fallback OpenAI Whisper (Cloud Function), VoiceOverlay 5 phases avec transcript live et top résultats |
+| 🌤️ **Météo & suggestions** | Widget météo (Open-Meteo, gratuit), scoring des parfums adaptés à la météo dans la parfumerie, tri "Météo", SOTDPicker pré-trié, badge de compatibilité, notification push quotidienne à 7h via Cloud Function |
 
 ---
 
@@ -46,7 +47,7 @@
 | **Navigation** | Expo Router (file-based) + react-native-pager-view (native pan) |
 | **Animations** | React Native Reanimated 4, Gesture Handler 2, react-native-svg |
 | **Backend** | Firebase Auth, Firestore, Storage, Cloud Functions (europe-west1) |
-| **IA** | GPT-4o Vision (analyse photo), Firestore (catalogue 21K parfums) |
+| **IA** | GPT-4o Vision (analyse photo), OpenAI Whisper-1 (transcription vocale), Firestore (catalogue 25K parfums) |
 | **Formulaires** | React Hook Form 7 + Zod 4 |
 | **Tests** | Jest 29 + jest-expo + Testing Library — 166 tests, 13 suites |
 
@@ -148,22 +149,24 @@ app/
 └── admin.tsx                 # Administration (seed + reset cache + upload)
 
 src/
-├── services/     (12)        # Firebase, Firestore, GPT-4o, user-data, wardrobe, theme-storage…
-├── hooks/        (12)        # useAuth, useScanReducer, useCatalog, useFavoris, useCollection, useWishlist, useScans, useWardrobe, useShelves, useSotd, useNetwork, useDensityPreference
+├── services/     (14)        # Firebase, Firestore, GPT-4o, user-data, wardrobe, theme-storage, weather, voice-search…
+├── hooks/        (14)        # useAuth, useScanReducer, useCatalog, useFavoris, useCollection, useWishlist, useScans, useWardrobe, useShelves, useSotd, useNetwork, useDensityPreference, useVoiceSearch, useWeather
 ├── contexts/     (1)         # AuthContext (ThemeContext est dans src/theme/)
 ├── components/   (13)        # ParfumCard, Button, PriceDisplay, SectionHeader, EmptyState, OfflineBanner, AlertPriceToggle, AppLoader, ErrorBoundary, ProfileAvatar, NoteDetailPopup, ImageViewerPopup, ActionSheet
 ├── theme/        (2)         # theme.ts (double palette light/dark), ThemeContext.tsx (SystemUI + NavigationBar theming)
 ├── features/
 │   ├── scan/     (8)         # ScanScreen + 7 sous-états
-│   ├── catalog/ (9)    # CatalogPage, BrandCapsules, BrandSheet, CatalogRow, FamilyAmbianceCards, OlfactoryPyramid v5, HeroPriceOverlay, CollapsingHeader, StickyBottomBar
-│   ├── wardrobe/ (9)         # WardrobeAddSheet, WardrobeCard, WardrobeGrid, WardrobeQuickSheet, SOTDCard (compact redesign), SOTDPicker, FilterBar, StarRating, ShelfManager
+│   ├── catalog/  (9)         # CatalogPage, BrandCapsules, BrandSheet, CatalogRow, FamilyAmbianceCards, OlfactoryPyramid v5, HeroPriceOverlay, CollapsingHeader, StickyBottomBar
+│   ├── wardrobe/ (10)        # WardrobeAddSheet, WardrobeCard, WardrobeGrid, WardrobeQuickSheet, SOTDCard, SOTDPicker, FilterBar, StarRating, ShelfManager, WeatherWidget
+│   ├── search/   (1)         # VoiceOverlay (panneau overlay 5 phases)
 │   └── navigation/ (1)       # DockBar (barre flottante 5 positions + FAB, indicateur doré, pulse ring, show/hide)
 ├── models/       (8)         # Parfum, WardrobeItem, Shelf, SotdEntry, UserFavori, UserScan, UserCollectionItem, UserWishlistItem
 ├── config/       (3)         # Firebase config, env, index
-├── utils/        (5)         # Error translator, translate-note, note-descriptions, normalize, ownership (labels)
+├── utils/        (7)         # Error translator, translate-note, note-descriptions, normalize, ownership, weather-codes, weather-scoring
 
 functions/                    # Cloud Functions Firebase
-├── src/index.ts              # Analyse GPT-4o Vision + sendNotification + checkPriceAlerts
+├── src/index.ts              # GPT-4o Vision + Whisper transcription + sendNotification + checkPriceAlerts + sendWeatherNotifications
+├── src/weather-scoring.ts    # Scoring météo côté serveur (Node.js)
 └── lib/                      # Build JavaScript
 ```
 
@@ -183,12 +186,15 @@ scrape Fragrantica      données factuelles     images hébergées
 
 | Étape | Script | Action |
 |---|---|---|
-| 1. Nettoyage | `npm run clean-data` | `scripts/clean-apify.ts` — débruite, déduplique, strip les champs traçants (URLs, contenu éditorial, photos communauté) |
+| 1. Nettoyage | `npm run clean-data` | `scripts/clean-apify.ts` — débruite, déduplique, strip les champs traçants |
 | 2. Import | `npm run import-data` | `scripts/import-firestore.ts` — parse les titres, génère les IDs, télécharge les images → Firebase Storage, écrit dans Firestore |
+| 3. WebP | `npm run migrate-webp` | `scripts/migrate-webp.ts` — conversion batch JPEG/PNG → WebP (sharp quality 82), upload Storage |
+| 4. Background removal | `npm run migrate-bg` | `scripts/migrate-bgremoval.ts` — suppression de fond bouteilles (MODNet), PNG transparent → WebP alpha |
 
 ### Images
 
-- **Format** : JPG 375×500 (vignettes scrape, pas de PNG transparent)
+- **Format** : WebP 375×500 (converti depuis les vignettes scrape JPG)
+- **Background removal** : suppression de fond via `@imgly/background-removal-node` (MODNet), sortie PNG transparent → WebP alpha
 - **Stockage** : Firebase Storage → `parfums/{parfumId}/primary.webp`
 - **Fallback UI** : initiale de la marque sur fond coloré (si image absente)
 - **Amélioration future** : upscale IA ou re-scrape pages détail

@@ -2,6 +2,7 @@ import * as functions from 'firebase-functions';
 import * as admin from 'firebase-admin';
 import { onSchedule } from 'firebase-functions/v2/scheduler';
 import OpenAI from 'openai';
+import { fetchWeatherForServer, scoreItemForWeather, weatherEmoji, type WardrobeEntry } from './weather-scoring';
 
 admin.initializeApp();
 
@@ -402,3 +403,188 @@ RÈGLES :
     }
   }
 );
+
+/**
+ * Cloud Function : transcribeVoice
+ * Reçoit un fichier audio en base64, appelle OpenAI Whisper,
+ * et retourne la transcription texte.
+ * Fallback pour la recherche vocale quand le STT on-device échoue.
+ */
+export const transcribeVoice = functions.https.onCall(
+  { region: 'europe-west1' },
+  async (request: functions.https.CallableRequest<{
+    audioBase64: string;
+    mimeType: string;
+  }>): Promise<{ text: string }> => {
+    const { audioBase64, mimeType } = request.data;
+
+    if (typeof audioBase64 !== 'string' || audioBase64.length === 0) {
+      throw new functions.https.HttpsError('invalid-argument', 'Le paramètre "audioBase64" est requis.');
+    }
+    if (typeof mimeType !== 'string' || mimeType.length === 0) {
+      throw new functions.https.HttpsError('invalid-argument', 'Le paramètre "mimeType" est requis.');
+    }
+
+    const apiKey = process.env.OPENAI_API_KEY;
+    if (!apiKey) {
+      throw new functions.https.HttpsError('internal', 'Clé API OpenAI non configurée.');
+    }
+
+    const openai = new OpenAI({ apiKey });
+
+    const MAX_BYTES = 10 * 1024 * 1024; // 10 MB limit
+    if (audioBase64.length > MAX_BYTES * 1.37) {
+      throw new functions.https.HttpsError('invalid-argument', 'Fichier audio trop volumineux (max 10 Mo).');
+    }
+
+    const buffer = Buffer.from(audioBase64, 'base64');
+    const file = new File([buffer], 'audio.m4a', { type: mimeType });
+
+    try {
+      const transcription = await openai.audio.transcriptions.create({
+        model: 'whisper-1',
+        file,
+        response_format: 'text',
+      });
+
+      console.log('[transcribeVoice] Transcription:', transcription);
+      return { text: transcription };
+    } catch (error: unknown) {
+      const message = error instanceof Error ? error.message : 'Erreur inconnue.';
+      console.error('[transcribeVoice] Whisper error:', message);
+      throw new functions.https.HttpsError('internal', 'Échec de la transcription vocale. Veuillez réessayer.');
+    }
+  }
+);
+
+/**
+ * Cloud Function : sendWeatherNotifications
+ * Scheduled every day at 7:00 AM Europe/Paris.
+ * Sends a personalised perfume suggestion based on current weather.
+ */
+export const sendWeatherNotifications = onSchedule(
+  {
+    schedule: '0 7 * * *',
+    timeZone: 'Europe/Paris',
+    region: 'europe-west1',
+  },
+  async () => {
+    const usersSnap = await db.collection('users').get();
+    let processed = 0;
+    let sent = 0;
+
+    for (const userDoc of usersSnap.docs) {
+      const uid = userDoc.id;
+
+      let settings: {
+        pushNotifs?: boolean;
+        weatherNotifs?: boolean;
+        weatherLat?: number;
+        weatherLon?: number;
+      } = {};
+
+      try {
+        const settingsDoc = await db.doc(`users/${uid}/settings/preferences`).get();
+        settings = settingsDoc.data() ?? {};
+      } catch {
+        continue;
+      }
+
+      if (settings.pushNotifs !== true || settings.weatherNotifs !== true) continue;
+      if (typeof settings.weatherLat !== 'number' || typeof settings.weatherLon !== 'number') continue;
+
+      const weather = await fetchWeatherForServer(settings.weatherLat, settings.weatherLon);
+      if (!weather) continue;
+
+      let wardrobeItems: WardrobeEntry[] = [];
+      try {
+        const wardrobeSnap = await db.collection(`users/${uid}/wardrobe`).get();
+        wardrobeItems = wardrobeSnap.docs
+          .map(d => ({ parfumId: d.id, ...d.data() } as WardrobeEntry))
+          .filter(i => i.ownership === 'have');
+      } catch {
+        continue;
+      }
+
+      if (wardrobeItems.length === 0) continue;
+
+      const scored = wardrobeItems
+        .map(item => ({ item, score: scoreItemForWeather(item, weather) }))
+        .sort((a, b) => b.score - a.score);
+
+      const top = scored[0];
+      if (!top || top.score < 30) continue;
+
+      processed++;
+
+      let tokens: string[] = [];
+      try {
+        const tokensSnap = await db.collection(`users/${uid}/fcmTokens`).get();
+        tokens = tokensSnap.docs.map(d => d.data().token).filter(Boolean) as string[];
+      } catch {
+        continue;
+      }
+      if (tokens.length === 0) continue;
+
+      const wmo = WMO_META[weather.weatherCode] ?? WMO_META[1];
+      const icon = weather.isDay ? wmo.icon : (NIGHT_ICON[wmo.icon] ?? wmo.icon);
+      const emoji = weatherEmoji(icon);
+
+      const title = `${emoji} ${Math.round(weather.temperature)}°C`;
+      const body = `Aujourd'hui : ${top.item.nom ?? '?'} de ${top.item.marque ?? '?'} (${top.score}% compatible)`;
+
+      const message: admin.messaging.MulticastMessage = {
+        tokens,
+        notification: { title, body },
+        data: { type: 'weather-suggestion', parfumId: top.item.parfumId },
+        android: { notification: { channelId: 'weather_suggestions', priority: 'high' } },
+      };
+
+      try {
+        const response = await admin.messaging().sendEachForMulticast(message);
+        sent += response.successCount;
+      } catch (err: unknown) {
+        const msg = err instanceof Error ? err.message : String(err);
+        console.warn(`[sendWeatherNotifications] Failed to notify ${uid}:`, msg);
+      }
+    }
+
+    console.log(`[sendWeatherNotifications] Done — ${processed} users processed, ${sent} notifications sent`);
+  }
+);
+
+const NIGHT_ICON: Record<string, string> = {
+  sunny: 'moon',
+  'partly-sunny': 'cloudy-night',
+};
+
+const WMO_META: Record<number, { label: string; icon: string; seasonBoost: Record<string, number> }> = {
+  0:  { label: 'Ensoleillé',  icon: 'sunny',             seasonBoost: {} as Record<string, number> },
+  1:  { label: 'Clair',       icon: 'partly-sunny',      seasonBoost: {} as Record<string, number> },
+  2:  { label: 'Nuageux',     icon: 'cloudy',            seasonBoost: {} as Record<string, number> },
+  3:  { label: 'Couvert',     icon: 'cloudy',            seasonBoost: {} as Record<string, number> },
+  45: { label: 'Brouillard',  icon: 'cloudy',            seasonBoost: {} as Record<string, number> },
+  48: { label: 'Brouillard',  icon: 'cloudy',            seasonBoost: {} as Record<string, number> },
+  51: { label: 'Bruine',      icon: 'rainy-outline',     seasonBoost: {} as Record<string, number> },
+  53: { label: 'Bruine',      icon: 'rainy-outline',     seasonBoost: {} as Record<string, number> },
+  55: { label: 'Bruine',      icon: 'rainy-outline',     seasonBoost: {} as Record<string, number> },
+  56: { label: 'Verglas',     icon: 'snow',              seasonBoost: {} as Record<string, number> },
+  57: { label: 'Verglas',     icon: 'snow',              seasonBoost: {} as Record<string, number> },
+  61: { label: 'Pluie',       icon: 'rainy',             seasonBoost: {} as Record<string, number> },
+  63: { label: 'Pluie',       icon: 'rainy',             seasonBoost: {} as Record<string, number> },
+  65: { label: 'Pluie forte', icon: 'rainy',             seasonBoost: {} as Record<string, number> },
+  66: { label: 'Verglas',     icon: 'snow',              seasonBoost: {} as Record<string, number> },
+  67: { label: 'Verglas',     icon: 'snow',              seasonBoost: {} as Record<string, number> },
+  71: { label: 'Neige',       icon: 'snow',              seasonBoost: {} as Record<string, number> },
+  73: { label: 'Neige',       icon: 'snow',              seasonBoost: {} as Record<string, number> },
+  75: { label: 'Neige forte', icon: 'snow',              seasonBoost: {} as Record<string, number> },
+  77: { label: 'Neige',       icon: 'snow',              seasonBoost: {} as Record<string, number> },
+  80: { label: 'Averses',     icon: 'rainy-outline',     seasonBoost: {} as Record<string, number> },
+  81: { label: 'Averses',     icon: 'rainy-outline',     seasonBoost: {} as Record<string, number> },
+  82: { label: 'Averses',     icon: 'thunderstorm-outline', seasonBoost: {} as Record<string, number> },
+  85: { label: 'Neige',       icon: 'snow',              seasonBoost: {} as Record<string, number> },
+  86: { label: 'Neige',       icon: 'snow',              seasonBoost: {} as Record<string, number> },
+  95: { label: 'Orage',       icon: 'thunderstorm',      seasonBoost: {} as Record<string, number> },
+  96: { label: 'Orage',       icon: 'thunderstorm',      seasonBoost: {} as Record<string, number> },
+  99: { label: 'Orage',       icon: 'thunderstorm',      seasonBoost: {} as Record<string, number> },
+};

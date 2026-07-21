@@ -9,6 +9,10 @@ import { useAuthContext } from '../../src/contexts/AuthContext';
 import { useWardrobe } from '../../src/hooks/useWardrobe';
 import { useShelves } from '../../src/hooks/useShelves';
 import { useSotd } from '../../src/hooks/useSotd';
+import { useWeather } from '../../src/hooks/useWeather';
+import WeatherWidget from '../../src/features/wardrobe/WeatherWidget';
+import { scoreWardrobeItemForWeather } from '../../src/utils/weather-scoring';
+import { saveWeatherCoords } from '../../src/services/user-data';
 import { hapticsLight } from '../../src/services/haptics';
 import { useTheme, type Theme } from '../../src/theme/ThemeContext';
 import ProfileAvatar from '../../src/components/ProfileAvatar';
@@ -37,6 +41,7 @@ export default function WardrobePage({ onScroll, onSheetOpen }: Props) {
   const { items, loading, update, remove } = useWardrobe(uid);
   const { shelves, create: createShelf, update: updateShelf, remove: removeShelf } = useShelves(uid);
   const { sotd, setTodaySotd } = useSotd(uid);
+  const { weather, loading: weatherLoading, coords } = useWeather(isAuthenticated);
 
   const haveItems = useMemo(() => items.filter(i => i.ownership === 'have'), [items]);
   const sotdEligible = useMemo(() => items.filter(i => i.ownership !== 'want'), [items]);
@@ -65,6 +70,11 @@ export default function WardrobePage({ onScroll, onSheetOpen }: Props) {
     onSheetOpen?.(quickSheetItem !== null || sotdPickerVisible);
   }, [quickSheetItem, sotdPickerVisible, onSheetOpen]);
 
+  useEffect(() => {
+    if (!isAuthenticated || !coords || !uid) return;
+    saveWeatherCoords(uid, coords.lat, coords.lon).catch(() => {});
+  }, [isAuthenticated, coords, uid]);
+
   const filtered = useMemo(() => {
     let result = [...items];
     if (activeOwnership) result = result.filter(i => i.ownership === activeOwnership);
@@ -78,6 +88,10 @@ export default function WardrobePage({ onScroll, onSheetOpen }: Props) {
     }
     result.sort((a, b) => {
       switch (activeSort) {
+        case 'weather':
+          return weather
+            ? scoreWardrobeItemForWeather(b, weather) - scoreWardrobeItemForWeather(a, weather)
+            : b.addedAt.getTime() - a.addedAt.getTime();
         case 'rating': return (Number.isNaN(b.rating) ? 0 : b.rating ?? 0) - (Number.isNaN(a.rating) ? 0 : a.rating ?? 0);
         case 'az': return (a.nom ?? '').localeCompare(b.nom ?? '');
         case 'za': return (b.nom ?? '').localeCompare(a.nom ?? '');
@@ -85,7 +99,7 @@ export default function WardrobePage({ onScroll, onSheetOpen }: Props) {
       }
     });
     return result;
-  }, [items, activeOwnership, activeShelfId, searchQuery, activeSort]);
+  }, [items, activeOwnership, activeShelfId, searchQuery, activeSort, weather]);
 
   const handleQuickOwnership = (ownership: WardrobeItem['ownership']) => {
     if (!quickSheetItem) return;
@@ -166,6 +180,8 @@ export default function WardrobePage({ onScroll, onSheetOpen }: Props) {
         <ProfileAvatar />
       </View>
 
+      <WeatherWidget weather={weather} loading={weatherLoading} sotdName={sotd?.nom ?? undefined} />
+
       <View ref={sotdCardRef} onLayout={handleSotdCardLayout}>
         <SOTDCard
           sotd={sotd}
@@ -229,6 +245,7 @@ export default function WardrobePage({ onScroll, onSheetOpen }: Props) {
         haveItems={sotdEligible}
         currentSotdId={sotd?.parfumId ?? null}
         anchorTop={sotdCardAnchor}
+        weather={weather}
         onSelect={(parfumId) => {
           const item = sotdEligible.find(i => i.parfumId === parfumId);
           if (item) {

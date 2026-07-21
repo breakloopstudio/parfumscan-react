@@ -36,11 +36,12 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.analyzePerfumeImage = exports.sendNotification = exports.checkPriceAlerts = void 0;
+exports.sendWeatherNotifications = exports.transcribeVoice = exports.analyzePerfumeImage = exports.sendNotification = exports.checkPriceAlerts = void 0;
 const functions = __importStar(require("firebase-functions"));
 const admin = __importStar(require("firebase-admin"));
 const scheduler_1 = require("firebase-functions/v2/scheduler");
 const openai_1 = __importDefault(require("openai"));
+const weather_scoring_1 = require("./weather-scoring");
 admin.initializeApp();
 const db = admin.firestore();
 /**
@@ -52,7 +53,6 @@ exports.checkPriceAlerts = (0, scheduler_1.onSchedule)('every 6 hours', async ()
     const usersSnap = await db.collection('users').get();
     let alertsChecked = 0;
     let notificationsSent = 0;
-    const now = Date.now();
     for (const userDoc of usersSnap.docs) {
         const uid = userDoc.id;
         // Check user settings: must have priceAlerts + pushNotifs enabled
@@ -375,4 +375,159 @@ RÈGLES :
         throw new functions.https.HttpsError('internal', "Échec de l'analyse IA. Veuillez réessayer.");
     }
 });
+/**
+ * Cloud Function : transcribeVoice
+ * Reçoit un fichier audio en base64, appelle OpenAI Whisper,
+ * et retourne la transcription texte.
+ * Fallback pour la recherche vocale quand le STT on-device échoue.
+ */
+exports.transcribeVoice = functions.https.onCall({ region: 'europe-west1' }, async (request) => {
+    const { audioBase64, mimeType } = request.data;
+    if (typeof audioBase64 !== 'string' || audioBase64.length === 0) {
+        throw new functions.https.HttpsError('invalid-argument', 'Le paramètre "audioBase64" est requis.');
+    }
+    if (typeof mimeType !== 'string' || mimeType.length === 0) {
+        throw new functions.https.HttpsError('invalid-argument', 'Le paramètre "mimeType" est requis.');
+    }
+    const apiKey = process.env.OPENAI_API_KEY;
+    if (!apiKey) {
+        throw new functions.https.HttpsError('internal', 'Clé API OpenAI non configurée.');
+    }
+    const openai = new openai_1.default({ apiKey });
+    const MAX_BYTES = 10 * 1024 * 1024; // 10 MB limit
+    if (audioBase64.length > MAX_BYTES * 1.37) {
+        throw new functions.https.HttpsError('invalid-argument', 'Fichier audio trop volumineux (max 10 Mo).');
+    }
+    const buffer = Buffer.from(audioBase64, 'base64');
+    const file = new File([buffer], 'audio.m4a', { type: mimeType });
+    try {
+        const transcription = await openai.audio.transcriptions.create({
+            model: 'whisper-1',
+            file,
+            response_format: 'text',
+        });
+        console.log('[transcribeVoice] Transcription:', transcription);
+        return { text: transcription };
+    }
+    catch (error) {
+        const message = error instanceof Error ? error.message : 'Erreur inconnue.';
+        console.error('[transcribeVoice] Whisper error:', message);
+        throw new functions.https.HttpsError('internal', 'Échec de la transcription vocale. Veuillez réessayer.');
+    }
+});
+/**
+ * Cloud Function : sendWeatherNotifications
+ * Scheduled every day at 7:00 AM Europe/Paris.
+ * Sends a personalised perfume suggestion based on current weather.
+ */
+exports.sendWeatherNotifications = (0, scheduler_1.onSchedule)({
+    schedule: '0 7 * * *',
+    timeZone: 'Europe/Paris',
+    region: 'europe-west1',
+}, async () => {
+    const usersSnap = await db.collection('users').get();
+    let processed = 0;
+    let sent = 0;
+    for (const userDoc of usersSnap.docs) {
+        const uid = userDoc.id;
+        let settings = {};
+        try {
+            const settingsDoc = await db.doc(`users/${uid}/settings/preferences`).get();
+            settings = settingsDoc.data() ?? {};
+        }
+        catch {
+            continue;
+        }
+        if (settings.pushNotifs !== true || settings.weatherNotifs !== true)
+            continue;
+        if (typeof settings.weatherLat !== 'number' || typeof settings.weatherLon !== 'number')
+            continue;
+        const weather = await (0, weather_scoring_1.fetchWeatherForServer)(settings.weatherLat, settings.weatherLon);
+        if (!weather)
+            continue;
+        let wardrobeItems = [];
+        try {
+            const wardrobeSnap = await db.collection(`users/${uid}/wardrobe`).get();
+            wardrobeItems = wardrobeSnap.docs
+                .map(d => ({ parfumId: d.id, ...d.data() }))
+                .filter(i => i.ownership === 'have');
+        }
+        catch {
+            continue;
+        }
+        if (wardrobeItems.length === 0)
+            continue;
+        const scored = wardrobeItems
+            .map(item => ({ item, score: (0, weather_scoring_1.scoreItemForWeather)(item, weather) }))
+            .sort((a, b) => b.score - a.score);
+        const top = scored[0];
+        if (!top || top.score < 30)
+            continue;
+        processed++;
+        let tokens = [];
+        try {
+            const tokensSnap = await db.collection(`users/${uid}/fcmTokens`).get();
+            tokens = tokensSnap.docs.map(d => d.data().token).filter(Boolean);
+        }
+        catch {
+            continue;
+        }
+        if (tokens.length === 0)
+            continue;
+        const wmo = WMO_META[weather.weatherCode] ?? WMO_META[1];
+        const icon = weather.isDay ? wmo.icon : (NIGHT_ICON[wmo.icon] ?? wmo.icon);
+        const emoji = (0, weather_scoring_1.weatherEmoji)(icon);
+        const title = `${emoji} ${Math.round(weather.temperature)}°C`;
+        const body = `Aujourd'hui : ${top.item.nom ?? '?'} de ${top.item.marque ?? '?'} (${top.score}% compatible)`;
+        const message = {
+            tokens,
+            notification: { title, body },
+            data: { type: 'weather-suggestion', parfumId: top.item.parfumId },
+            android: { notification: { channelId: 'weather_suggestions', priority: 'high' } },
+        };
+        try {
+            const response = await admin.messaging().sendEachForMulticast(message);
+            sent += response.successCount;
+        }
+        catch (err) {
+            const msg = err instanceof Error ? err.message : String(err);
+            console.warn(`[sendWeatherNotifications] Failed to notify ${uid}:`, msg);
+        }
+    }
+    console.log(`[sendWeatherNotifications] Done — ${processed} users processed, ${sent} notifications sent`);
+});
+const NIGHT_ICON = {
+    sunny: 'moon',
+    'partly-sunny': 'cloudy-night',
+};
+const WMO_META = {
+    0: { label: 'Ensoleillé', icon: 'sunny', seasonBoost: {} },
+    1: { label: 'Clair', icon: 'partly-sunny', seasonBoost: {} },
+    2: { label: 'Nuageux', icon: 'cloudy', seasonBoost: {} },
+    3: { label: 'Couvert', icon: 'cloudy', seasonBoost: {} },
+    45: { label: 'Brouillard', icon: 'cloudy', seasonBoost: {} },
+    48: { label: 'Brouillard', icon: 'cloudy', seasonBoost: {} },
+    51: { label: 'Bruine', icon: 'rainy-outline', seasonBoost: {} },
+    53: { label: 'Bruine', icon: 'rainy-outline', seasonBoost: {} },
+    55: { label: 'Bruine', icon: 'rainy-outline', seasonBoost: {} },
+    56: { label: 'Verglas', icon: 'snow', seasonBoost: {} },
+    57: { label: 'Verglas', icon: 'snow', seasonBoost: {} },
+    61: { label: 'Pluie', icon: 'rainy', seasonBoost: {} },
+    63: { label: 'Pluie', icon: 'rainy', seasonBoost: {} },
+    65: { label: 'Pluie forte', icon: 'rainy', seasonBoost: {} },
+    66: { label: 'Verglas', icon: 'snow', seasonBoost: {} },
+    67: { label: 'Verglas', icon: 'snow', seasonBoost: {} },
+    71: { label: 'Neige', icon: 'snow', seasonBoost: {} },
+    73: { label: 'Neige', icon: 'snow', seasonBoost: {} },
+    75: { label: 'Neige forte', icon: 'snow', seasonBoost: {} },
+    77: { label: 'Neige', icon: 'snow', seasonBoost: {} },
+    80: { label: 'Averses', icon: 'rainy-outline', seasonBoost: {} },
+    81: { label: 'Averses', icon: 'rainy-outline', seasonBoost: {} },
+    82: { label: 'Averses', icon: 'thunderstorm-outline', seasonBoost: {} },
+    85: { label: 'Neige', icon: 'snow', seasonBoost: {} },
+    86: { label: 'Neige', icon: 'snow', seasonBoost: {} },
+    95: { label: 'Orage', icon: 'thunderstorm', seasonBoost: {} },
+    96: { label: 'Orage', icon: 'thunderstorm', seasonBoost: {} },
+    99: { label: 'Orage', icon: 'thunderstorm', seasonBoost: {} },
+};
 //# sourceMappingURL=index.js.map

@@ -8,6 +8,7 @@ import { ownershipLabel } from '../../utils/ownership';
 import type { Shelf, WardrobeItem } from '../../models/wardrobe.interface';
 
 const SORT_OPTIONS: { key: string; label: string }[] = [
+  { key: 'weather', label: 'Météo' },
   { key: 'recent', label: 'Récents' },
   { key: 'rating', label: 'Mieux notés' },
   { key: 'az', label: 'A–Z' },

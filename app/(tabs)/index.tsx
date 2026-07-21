@@ -23,11 +23,18 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { useTheme, type Theme } from '../../src/theme/ThemeContext';
 import { hapticsLight } from '../../src/services/haptics';
 import { consumePendingParfum, setPendingParfum } from '../../src/services/catalog-bridge';
+import { searchParfumsCached } from '../../src/services/firestore';
+import { transcribeVoice } from '../../src/services/voice-search';
+import { useVoiceSearch } from '../../src/hooks/useVoiceSearch';
+import type { VoiceState } from '../../src/hooks/useVoiceSearch';
+import type { Parfum } from '../../src/models';
 import CatalogPage from '../../src/features/catalog/CatalogPage';
 import FavoritesPage from './favorites';
 import HistoryPage from './history';
 import CollectionPage from './collection';
 import DockBar from '../../src/features/navigation/DockBar';
+import VoiceOverlay from '../../src/features/search/VoiceOverlay';
+import type { VoicePhase } from '../../src/features/search/VoiceOverlay';
 
 const DOCK_DURATION = 200;
 const PAGES = 4;
@@ -167,6 +174,170 @@ export default function TabPager() {
     }),
   [sheetOpen, pageWidth, activePage, setActivePageJS]);
 
+  // ── Voice Search ──────────────────────────────────────────────
+
+  const [voicePhase, setVoicePhase] = useState<VoicePhase>({ type: 'listening', transcript: '' });
+  const [voiceTranscript, setVoiceTranscript] = useState('');
+  const [voiceResults, setVoiceResults] = useState<Parfum[]>([]);
+  const [voiceAudioPending, setVoiceAudioPending] = useState<string | null>(null);
+  const [voiceSearching, setVoiceSearching] = useState(false);
+  const voiceRequestIdRef = useRef(0);
+
+  const handleVoiceResult = useCallback(async (text: string) => {
+    if (!text.trim()) {
+      setVoicePhase({ type: 'empty' });
+      return;
+    }
+    setVoiceTranscript(text);
+    setVoiceSearching(true);
+    setVoicePhase({ type: 'searching' });
+
+    const requestId = ++voiceRequestIdRef.current;
+
+    try {
+      const results = await searchParfumsCached(text.trim());
+      if (requestId !== voiceRequestIdRef.current) return;
+      if (results.length > 0) {
+        setVoiceResults(results);
+        setVoicePhase({ type: 'results', results });
+      } else {
+        setVoicePhase({ type: 'empty' });
+      }
+    } catch {
+      if (requestId !== voiceRequestIdRef.current) return;
+      setVoicePhase({ type: 'empty' });
+    } finally {
+      if (requestId === voiceRequestIdRef.current) {
+        setVoiceSearching(false);
+      }
+    }
+  }, []);
+
+  // Fallback Whisper si searchParfumsCached ne trouve rien
+  useEffect(() => {
+    if (!voiceAudioPending) return;
+    if (voiceSearching) return;
+    if (voicePhase.type !== 'empty') {
+      setVoiceAudioPending(null);
+      return;
+    }
+
+    const audio = voiceAudioPending;
+    setVoiceAudioPending(null);
+
+    transcribeVoice(audio, 'audio/mp4').then(whisperText => {
+      if (!whisperText.trim()) return;
+      setVoiceTranscript(whisperText);
+      searchParfumsCached(whisperText.trim()).then(results => {
+        if (results.length > 0) {
+          setVoiceResults(results);
+          setVoicePhase({ type: 'results', results });
+        } else {
+          setVoicePhase({ type: 'empty' });
+        }
+      }).catch(() => {
+        setVoicePhase({ type: 'empty' });
+      });
+    }).catch(() => {
+      setVoicePhase({ type: 'empty' });
+    });
+  }, [voiceAudioPending, voiceSearching, voicePhase.type]);
+
+  const handleVoiceError = useCallback((msg: string) => {
+    setVoicePhase({ type: 'error', message: msg || 'Erreur de reconnaissance vocale.' });
+  }, []);
+
+  const voiceSearch = useVoiceSearch(handleVoiceResult, handleVoiceError);
+
+  // Capture audio quand la voix s'arrête, pour le fallback Whisper
+  const prevVoiceStateRef = useRef<VoiceState>('idle');
+  useEffect(() => {
+    const prev = prevVoiceStateRef.current;
+    prevVoiceStateRef.current = voiceSearch.state;
+    if (prev !== 'listening' || voiceSearch.state !== 'idle') return;
+    voiceSearch.getAudioForFallback().then(audio => {
+      if (audio) setVoiceAudioPending(audio);
+    }).catch(() => {});
+  }, [voiceSearch.state, voiceSearch]);
+
+  const voiceIsActive = voiceSearch.state !== 'idle' || voicePhase.type === 'searching';
+
+  // Synchroniser l'affichage avec le transcript du hook
+  useEffect(() => {
+    if (voiceSearch.state === 'listening') {
+      setVoiceTranscript(voiceSearch.transcript);
+      setVoicePhase({ type: 'listening', transcript: voiceSearch.transcript });
+    }
+  }, [voiceSearch.transcript, voiceSearch.state]);
+
+  const handleVoiceLongPress = useCallback(() => {
+    setVoiceResults([]);
+    setVoiceAudioPending(null);
+    setVoiceSearching(false);
+    setVoiceTranscript('');
+    hapticsLight();
+    voiceSearch.start({ continuous: true });
+  }, [voiceSearch]);
+
+  const voicePollRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  useEffect(() => {
+    return () => {
+      if (voicePollRef.current) clearTimeout(voicePollRef.current);
+    };
+  }, []);
+
+  const handlePressOut = useCallback(() => {
+    if (voicePollRef.current) clearTimeout(voicePollRef.current);
+    const attemptStop = (attempts: number) => {
+      if (voiceSearch.state === 'listening') {
+        voiceSearch.stop();
+        return;
+      }
+      if (attempts < 6 && voiceSearch.state === 'idle') {
+        voicePollRef.current = setTimeout(() => attemptStop(attempts + 1), 150);
+      }
+    };
+    attemptStop(0);
+  }, [voiceSearch]);
+
+  const handleSearchPress = useCallback(() => {
+    if (voiceIsActive) return;
+    router.push('/(tabs)/search');
+  }, [voiceIsActive, router]);
+
+  const handleVoiceResultPress = useCallback((id: string) => {
+    voiceSearch.cancel();
+    setVoicePhase({ type: 'listening', transcript: '' });
+    setVoiceTranscript('');
+    setVoiceResults([]);
+    router.push(`/catalog/${id}`);
+  }, [voiceSearch, router]);
+
+  const handleVoiceViewAll = useCallback(() => {
+    voiceSearch.cancel();
+    setVoicePhase({ type: 'listening', transcript: '' });
+    setVoiceTranscript('');
+    setVoiceResults([]);
+    router.push(`/(tabs)/search?q=${encodeURIComponent(voiceTranscript)}`);
+  }, [voiceSearch, voiceTranscript, router]);
+
+  const handleVoiceCancel = useCallback(() => {
+    voiceSearch.cancel();
+    setVoicePhase({ type: 'listening', transcript: '' });
+    setVoiceTranscript('');
+    setVoiceResults([]);
+    setVoiceAudioPending(null);
+  }, [voiceSearch]);
+
+  const handleVoiceRetry = useCallback(() => {
+    setVoiceResults([]);
+    setVoiceAudioPending(null);
+    setVoiceTranscript('');
+    setVoicePhase({ type: 'listening', transcript: '' });
+    voiceSearch.start({ continuous: true });
+  }, [voiceSearch]);
+
   const m = useMemo(() => getSearchStyles(theme), [theme]);
 
   if (windowWidth === 0) {
@@ -177,8 +348,15 @@ export default function TabPager() {
     <SafeAreaView edges={['top']} style={[s.root, { backgroundColor: theme.colors.background }]}>
       <View style={[m.searchWrap, m.searchBarShadow]}>
         <Pressable
-          style={({ pressed }) => [m.searchBar, pressed && m.searchBarPressed]}
-          onPress={() => router.push('/(tabs)/search')}
+          style={({ pressed }) => [
+            m.searchBar,
+            pressed && !voiceIsActive && m.searchBarPressed,
+            voiceIsActive && m.searchBarVoiceActive,
+          ]}
+          onPress={handleSearchPress}
+          onLongPress={handleVoiceLongPress}
+          onPressOut={handlePressOut}
+          delayLongPress={400}
         >
           <BlurView
             intensity={20}
@@ -186,10 +364,30 @@ export default function TabPager() {
             style={StyleSheet.absoluteFill}
           />
           <View style={[StyleSheet.absoluteFill, m.searchBarOverlay]} />
-          <Ionicons name="search-outline" size={18} color={theme.colors.textMuted} />
-          <Text style={m.searchPlaceholder}>Rechercher un parfum...</Text>
+          {voiceIsActive ? (
+            <>
+              <Ionicons name="mic" size={18} color={theme.colors.primary} />
+              <Text style={m.voiceTranscript} numberOfLines={1}>
+                {voiceTranscript || 'Parle...'}
+              </Text>
+            </>
+          ) : (
+            <>
+              <Ionicons name="search-outline" size={18} color={theme.colors.textMuted} />
+              <Text style={m.searchPlaceholder}>Rechercher un parfum...</Text>
+            </>
+          )}
         </Pressable>
       </View>
+
+      <VoiceOverlay
+        visible={voiceIsActive || voicePhase.type === 'results' || voicePhase.type === 'empty' || voicePhase.type === 'error'}
+        phase={voicePhase}
+        onResultPress={handleVoiceResultPress}
+        onViewAll={handleVoiceViewAll}
+        onCancel={handleVoiceCancel}
+        onRetry={handleVoiceRetry}
+      />
 
       <GestureDetector gesture={pagerPan}>
         <Animated.View style={s.pagerClip}>
@@ -258,6 +456,16 @@ function getSearchStyles(t: Theme) {
       fontFamily: 'Inter_400Regular',
       fontSize: 15,
       color: t.colors.textMuted,
+    },
+    searchBarVoiceActive: {
+      borderColor: t.colors.primary,
+      borderWidth: 1.5,
+    } as ViewStyle,
+    voiceTranscript: {
+      fontFamily: 'Inter_400Regular',
+      fontSize: 15,
+      color: t.colors.text,
+      flex: 1,
     },
   } as const;
 }

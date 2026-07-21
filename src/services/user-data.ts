@@ -193,22 +193,36 @@ export async function isInWishlist(uid: string, parfumId: string): Promise<{ isI
 
 const settingsCol = (uid: string) => collection(db, `users/${uid}/settings`);
 
-export async function getUserSettings(uid: string): Promise<{ priceAlerts: boolean; pushNotifs: boolean }> {
+export async function getUserSettings(uid: string): Promise<{ priceAlerts: boolean; pushNotifs: boolean; weatherNotifs: boolean; weatherLat: number | null; weatherLon: number | null }> {
   try {
     const snap = await getDoc(doc(settingsCol(uid), 'preferences'));
     const d = (snap as DocumentSnapshot<DocumentData, DocumentData>).data();
     if (d) {
-      return { priceAlerts: d.priceAlerts === true, pushNotifs: d.pushNotifs !== false };
+      return {
+        priceAlerts: d.priceAlerts === true,
+        pushNotifs: d.pushNotifs !== false,
+        weatherNotifs: d.weatherNotifs === true,
+        weatherLat: typeof d.weatherLat === 'number' ? d.weatherLat : null,
+        weatherLon: typeof d.weatherLon === 'number' ? d.weatherLon : null,
+      };
     }
   } catch (e: unknown) { console.warn('[user-data] getUserSettings failed:', (e as Error)?.message ?? String(e)); }
-  return { priceAlerts: false, pushNotifs: true };
+  return { priceAlerts: false, pushNotifs: true, weatherNotifs: false, weatherLat: null, weatherLon: null };
 }
 
-export async function updateUserSetting(uid: string, key: 'priceAlerts' | 'pushNotifs', value: boolean): Promise<void> {
+export async function updateUserSetting(uid: string, key: 'priceAlerts' | 'pushNotifs' | 'weatherNotifs', value: boolean): Promise<void> {
   try {
     await setDoc(doc(settingsCol(uid), 'preferences'), { [key]: value }, { merge: true });
   } catch (e: unknown) {
     console.warn('[user-data] updateUserSetting failed:', (e as Error)?.message ?? String(e));
+  }
+}
+
+export async function saveWeatherCoords(uid: string, lat: number, lon: number): Promise<void> {
+  try {
+    await setDoc(doc(settingsCol(uid), 'preferences'), { weatherLat: lat, weatherLon: lon }, { merge: true });
+  } catch (e: unknown) {
+    console.warn('[user-data] saveWeatherCoords failed:', (e as Error)?.message ?? String(e));
   }
 }
 
