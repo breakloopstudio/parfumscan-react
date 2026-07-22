@@ -4330,5 +4330,101 @@
     "brandName": "Etro",
     "nom": "Shantung",
     "reason": "download failed (URL dead or timeout)"
+  },
+  {
+    "parfumId": "demeter_fragrance_turpentine",
+    "brandName": "Demeter Fragrance",
+    "nom": "Turpentine",
+    "reason": "download failed (URL dead or timeout)"
+  },
+  {
+    "parfumId": "dior_miss_dior_2012",
+    "brandName": "Dior",
+    "nom": "Miss Dior (2012)",
+    "reason": "download failed (URL dead or timeout)"
+  },
+  {
+    "parfumId": "dior_les_creations_de_monsieur_dior_diorella",
+    "brandName": "Dior",
+    "nom": "Les Creations de Monsieur Dior Diorella",
+    "reason": "download failed (URL dead or timeout)"
+  },
+  {
+    "parfumId": "dior_sauvage_rare_blend",
+    "brandName": "Dior",
+    "nom": "Sauvage Rare Blend",
+    "reason": "download failed (URL dead or timeout)"
+  },
+  {
+    "parfumId": "dior_fahrenheit_summer_2007",
+    "brandName": "Dior",
+    "nom": "Fahrenheit Summer 2007",
+    "reason": "download failed (URL dead or timeout)"
+  },
+  {
+    "parfumId": "dolce_gabbana_k_by_dolce_gabbana",
+    "brandName": "Dolce&Gabbana",
+    "nom": "K by Dolce & Gabbana",
+    "reason": "upload: request to https://storage.googleapis.com/upload/storage/v1/b/parfumscan-60549.f"
+  },
+  {
+    "parfumId": "dolce_gabbana_velvet_ginestra",
+    "brandName": "Dolce&Gabbana",
+    "nom": "Velvet Ginestra",
+    "reason": "upload: request to https://storage.googleapis.com/upload/storage/v1/b/parfumscan-60549.f"
+  },
+  {
+    "parfumId": "escada_lily_chic",
+    "brandName": "Escada",
+    "nom": "Lily Chic",
+    "reason": "upload: request to https://storage.googleapis.com/upload/storage/v1/b/parfumscan-60549.f"
+  },
+  {
+    "parfumId": "etat_libre_d_orange_sous_le_pont_mirabeau",
+    "brandName": "Etat Libre d'Orange",
+    "nom": "Sous Le Pont Mirabeau",
+    "reason": "upload: request to https://storage.googleapis.com/upload/storage/v1/b/parfumscan-60549.f"
+  },
+  {
+    "parfumId": "ex_nihilo_chandigarh_express",
+    "brandName": "Ex Nihilo",
+    "nom": "Chandigarh Express",
+    "reason": "download failed (URL dead or timeout)"
+  },
+  {
+    "parfumId": "ex_nihilo_sweet_morphine",
+    "brandName": "Ex Nihilo",
+    "nom": "Sweet Morphine",
+    "reason": "download failed (URL dead or timeout)"
+  },
+  {
+    "parfumId": "ex_nihilo_vetiver_moloko",
+    "brandName": "Ex Nihilo",
+    "nom": "Vetiver Moloko",
+    "reason": "download failed (URL dead or timeout)"
+  },
+  {
+    "parfumId": "ex_nihilo_the_irreverents",
+    "brandName": "Ex Nihilo",
+    "nom": "The Irreverents",
+    "reason": "download failed (URL dead or timeout)"
+  },
+  {
+    "parfumId": "ex_nihilo_whiplash",
+    "brandName": "Ex Nihilo",
+    "nom": "Whiplash",
+    "reason": "download failed (URL dead or timeout)"
+  },
+  {
+    "parfumId": "ex_nihilo_patchouli_memory",
+    "brandName": "Ex Nihilo",
+    "nom": "Patchouli Memory",
+    "reason": "download failed (URL dead or timeout)"
+  },
+  {
+    "parfumId": "ex_nihilo_sun_emperors",
+    "brandName": "Ex Nihilo",
+    "nom": "Sun Emperors",
+    "reason": "download failed (URL dead or timeout)"
   }
 ]

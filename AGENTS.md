@@ -83,7 +83,7 @@ npx tsc --noEmit     # vérifier la compilation (0 erreur attendu)
 
 ### Tests
 ```bash
-npx jest --ci         # 170 tests, 13 suites, ~6s
+npx jest --ci         # 185 tests, 14 suites, ~8s
 npm test              # watch mode
 npm run test:ci       # CI mode avec couverture
 ```
@@ -107,7 +107,9 @@ expo-speech-recognition ^56 · expo-audio ~57 · expo-file-system ~57 · expo-lo
 
 **Pager gestures** : `onHorizontalScrollActive` câblé de bout en bout (auparavant code mort v6.9). Le pager se désactive pendant le drag d'une rangée horizontale interne (BrandCapsules, CatalogRow, FamilyAmbianceCards, FilterBar pills). `.enabled(!sheetOpen && !rowScrollActive && !overlayVisible)`. Garde-fou `setRowScrollActive(false)` dans `goTo()`. 4 fichiers modifiés : `index.tsx`, `collection.tsx`, `FilterBar.tsx`, `reference.md`.
 
-**Tests** : 170 tests, 13 suites. Tests `useScanReducer` mis à jour (suppression `SCAN_STEPS`/`STEP_1`/`STEP_2`, ajout 2 tests payload images/scanResult).
+**Tests** : 185 tests, 14 suites. Tests `useScanReducer` mis à jour (suppression `SCAN_STEPS`/`STEP_1`/`STEP_2`, ajout 2 tests payload images/scanResult). Nouveaux tests `useScanPipeline` : 15 tests sur le pipeline analyse→recherche (GPT, recherche, clarify, erreurs, garde-fous, historique).
+
+**Architecture** : `useScanPipeline` extrait le pipeline métier (GPT-4o → recherche Firestore → historique), testable via `renderHook` + mock des services. `ScanScreen` passe de ~300 lignes à ~140 lignes (rendu + handlers UI uniquement).
 
 ## Notes v6.15 — Flacon Runner (endless runner, 22/07/2026)
 

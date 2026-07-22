@@ -50,7 +50,7 @@
 | **Backend** | Firebase Auth, Firestore, Storage, Cloud Functions (europe-west1) |
 | **IA** | GPT-4o Vision (analyse photo), OpenAI Whisper-1 (transcription vocale), Firestore (catalogue 25K parfums) |
 | **Formulaires** | React Hook Form 7 + Zod 4 |
-| **Tests** | Jest 29 + jest-expo + Testing Library — 170 tests, 13 suites |
+| **Tests** | Jest 29 + jest-expo + Testing Library — 185 tests, 14 suites |
 
 ---
 
