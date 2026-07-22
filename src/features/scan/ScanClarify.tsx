@@ -1,7 +1,7 @@
 // src/features/scan/ScanClarify.tsx — Formulaire de correction après low-confidence
 
 import { useState, useMemo } from 'react';
-import { View, Text, TextInput, Pressable, ScrollView } from 'react-native';
+import { View, Text, TextInput, Pressable, ScrollView, KeyboardAvoidingView, Platform } from 'react-native';
 import Ionicons from "@react-native-vector-icons/ionicons/static";
 import { useTheme, type Theme } from '../../theme/ThemeContext';
 import type { ScanResult } from '../../models';
@@ -27,6 +27,11 @@ export function ScanClarify({ scanResult, reason, onSearch, onReset }: Props) {
   const isValid = marque.trim().length > 0 || nom.trim().length > 0;
 
   return (
+    <KeyboardAvoidingView
+      style={s.flex}
+      behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+      keyboardVerticalOffset={Platform.OS === 'android' ? 0 : 0}
+    >
     <ScrollView contentContainerStyle={s.container} keyboardShouldPersistTaps="handled">
       <View style={s.iconWrap}>
         <Ionicons name="bulb-outline" size={48} color={theme.colors.secondary} />
@@ -76,11 +81,13 @@ export function ScanClarify({ scanResult, reason, onSearch, onReset }: Props) {
         <Text style={s.resetText}>{reason === 'manual' ? 'Retour' : 'Réessayer le scan'}</Text>
       </Pressable>
     </ScrollView>
+    </KeyboardAvoidingView>
   );
 }
 
 function getStyles(t: Theme) {
   return {
+    flex: { flex: 1 },
     container: { padding: 24, paddingTop: 40, alignItems: 'center' },
     iconWrap: { marginBottom: 16 },
     title: { fontFamily: 'PlayfairDisplay_600SemiBold', fontSize: 20, color: t.colors.text, marginBottom: 8, textAlign: 'center' },

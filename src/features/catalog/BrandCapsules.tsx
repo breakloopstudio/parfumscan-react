@@ -2,7 +2,7 @@
 
 import { useMemo, useCallback } from 'react';
 import { View, Text, Pressable, ScrollView } from 'react-native';
-import { useRouter } from 'expo-router';
+import Ionicons from '@react-native-vector-icons/ionicons/static';
 import SectionHeader from '../../components/SectionHeader';
 import { useTheme, type Theme } from '../../theme/ThemeContext';
 
@@ -20,7 +20,6 @@ interface Props {
 export default function BrandCapsules({ onViewAll, onBrandTap, onHorizontalScrollActive }: Props) {
   const { theme } = useTheme();
   const s = useMemo(() => getStyles(theme), [theme]);
-  const router = useRouter();
 
   const handleBeginDrag = useCallback(() => onHorizontalScrollActive?.(true), [onHorizontalScrollActive]);
   const handleEndDrag = useCallback(() => onHorizontalScrollActive?.(false), [onHorizontalScrollActive]);
@@ -54,7 +53,8 @@ export default function BrandCapsules({ onViewAll, onBrandTap, onHorizontalScrol
           style={({ pressed }) => [s.capsuleAll, pressed && s.capsuleAllPressed]}
           onPress={onViewAll}
         >
-          <Text style={s.capsuleAllText}>Toutes →</Text>
+          <Text style={s.capsuleAllText}>Toutes</Text>
+          <Ionicons name="arrow-forward" size={14} color={theme.colors.primaryInk} />
         </Pressable>
       </ScrollView>
     </View>
@@ -67,6 +67,7 @@ function getStyles(t: Theme) {
     scrollContent: { paddingHorizontal: t.spacing.md, gap: 10 },
     capsule: {
       height: 42,
+      maxWidth: 180,
       paddingHorizontal: 16,
       backgroundColor: t.colors.surface,
       borderWidth: 1,
@@ -87,20 +88,20 @@ function getStyles(t: Theme) {
     capsuleAll: {
       height: 42,
       paddingHorizontal: 16,
-      borderWidth: 2,
-      borderColor: t.colors.primary,
-      borderStyle: 'dashed',
+      backgroundColor: t.colors.primarySoft,
       borderRadius: 21,
+      flexDirection: 'row',
       justifyContent: 'center',
       alignItems: 'center',
+      gap: 6,
     },
     capsuleAllPressed: {
-      backgroundColor: t.colors.primarySoft,
+      opacity: 0.7,
     },
     capsuleAllText: {
       fontFamily: 'Inter_600SemiBold',
       fontSize: 14,
-      color: t.colors.primary,
+      color: t.colors.primaryInk,
     },
   } as const;
 }

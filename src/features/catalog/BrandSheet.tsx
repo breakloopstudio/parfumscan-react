@@ -1,10 +1,14 @@
 // src/features/catalog/BrandSheet.tsx — Bottom sheet alphabétique des marques
+// Refonte : strip latérale en colonne sibling (plus d'overlay), offsets exacts,
+// loupe Reanimated (zéro re-render pendant le scrub), highlight de la lettre visible.
 
-import { useState, useMemo, useCallback, useRef } from 'react';
+import { useState, useMemo, useCallback, useRef, useEffect } from 'react';
 import { View, Text, Pressable, Modal, FlatList, TextInput, StyleSheet, PanResponder } from 'react-native';
+import Animated, { useSharedValue, useAnimatedStyle } from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Ionicons from '@react-native-vector-icons/ionicons/static';
 import { useTheme, type Theme } from '../../theme/ThemeContext';
+import { hapticsLight } from '../../services/haptics';
 
 const ALL_BRANDS = [
   'Acqua di Parma', 'Amouage', 'Armani', 'Armaf',
@@ -30,8 +34,16 @@ const ALL_BRANDS = [
   'Zadig & Voltaire', 'Zara',
 ];
 
-function groupByLetter(brands: string[]): { letter: string; brands: string[] }[] {
-  const groups: { letter: string; brands: string[] }[] = [];
+// Hauteurs fixes → offsets exacts, zéro dérive
+const ROW_H = 48;
+const HEADER_H = 40;
+const SECTION_GAP = 12;
+const LOUPE_SIZE = 56;
+
+interface Section { letter: string; brands: string[] }
+
+function groupByLetter(brands: string[]): Section[] {
+  const groups: Section[] = [];
   for (const brand of brands) {
     const letter = brand.charAt(0).toUpperCase();
     const last = groups[groups.length - 1];
@@ -57,10 +69,17 @@ export default function BrandSheet({ visible, onClose, onSelectBrand }: Props) {
   const keyboardAppearance = resolvedMode === 'dark' ? 'dark' : 'light';
 
   const [search, setSearch] = useState('');
-  const [activeLetter, setActiveLetter] = useState<string | null>(null);
+  const [scrubLetter, setScrubLetter] = useState<string | null>(null);
   const [isScrubbing, setIsScrubbing] = useState(false);
-  const [scrubY, setScrubY] = useState(0);
-  const [scrubViewHeight, setScrubViewHeight] = useState(0);
+  const [visibleLetter, setVisibleLetter] = useState<string | null>(null);
+
+  const stripHeightRef = useRef(0);
+  const lastLetterRef = useRef<string | null>(null);
+  const visibleLetterRef = useRef<string | null>(null);
+  const listRef = useRef<FlatList<Section>>(null);
+
+  // Loupe animée sur le UI thread — zéro re-render JS pendant le scrub
+  const loupeY = useSharedValue(0);
 
   const filtered = useMemo(() => {
     if (!search.trim()) return ALL_BRANDS;
@@ -69,6 +88,20 @@ export default function BrandSheet({ visible, onClose, onSelectBrand }: Props) {
   }, [search]);
 
   const sections = useMemo(() => groupByLetter(filtered), [filtered]);
+  const letterIndex = useMemo(() => sections.map(sec => sec.letter), [sections]);
+
+  // Offsets exacts par lettre (hauteurs fixes)
+  const offsets = useMemo(() => {
+    const map: Record<string, number> = {};
+    let y = 0;
+    for (const sec of sections) {
+      map[sec.letter] = y;
+      y += HEADER_H + sec.brands.length * ROW_H + SECTION_GAP;
+    }
+    return map;
+  }, [sections]);
+
+  const activeLetter = scrubLetter ?? visibleLetter;
 
   const handleSelect = useCallback((brand: string) => {
     onSelectBrand(brand);
@@ -81,63 +114,98 @@ export default function BrandSheet({ visible, onClose, onSelectBrand }: Props) {
     onClose();
   }, [onClose]);
 
-  const letterIndex = useMemo(() => sections.map(s => s.letter), [sections]);
-  const listRef = useRef<FlatList<{ letter: string; brands: string[] }>>(null);
-
-  const getLetterFromY = useCallback((y: number) => {
-    if (scrubViewHeight === 0 || letterIndex.length === 0) return null;
-    const ratio = Math.max(0, Math.min(1, y / scrubViewHeight));
-    const idx = Math.floor(ratio * letterIndex.length);
-    return letterIndex[Math.min(idx, letterIndex.length - 1)];
-  }, [letterIndex, scrubViewHeight]);
-
   const scrollToLetter = useCallback((letter: string) => {
-    const idx = sections.findIndex(s => s.letter === letter);
-    if (idx >= 0 && listRef.current) {
-      listRef.current.scrollToIndex({ index: idx, animated: false, viewPosition: 0 });
+    const y = offsets[letter];
+    if (y !== undefined) {
+      listRef.current?.scrollToOffset({ offset: Math.max(0, y - 4), animated: false });
     }
-  }, [sections]);
+  }, [offsets]);
 
-  const getLetterFromYRef = useRef(getLetterFromY);
-  const scrollToLetterRef = useRef(scrollToLetter);
-  const activeLetterRef = useRef(activeLetter);
-  getLetterFromYRef.current = getLetterFromY;
-  scrollToLetterRef.current = scrollToLetter;
-  activeLetterRef.current = activeLetter;
+  // Reset scroll quand la recherche change
+  useEffect(() => {
+    listRef.current?.scrollToOffset({ offset: 0, animated: false });
+    visibleLetterRef.current = null;
+    setVisibleLetter(null);
+  }, [search]);
 
-  const panResponder = useRef(PanResponder.create({
+  // Highlight de la lettre visible pendant le scroll normal
+  const handleScroll = useCallback((e: { nativeEvent: { contentOffset: { y: number } } }) => {
+    const y = e.nativeEvent.contentOffset.y;
+    let current: string | null = null;
+    for (const letter of letterIndex) {
+      if (offsets[letter] <= y + 4) current = letter;
+      else break;
+    }
+    if (current !== visibleLetterRef.current) {
+      visibleLetterRef.current = current;
+      setVisibleLetter(current);
+    }
+  }, [letterIndex, offsets]);
+
+  // Cellules flex:1 → mapping exact y → lettre ; loupe clampée dans les bornes
+  const handleScrubY = useCallback((y: number) => {
+    const h = stripHeightRef.current;
+    const n = letterIndex.length;
+    if (h <= 0 || n === 0) return;
+
+    loupeY.value = Math.min(Math.max(y, LOUPE_SIZE / 2), h - LOUPE_SIZE / 2);
+
+    const cell = h / n;
+    const idx = Math.max(0, Math.min(n - 1, Math.floor(y / cell)));
+    const letter = letterIndex[idx];
+
+    if (letter && letter !== lastLetterRef.current) {
+      lastLetterRef.current = letter;
+      setScrubLetter(letter);
+      scrollToLetter(letter);
+      hapticsLight();
+    }
+  }, [letterIndex, scrollToLetter, loupeY]);
+
+  // PanResponder recréé quand la strip change (pas de refs-miroir)
+  const panResponder = useMemo(() => PanResponder.create({
     onStartShouldSetPanResponder: () => true,
     onMoveShouldSetPanResponder: () => true,
     onPanResponderGrant: (evt) => {
       setIsScrubbing(true);
-      const letter = getLetterFromYRef.current(evt.nativeEvent.locationY);
-      if (letter !== null) {
-        setActiveLetter(letter);
-        setScrubY(evt.nativeEvent.locationY);
-        activeLetterRef.current = letter;
-        scrollToLetterRef.current(letter);
-      }
+      handleScrubY(evt.nativeEvent.locationY);
     },
     onPanResponderMove: (evt) => {
-      const letter = getLetterFromYRef.current(evt.nativeEvent.locationY);
-      if (letter !== null && letter !== activeLetterRef.current) {
-        setActiveLetter(letter);
-        setScrubY(evt.nativeEvent.locationY);
-        activeLetterRef.current = letter;
-        scrollToLetterRef.current(letter);
-      }
+      handleScrubY(evt.nativeEvent.locationY);
     },
     onPanResponderRelease: () => {
       setIsScrubbing(false);
-      setActiveLetter(null);
-      activeLetterRef.current = null;
+      setScrubLetter(null);
+      lastLetterRef.current = null;
     },
     onPanResponderTerminate: () => {
       setIsScrubbing(false);
-      setActiveLetter(null);
-      activeLetterRef.current = null;
+      setScrubLetter(null);
+      lastLetterRef.current = null;
     },
-  })).current;
+  }), [handleScrubY]);
+
+  const loupeStyle = useAnimatedStyle(() => ({
+    top: loupeY.value - LOUPE_SIZE / 2,
+  }));
+
+  const renderSection = useCallback(({ item }: { item: Section }) => (
+    <View style={s.section}>
+      <Text style={s.letter}>{item.letter}</Text>
+      {item.brands.map(brand => (
+        <Pressable
+          key={brand}
+          style={({ pressed }) => [s.brandItem, pressed && s.brandItemPressed]}
+          onPress={() => handleSelect(brand)}
+        >
+          <Text style={s.brandText}>{brand}</Text>
+          <Ionicons name="chevron-forward" size={16} color={theme.colors.textMuted} />
+        </Pressable>
+      ))}
+    </View>
+  ), [s, theme, handleSelect]);
+
+  const showStrip = letterIndex.length > 1 && !search.trim();
 
   return (
     <Modal visible={visible} animationType="slide" presentationStyle="pageSheet" onRequestClose={handleClose}>
@@ -175,72 +243,63 @@ export default function BrandSheet({ visible, onClose, onSelectBrand }: Props) {
         </View>
 
         <View style={s.listWrap}>
-          <FlatList
-            style={{ flex: 1 }}
-            ref={listRef}
-            data={sections}
-            keyExtractor={item => item.letter}
-            getItemLayout={(_, index) => {
-              const sec = sections[index];
-              const headerH = 38;
-              const itemH = 44;
-              const sectionGap = 8;
-              const offset = sections.slice(0, index).reduce(
-                (acc, s2) => acc + headerH + s2.brands.length * itemH + sectionGap, 0,
-              );
-              return { length: headerH + sec.brands.length * itemH + sectionGap, offset, index };
-            }}
-            onScrollToIndexFailed={(info) => {
-              setTimeout(() => {
-                listRef.current?.scrollToIndex({ index: info.index, animated: false, viewPosition: 0 });
-              }, 100);
-            }}
-            renderItem={({ item }) => (
-              <View style={s.section}>
-                <Text style={s.letter}>{item.letter}</Text>
-                {item.brands.map(brand => (
-                  <Pressable
-                    key={brand}
-                    style={({ pressed }) => [s.brandItem, pressed && s.brandItemPressed]}
-                    onPress={() => handleSelect(brand)}
-                  >
-                    <Text style={s.brandText}>{brand}</Text>
-                    <Ionicons name="chevron-forward" size={16} color={theme.colors.textMuted} />
-                  </Pressable>
-                ))}
-              </View>
-            )}
-            showsVerticalScrollIndicator={false}
-            contentContainerStyle={{ paddingBottom: insets.bottom + 20 }}
-          />
+          {filtered.length === 0 ? (
+            <View style={s.emptyWrap}>
+              <Ionicons name="search-outline" size={32} color={theme.colors.textMuted} style={{ opacity: 0.5 }} />
+              <Text style={s.emptyText}>Aucune marque trouvée</Text>
+            </View>
+          ) : (
+            <FlatList<Section>
+              style={s.list}
+              ref={listRef}
+              data={sections}
+              keyExtractor={item => item.letter}
+              getItemLayout={(_, index) => {
+                const offset = sections.slice(0, index).reduce(
+                  (acc, s2) => acc + HEADER_H + s2.brands.length * ROW_H + SECTION_GAP, 0,
+                );
+                return {
+                  length: HEADER_H + sections[index].brands.length * ROW_H + SECTION_GAP,
+                  offset,
+                  index,
+                };
+              }}
+              renderItem={renderSection}
+              onScroll={handleScroll}
+              scrollEventThrottle={32}
+              showsVerticalScrollIndicator={false}
+              contentContainerStyle={{ paddingBottom: insets.bottom + 20 }}
+            />
+          )}
 
-          {sections.length > 3 && (
-            <>
-              <View
-                style={s.quickIndex}
-                onLayout={(e) => { setScrubViewHeight(e.nativeEvent.layout.height); }}
-                {...panResponder.panHandlers}
-              >
-                {letterIndex.map(letter => (
-                  <Text
-                    key={letter}
-                    style={[
-                      s.quickIndexText,
-                      isScrubbing && activeLetter === letter && s.quickIndexTextActive,
-                    ]}
-                    allowFontScaling={false}
-                  >
-                    {letter}
-                  </Text>
-                ))}
-              </View>
+          {showStrip && (
+            <View
+              style={s.strip}
+              onLayout={(e) => { stripHeightRef.current = e.nativeEvent.layout.height; }}
+              {...panResponder.panHandlers}
+            >
+              {letterIndex.map(letter => {
+                const active = activeLetter === letter;
+                return (
+                  <View key={letter} style={s.stripCell}>
+                    <View style={[s.stripPill, active && s.stripPillActive]}>
+                      <Text
+                        style={[s.stripText, active && s.stripTextActive]}
+                        allowFontScaling={false}
+                      >
+                        {letter}
+                      </Text>
+                    </View>
+                  </View>
+                );
+              })}
+            </View>
+          )}
 
-              {isScrubbing && activeLetter && (
-                <View style={[s.loupe, { top: Math.max(0, scrubY - 28) }]} pointerEvents="none">
-                  <Text style={s.loupeText} allowFontScaling={false}>{activeLetter}</Text>
-                </View>
-              )}
-            </>
+          {isScrubbing && scrubLetter && (
+            <Animated.View style={[s.loupe, loupeStyle]} pointerEvents="none">
+              <Text style={s.loupeText} allowFontScaling={false}>{scrubLetter}</Text>
+            </Animated.View>
           )}
         </View>
       </View>
@@ -262,39 +321,49 @@ function getStyles(t: Theme) {
     searchWrap: {
       flexDirection: 'row', alignItems: 'center',
       backgroundColor: t.colors.surface2, borderRadius: 14,
-      paddingHorizontal: 14, height: 42, gap: 10,
+      paddingHorizontal: 14, height: 44, gap: 10,
     },
     searchInput: { flex: 1, fontFamily: 'Inter_400Regular', fontSize: 15, color: t.colors.text, padding: 0 },
     listWrap: { flex: 1, flexDirection: 'row' },
-    section: { paddingHorizontal: 20, marginBottom: 8 },
+    list: { flex: 1 },
+    section: { paddingHorizontal: 20, marginBottom: SECTION_GAP },
     letter: {
-      fontFamily: 'Inter_700Bold', fontSize: 13, color: t.colors.primary,
-      paddingVertical: 8, borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: t.colors.border,
-      marginBottom: 4,
+      fontFamily: 'PlayfairDisplay_600SemiBold', fontSize: 17, color: t.colors.primary,
+      height: HEADER_H, textAlignVertical: 'center',
+      borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: t.colors.border,
     },
     brandItem: {
       flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
-      paddingVertical: 12, paddingHorizontal: 4,
+      height: ROW_H, paddingHorizontal: 8, borderRadius: 8,
       borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: t.colors.surface2,
     },
-    brandItemPressed: { opacity: 0.6 },
+    brandItemPressed: { backgroundColor: t.colors.surface2 },
     brandText: { fontFamily: 'Inter_500Medium', fontSize: 15, color: t.colors.text },
-    quickIndex: {
-      position: 'absolute', right: 4, top: 0, bottom: 0,
-      justifyContent: 'space-between', alignItems: 'center',
-      paddingVertical: 12,
-      zIndex: 10,
+    emptyWrap: { flex: 1, justifyContent: 'center', alignItems: 'center', gap: 10 },
+    emptyText: { fontFamily: 'Inter_400Regular', fontSize: 14, color: t.colors.textMuted },
+    // Strip latérale — colonne sibling, pas d'overlay sur la liste
+    strip: {
+      width: 30,
+      marginRight: 4,
+      marginVertical: 4,
+      borderRadius: 12,
+      backgroundColor: t.colors.surface2,
     },
-    quickIndexText: { fontFamily: 'Inter_600SemiBold', fontSize: 10, color: t.colors.primary },
-    quickIndexTextActive: { fontSize: 13, color: t.colors.secondary },
+    stripCell: { flex: 1, justifyContent: 'center', alignItems: 'center' },
+    stripPill: {
+      width: 22, height: 22, borderRadius: 11,
+      justifyContent: 'center', alignItems: 'center',
+    },
+    stripPillActive: { backgroundColor: t.colors.primary },
+    stripText: { fontFamily: 'Inter_600SemiBold', fontSize: 10, color: t.colors.textMuted },
+    stripTextActive: { color: '#FFFFFF' },
     loupe: {
       position: 'absolute',
-      right: 36,
-      width: 56, height: 56, borderRadius: 28,
+      right: 44,
+      width: LOUPE_SIZE, height: LOUPE_SIZE, borderRadius: LOUPE_SIZE / 2,
       backgroundColor: t.colors.primary,
       justifyContent: 'center', alignItems: 'center',
-      shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.3, shadowRadius: 6,
-      elevation: 6,
+      ...t.shadow.elevated,
       zIndex: 20,
     },
     loupeText: {

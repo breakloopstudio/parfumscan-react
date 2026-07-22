@@ -63,6 +63,14 @@ export default function TabPager() {
   const translateX = useSharedValue(0);
   const startX = useSharedValue(0);
 
+  // Désactive le pager pendant qu'une rangée horizontale interne est draguée
+  // (BrandCapsules, CatalogRow, FamilyAmbianceCards, FilterBar pills)
+  const [rowScrollActive, setRowScrollActive] = useState(false);
+
+  const handleRowScrollActive = useCallback((active: boolean) => {
+    setRowScrollActive(active);
+  }, []);
+
   useAnimatedReaction(
     () => scrollY.value,
     (current, prev) => {
@@ -108,6 +116,7 @@ export default function TabPager() {
 
   // Naviguer vers une page (depuis le DockBar)
   const goTo = useCallback((p: number) => {
+    setRowScrollActive(false); // garde-fou : reset si une rangée démonte pendant un drag
     pageAnimating.value = true;
     currentPage.value = p;
     setActivePage(p);
@@ -135,45 +144,6 @@ export default function TabPager() {
     width: pageWidth.value * PAGES,
     height: '100%',
   }));
-
-  // Gesture Pan pour le pager
-  const pagerPan = useMemo(() => Gesture.Pan()
-    .enabled(!sheetOpen)
-    .activeOffsetX([-ACTIVATE_X, ACTIVATE_X])
-    .failOffsetY([-FAIL_Y, FAIL_Y])
-    .onStart(() => {
-      startX.value = translateX.value;
-    })
-    .onUpdate((e) => {
-      const target = startX.value + e.translationX;
-      const minX = -(PAGES - 1) * pageWidth.value;
-      translateX.value = Math.max(minX, Math.min(0, target));
-    })
-    .onEnd((e) => {
-      const velocity = e.velocityX;
-      const currentOffset = -translateX.value / pageWidth.value;
-      let targetPage = Math.round(currentOffset);
-
-      if (Math.abs(velocity) > MIN_VELOCITY) {
-        targetPage = velocity > 0 ? Math.floor(currentOffset) : Math.ceil(currentOffset);
-      } else {
-        const diff = currentOffset - activePage;
-        targetPage = activePage + (diff > 0.3 ? 1 : diff < -0.3 ? -1 : 0);
-      }
-
-      targetPage = Math.max(0, Math.min(PAGES - 1, targetPage));
-
-      currentPage.value = targetPage;
-      runOnJS(setActivePageJS)(targetPage);
-
-      translateX.value = withSpring(-targetPage * pageWidth.value, {
-        damping: 25,
-        stiffness: 250,
-        mass: 0.8,
-        velocity: velocity,
-      });
-    }),
-  [sheetOpen, pageWidth, activePage, setActivePageJS]);
 
   // ── Voice Search ──────────────────────────────────────────────
 
@@ -304,6 +274,45 @@ export default function TabPager() {
     voiceSearch.start({ continuous: true });
   }, [voiceSearch]);
 
+  // Gesture Pan pour le pager — désactivé pendant : sheets, rangées horizontales internes, overlay vocal
+  const pagerPan = useMemo(() => Gesture.Pan()
+    .enabled(!sheetOpen && !rowScrollActive && !overlayVisible)
+    .activeOffsetX([-ACTIVATE_X, ACTIVATE_X])
+    .failOffsetY([-FAIL_Y, FAIL_Y])
+    .onStart(() => {
+      startX.value = translateX.value;
+    })
+    .onUpdate((e) => {
+      const target = startX.value + e.translationX;
+      const minX = -(PAGES - 1) * pageWidth.value;
+      translateX.value = Math.max(minX, Math.min(0, target));
+    })
+    .onEnd((e) => {
+      const velocity = e.velocityX;
+      const currentOffset = -translateX.value / pageWidth.value;
+      let targetPage = Math.round(currentOffset);
+
+      if (Math.abs(velocity) > MIN_VELOCITY) {
+        targetPage = velocity > 0 ? Math.floor(currentOffset) : Math.ceil(currentOffset);
+      } else {
+        const diff = currentOffset - activePage;
+        targetPage = activePage + (diff > 0.3 ? 1 : diff < -0.3 ? -1 : 0);
+      }
+
+      targetPage = Math.max(0, Math.min(PAGES - 1, targetPage));
+
+      currentPage.value = targetPage;
+      runOnJS(setActivePageJS)(targetPage);
+
+      translateX.value = withSpring(-targetPage * pageWidth.value, {
+        damping: 25,
+        stiffness: 250,
+        mass: 0.8,
+        velocity: velocity,
+      });
+    }),
+  [sheetOpen, rowScrollActive, overlayVisible, pageWidth, activePage, setActivePageJS]);
+
   const m = useMemo(() => getSearchStyles(theme), [theme]);
 
   if (windowWidth === 0) {
@@ -360,7 +369,7 @@ export default function TabPager() {
         <Animated.View style={s.pagerClip}>
           <Animated.View style={[s.pages, pagesStyle]}>
             <View style={[s.page, { width: pageWidth.value }]}>
-              <CatalogPage onScroll={handlePageScroll} />
+              <CatalogPage onScroll={handlePageScroll} onHorizontalScrollActive={handleRowScrollActive} />
             </View>
             <View style={[s.page, { width: pageWidth.value }]}>
               <FavoritesPage onScroll={handlePageScroll} />
@@ -369,7 +378,7 @@ export default function TabPager() {
               <HistoryPage onScroll={handlePageScroll} />
             </View>
             <View style={[s.page, { width: pageWidth.value }]}>
-              <CollectionPage onScroll={handlePageScroll} onSheetOpen={handleSheetOpen} />
+              <CollectionPage onScroll={handlePageScroll} onSheetOpen={handleSheetOpen} onHorizontalScrollActive={handleRowScrollActive} />
             </View>
           </Animated.View>
         </Animated.View>

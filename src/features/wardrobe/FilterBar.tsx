@@ -1,6 +1,6 @@
 // src/features/wardrobe/FilterBar.tsx
 
-import { useMemo } from 'react';
+import { useMemo, useCallback } from 'react';
 import { View, Text, TextInput, ScrollView, Pressable } from 'react-native';
 import Ionicons from '@react-native-vector-icons/ionicons/static';
 import { useTheme, type Theme } from '../../theme/ThemeContext';
@@ -29,6 +29,7 @@ interface Props {
   onSortChange: (s: string) => void;
   onSearchChange: (q: string) => void;
   onManageShelves: () => void;
+  onHorizontalScrollActive?: (active: boolean) => void;
 }
 
 export default function FilterBar({
@@ -43,10 +44,14 @@ export default function FilterBar({
   onSortChange,
   onSearchChange,
   onManageShelves,
+  onHorizontalScrollActive,
 }: Props) {
   const { theme, resolvedMode } = useTheme();
   const s = useMemo(() => getStyles(theme), [theme]);
   const keyboardAppearance = resolvedMode === 'dark' ? 'dark' : 'light';
+
+  const handleBeginDrag = useCallback(() => onHorizontalScrollActive?.(true), [onHorizontalScrollActive]);
+  const handleEndDrag = useCallback(() => onHorizontalScrollActive?.(false), [onHorizontalScrollActive]);
 
   const currentSortLabel = SORT_OPTIONS.find(o => o.key === activeSort)?.label ?? 'Tri';
 
@@ -95,7 +100,14 @@ export default function FilterBar({
         </Pressable>
       </View>
 
-      <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={s.pillsRow}>
+      <ScrollView
+        horizontal
+        showsHorizontalScrollIndicator={false}
+        contentContainerStyle={s.pillsRow}
+        onScrollBeginDrag={handleBeginDrag}
+        onScrollEndDrag={handleEndDrag}
+        onMomentumScrollEnd={handleEndDrag}
+      >
         <Pressable
           style={[s.pill, isAllActive && s.pillActive]}
           onPress={handleAllTap}

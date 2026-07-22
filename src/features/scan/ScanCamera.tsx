@@ -1,8 +1,9 @@
-// src/features/scan/ScanCamera.tsx — Vue caméra avec viseur animé et flash de capture
+// src/features/scan/ScanCamera.tsx — Vue caméra avec viseur animé, flash, burst resize
 
 import { useRef, useState, useMemo } from 'react';
-import { View, Pressable, Text, StyleSheet } from 'react-native';
+import { View, Pressable, Text, StyleSheet, Alert } from 'react-native';
 import { CameraView } from 'expo-camera';
+import { manipulateAsync, SaveFormat } from 'expo-image-manipulator';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Animated, {
   useSharedValue,
@@ -15,6 +16,11 @@ import Ionicons from '@react-native-vector-icons/ionicons/static';
 import { useTheme, type Theme } from '../../theme/ThemeContext';
 import { hapticsLight } from '../../services/haptics';
 
+// Resize max pour limiter les payloads (ex-capteur 12MP → ~100-300KB base64)
+const MAX_IMAGE_WIDTH = 1024;
+const IMAGE_QUALITY = 0.6;
+const BURST_COUNT = 3;
+
 interface Props {
   onCapture: (burstBase64: string[]) => void;
   onCancel: () => void;
@@ -26,6 +32,7 @@ export function ScanCamera({ onCapture, onCancel }: Props) {
   const cameraRef = useRef<CameraView>(null);
   const insets = useSafeAreaInsets();
   const [capturing, setCapturing] = useState(false);
+  const [captureIndex, setCaptureIndex] = useState(0);
 
   const flashOpacity = useSharedValue(0);
 
@@ -46,16 +53,23 @@ export function ScanCamera({ onCapture, onCancel }: Props) {
     setCapturing(true);
     try {
       const burst: string[] = [];
-      const BURST_COUNT = 3;
 
       for (let i = 0; i < BURST_COUNT; i++) {
         hapticsLight();
+        setCaptureIndex(i + 1);
         const photo = await cameraRef.current.takePictureAsync({
-          base64: true,
-          quality: 0.6,
+          quality: IMAGE_QUALITY,
+          base64: false,
         });
-        if (photo?.base64) {
-          burst.push(`data:image/jpeg;base64,${photo.base64}`);
+        if (photo?.uri) {
+          const manipulated = await manipulateAsync(
+            photo.uri,
+            [{ resize: { width: MAX_IMAGE_WIDTH } }],
+            { compress: IMAGE_QUALITY, base64: true, format: SaveFormat.JPEG },
+          );
+          if (manipulated.base64) {
+            burst.push(`data:image/jpeg;base64,${manipulated.base64}`);
+          }
         }
       }
 
@@ -64,9 +78,13 @@ export function ScanCamera({ onCapture, onCancel }: Props) {
         runOnJS(onCapture)(burst);
       } else {
         setCapturing(false);
+        setCaptureIndex(0);
+        Alert.alert('Erreur', 'Aucune photo capturée. Veuillez réessayer.');
       }
     } catch {
       setCapturing(false);
+      setCaptureIndex(0);
+      Alert.alert('Erreur', 'Échec de la capture. Veuillez réessayer.');
     }
   };
 
@@ -93,7 +111,7 @@ export function ScanCamera({ onCapture, onCancel }: Props) {
           </View>
 
           <Text style={s.hint}>
-            Cadre le flacon et appuie sur le déclencheur
+            {capturing ? `${captureIndex}/${BURST_COUNT} — Ne bougez plus` : 'Cadre le flacon et appuie sur le déclencheur'}
           </Text>
 
           <View style={[s.bottomBar, { paddingBottom: insets.bottom + 16 }]}>

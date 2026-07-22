@@ -1,7 +1,7 @@
 // src/features/scan/ScanLoading.tsx — Animation signature : particules + texte poétique
 
 import { useEffect, useState, useRef, useMemo } from 'react';
-import { View, Text } from 'react-native';
+import { View, Text, Pressable } from 'react-native';
 import Animated, {
   useSharedValue,
   useAnimatedStyle,
@@ -101,9 +101,11 @@ function HaloRing({ t }: { t: Theme }) {
   );
 }
 
-interface Props {}
+interface Props {
+  onCancel?: () => void;
+}
 
-export function ScanLoading(_props: Props) {
+export function ScanLoading({ onCancel }: Props) {
   const { theme } = useTheme();
   const m = useMemo(() => getStyles(theme), [theme]);
   const [textIndex, setTextIndex] = useState(0);
@@ -139,6 +141,12 @@ export function ScanLoading(_props: Props) {
       </View>
 
       <Text style={m.text}>{TEXTS[textIndex]}</Text>
+
+      {onCancel && (
+        <Pressable onPress={onCancel} style={m.cancelBtn} hitSlop={12}>
+          <Text style={m.cancelText}>Annuler</Text>
+        </Pressable>
+      )}
     </View>
   );
 }
@@ -209,6 +217,19 @@ function getStyles(t: Theme) {
       fontSize: 18,
       color: t.colors.text,
       textAlign: 'center',
+    },
+    cancelBtn: {
+      marginTop: 32,
+      paddingVertical: 12,
+      paddingHorizontal: 24,
+      borderRadius: t.radius.base,
+      borderWidth: 1,
+      borderColor: t.colors.border,
+    },
+    cancelText: {
+      fontFamily: 'Inter_500Medium',
+      fontSize: 14,
+      color: t.colors.textMuted,
     },
   } as const;
 }

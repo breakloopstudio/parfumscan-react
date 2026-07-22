@@ -181,7 +181,7 @@ src/
 ## §13 — Tests
 
 - Suite de tests automatisée : Jest 29 + `jest-expo` + mock Firestore in-memory
-- 166 tests, 13 suites, ~6s : `npm test` (watch) / `npm run test:ci` (CI + couverture)
+- 170 tests, 13 suites, ~6s : `npm test` (watch) / `npm run test:ci` (CI + couverture)
 - Les fichiers de test sont dans `__tests__/` (hors `src/` et `app/`)
 - Les mocks Firebase sont dans `__mocks__/@react-native-firebase/`
 - Tests manuels sur émulateur Android (`Pixel_7_Pro`) et device physique

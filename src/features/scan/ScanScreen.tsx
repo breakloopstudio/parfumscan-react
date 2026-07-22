@@ -1,10 +1,11 @@
 // src/features/scan/ScanScreen.tsx — Orchestrateur scan avec caméra réelle
 
 import { useRef, useEffect, useCallback } from 'react';
-import { Alert } from 'react-native';
+import { Alert, Linking } from 'react-native';
 import { useRouter } from 'expo-router';
 import { useCameraPermissions } from 'expo-camera';
 import * as ImagePicker from 'expo-image-picker';
+import { manipulateAsync, SaveFormat } from 'expo-image-manipulator';
 import { useAuthContext } from '../../contexts/AuthContext';
 import { useScanReducer } from '../../hooks/useScanReducer';
 import { analyzeImage, analyzeMultipleImages } from '../../services/openai-vision';
@@ -22,17 +23,67 @@ import { ScanResults } from './ScanResults';
 import { ScanNoResult } from './ScanNoResult';
 import { ScanError } from './ScanError';
 
+// Resize max pour limiter les payloads (ex-capteur 12MP → ~100-300KB base64)
+const MAX_IMAGE_WIDTH = 1024;
+const IMAGE_QUALITY = 0.6;
+
+async function resizeToBase64(uri: string): Promise<string | null> {
+  const result = await manipulateAsync(
+    uri,
+    [{ resize: { width: MAX_IMAGE_WIDTH } }],
+    { compress: IMAGE_QUALITY, base64: true, format: SaveFormat.JPEG },
+  );
+  return result.base64 ?? null;
+}
+
 export function ScanScreen() {
   const { user } = useAuthContext();
   const router = useRouter();
   const [permission, requestPermission] = useCameraPermissions();
   const { state, dispatch } = useScanReducer();
-  const pendingAnalysis = useRef<{ burstBase64?: string[]; scanResult?: ScanResult } | null>(null);
+
+  // Ref garde-fous
+  const mountedRef = useRef(true);
+  const analysisDispatchedRef = useRef(false);
+  const lastBurstRef = useRef<string[] | null>(null);
+
+  useEffect(() => {
+    mountedRef.current = true;
+    return () => { mountedRef.current = false; };
+  }, []);
+
+  // ─── Handlers ────────────────────────────────────────
+
+  const trySearch = useCallback(async (m: string | null, n: string | null): Promise<Parfum[]> => {
+    if (!m && !n) return [];
+    return await searchParfumFromScan(m, n);
+  }, []);
+
+  const reset = useCallback(() => {
+    analysisDispatchedRef.current = false;
+    lastBurstRef.current = null;
+    dispatch({ type: 'RESET' });
+  }, [dispatch]);
+
+  const handleCancelScan = useCallback(() => {
+    analysisDispatchedRef.current = false;
+    dispatch({ type: 'RESET' });
+  }, [dispatch]);
 
   const handleOpenCamera = useCallback(async () => {
     if (!permission?.granted) {
       const r = await requestPermission();
-      if (!r.granted) { Alert.alert('Permission refusée', 'La caméra est nécessaire.'); return; }
+      if (!r.granted) {
+        if (!r.canAskAgain) {
+          Alert.alert('Permission refusée', 'Activez la caméra dans les réglages de l\'appareil.', [
+            { text: 'Annuler', style: 'cancel' },
+            { text: 'Réglages', onPress: () => Linking.openSettings() },
+          ]);
+        } else {
+          Alert.alert('Permission refusée', 'La caméra est nécessaire pour scanner un flacon.');
+        }
+        return;
+      }
     }
     dispatch({ type: 'OPEN_CAMERA' });
   }, [permission, requestPermission, dispatch]);
@@ -41,40 +92,49 @@ export function ScanScreen() {
     try {
       const result = await ImagePicker.launchImageLibraryAsync({
         mediaTypes: ['images'],
-        base64: true,
-        quality: 0.6,
+        quality: IMAGE_QUALITY,
       });
 
-      if (result.canceled || !result.assets?.[0]?.base64) return;
+      if (result.canceled || !result.assets?.[0]?.uri) return;
 
-      const base64 = `data:image/jpeg;base64,${result.assets[0].base64}`;
-      pendingAnalysis.current = { burstBase64: [base64] };
-      dispatch({ type: 'START_SCAN' });
+      const base64 = await resizeToBase64(result.assets[0].uri);
+      if (!base64) {
+        Alert.alert('Erreur', 'Impossible de traiter cette image.');
+        return;
+      }
+
+      const images = [`data:image/jpeg;base64,${base64}`];
+      lastBurstRef.current = images;
+      dispatch({ type: 'START_SCAN', images });
     } catch {
       Alert.alert('Erreur', "Impossible d'accéder à la galerie.");
     }
   }, [dispatch]);
 
   const handleCapture = useCallback((burstBase64: string[]) => {
-    pendingAnalysis.current = { burstBase64 };
-    dispatch({ type: 'START_SCAN' });
+    lastBurstRef.current = burstBase64;
+    dispatch({ type: 'START_SCAN', images: burstBase64 });
   }, [dispatch]);
 
-  const handleClarify = useCallback(async (marque: string, nom: string, typeParfum: string | null, _vol: number | null) => {
-    pendingAnalysis.current = { scanResult: { marque: marque || null, nom: nom || null, typeParfum: typeParfum || null, volumeMl: null, confidence: undefined } };
-    dispatch({ type: 'START_SCAN' });
+  const handleClarify = useCallback(async (marque: string, nom: string, typeParfum: string | null, volumeMl: number | null) => {
+    dispatch({
+      type: 'START_SCAN',
+      scanResult: {
+        marque: marque || null,
+        nom: nom || null,
+        typeParfum: typeParfum || null,
+        volumeMl,
+      },
+    });
   }, [dispatch]);
 
-  const trySearch = useCallback(async (m: string | null, n: string | null): Promise<Parfum[]> => {
-    if (!m && !n) return [];
-    try { return await searchParfumFromScan(m, n); } catch { return []; }
-  }, []);
-
-  const reset = useCallback(() => { pendingAnalysis.current = null; dispatch({ type: 'RESET' }); }, [dispatch]);
+  // ─── Pipeline analyse → recherche → résultats ─────────
 
   const searchAndShow = useCallback(async (scanResult: ScanResult) => {
     try {
       const parfums = await trySearch(scanResult.marque, scanResult.nom);
+      if (!mountedRef.current) return;
+
       if (parfums.length > 0) {
         hapticsSuccess();
         if (user?.uid) {
@@ -92,11 +152,10 @@ export function ScanScreen() {
             status: 'success',
           }).catch(() => {});
         }
-        dispatch({ type: 'SCAN_SUCCESS', parfums });
+        if (mountedRef.current) {
+          dispatch({ type: 'SCAN_SUCCESS', parfums });
+        }
       } else {
-        const noResult = scanResult.marque
-          ? scanResult
-          : { marque: scanResult.marque, nom: scanResult.nom ?? null, volumeMl: null, typeParfum: scanResult.typeParfum ?? null };
         if (user?.uid) {
           saveScan(user.uid, {
             rawText: JSON.stringify({ marque: scanResult.marque, nom: scanResult.nom, typeParfum: scanResult.typeParfum }),
@@ -106,7 +165,9 @@ export function ScanScreen() {
             status: 'no-result',
           }).catch(() => {});
         }
-        dispatch({ type: 'SCAN_NO_RESULT', scanResult: noResult as ScanResult });
+        if (mountedRef.current) {
+          dispatch({ type: 'SCAN_NO_RESULT', scanResult });
+        }
       }
     } catch {
       if (user?.uid) {
@@ -117,63 +178,94 @@ export function ScanScreen() {
           status: 'error',
         }).catch(() => {});
       }
-      dispatch({ type: 'SCAN_ERROR', message: 'Erreur recherche.' });
-      hapticsError();
+      if (mountedRef.current) {
+        dispatch({ type: 'SCAN_ERROR', message: 'Connexion impossible. Vérifiez votre réseau.' });
+        hapticsError();
+      }
     }
   }, [trySearch, dispatch, user?.uid]);
 
-  const handleBurstAnalysis = useCallback(async (burstBase64: string[]) => {
-    const [photo1, ...rest] = burstBase64;
-
-    const result1 = await analyzeImage(photo1);
-
-    if (result1.confidence === 'high' && result1.marque) {
-      await searchAndShow(result1);
-      return;
-    }
-
-    if (rest.length === 0) {
-      if (result1.marque || result1.nom) {
-        await searchAndShow(result1);
-      } else {
-        dispatch({ type: 'SCAN_CLARIFY', scanResult: result1, reason: 'empty-response' });
+  const clarifyOrSearch = useCallback(async (result: ScanResult) => {
+    if (!result.marque && !result.nom) {
+      if (mountedRef.current) {
+        dispatch({ type: 'SCAN_CLARIFY', scanResult: result, reason: 'empty-response' });
       }
       return;
     }
-
-    const result2 = await analyzeMultipleImages(rest);
-
-    if (result2.marque || result2.nom) {
-      await searchAndShow(result2);
-    } else if (result1.marque || result1.nom) {
-      await searchAndShow(result1);
-    } else {
-      dispatch({ type: 'SCAN_CLARIFY', scanResult: result1, reason: 'empty-response' });
+    if (result.confidence === 'low') {
+      if (mountedRef.current) {
+        dispatch({ type: 'SCAN_CLARIFY', scanResult: result, reason: 'low-confidence' });
+      }
+      return;
     }
+    await searchAndShow(result);
   }, [searchAndShow, dispatch]);
 
-  // Effet : gère les étapes d'animation quand on passe en mode scanning
+  const handleBurstAnalysis = useCallback(async (burstBase64: string[]) => {
+    if (burstBase64.length >= 2) {
+      const result = await analyzeMultipleImages(burstBase64);
+      await clarifyOrSearch(result);
+      return;
+    }
+    const result = await analyzeImage(burstBase64[0]);
+    await clarifyOrSearch(result);
+  }, [clarifyOrSearch]);
+
+  // ─── Effet : déclenchement immédiat + temps d'animation minimum ──
+
+  const scanningImages = state.kind === 'scanning' ? state.images : undefined;
+  const scanningResult = state.kind === 'scanning' ? state.scanResult : undefined;
+
   useEffect(() => {
-    if (state.kind !== 'scanning') return;
-    const t1 = setTimeout(() => dispatch({ type: 'STEP_1' }), 1000);
-    const t2 = setTimeout(async () => {
-      dispatch({ type: 'STEP_2' });
-      const p = pendingAnalysis.current;
-      if (!p) return;
-      pendingAnalysis.current = null;
+    if (state.kind !== 'scanning') {
+      analysisDispatchedRef.current = false;
+      return;
+    }
+
+    if (analysisDispatchedRef.current) return;
+    analysisDispatchedRef.current = true;
+
+    const MIN_ANIMATION_MS = 1200;
+    const started = Date.now();
+
+    (async () => {
       try {
-        if (p.burstBase64 && p.burstBase64.length > 0) {
-          await handleBurstAnalysis(p.burstBase64);
-        } else if (p.scanResult) {
-          await searchAndShow(p.scanResult);
+        if (scanningImages && scanningImages.length > 0) {
+          await handleBurstAnalysis(scanningImages);
+        } else if (scanningResult) {
+          await searchAndShow(scanningResult);
+        } else {
+          if (mountedRef.current) {
+            dispatch({ type: 'SCAN_ERROR', message: 'Une erreur inattendue est survenue. Veuillez réessayer.' });
+            hapticsError();
+          }
+          return;
         }
       } catch (e: unknown) {
-        dispatch({ type: 'SCAN_ERROR', message: translateFirebaseError(e) });
-        hapticsError();
+        if (mountedRef.current) {
+          dispatch({ type: 'SCAN_ERROR', message: translateFirebaseError(e) });
+          hapticsError();
+        }
+        return;
       }
-    }, 2500);
-    return () => { clearTimeout(t1); clearTimeout(t2); };
-  }, [state.kind, handleBurstAnalysis, searchAndShow]);
+
+      const elapsed = Date.now() - started;
+      if (elapsed < MIN_ANIMATION_MS) {
+        await new Promise(r => setTimeout(r, MIN_ANIMATION_MS - elapsed));
+      }
+    })();
+  }, [state.kind, handleBurstAnalysis, searchAndShow, dispatch, scanningImages, scanningResult]);
+
+  // ─── Actions depuis les écrans de résultat ─────────────
+
+  const handleRetryAnalysis = useCallback(() => {
+    const burst = lastBurstRef.current;
+    if (burst && burst.length > 0) {
+      dispatch({ type: 'START_SCAN', images: burst });
+    } else {
+      reset();
+    }
+  }, [reset, dispatch]);
 
   const handleOpenCatalog = useCallback(() => {
     setPendingCatalogQuery(state.kind === 'results' ? (state.parfums[0]?.marque ?? '') : '');
@@ -186,13 +278,22 @@ export function ScanScreen() {
     router.back();
   }, [reset, router]);
 
+  // ─── Rendu par état ────────────────────────────────────
+
   switch (state.kind) {
-    case 'idle':      return <ScanIdle onStartScan={handleOpenCamera} onImportGallery={handleGalleryImport} onOpenManual={() => dispatch({ type: 'OPEN_MANUAL' })} />;
-    case 'camera':    return <ScanCamera onCapture={handleCapture} onCancel={() => dispatch({ type: 'CANCEL_CAMERA' })} />;
-    case 'scanning':  return <ScanLoading />;
-    case 'clarify':   return <ScanClarify scanResult={state.scanResult} reason={state.reason} onSearch={handleClarify} onReset={reset} />;
-    case 'results':   return <ScanResults parfums={state.parfums} onOpenCatalog={handleOpenCatalog} />;
-    case 'no-result': return <ScanNoResult marque={state.scanResult.marque} onSearchCatalog={handleSearchCatalog} onReset={reset} />;
-    case 'error':     return <ScanError message={state.message} onReset={reset} />;
+    case 'idle':
+      return <ScanIdle onStartScan={handleOpenCamera} onImportGallery={handleGalleryImport} onOpenManual={() => dispatch({ type: 'OPEN_MANUAL' })} />;
+    case 'camera':
+      return <ScanCamera onCapture={handleCapture} onCancel={() => dispatch({ type: 'CANCEL_CAMERA' })} />;
+    case 'scanning':
+      return <ScanLoading onCancel={handleCancelScan} />;
+    case 'clarify':
+      return <ScanClarify scanResult={state.scanResult} reason={state.reason} onSearch={handleClarify} onReset={reset} />;
+    case 'results':
+      return <ScanResults parfums={state.parfums} onOpenCatalog={handleOpenCatalog} />;
+    case 'no-result':
+      return <ScanNoResult marque={state.scanResult.marque} onSearchCatalog={handleSearchCatalog} onReset={reset} />;
+    case 'error':
+      return <ScanError message={state.message} onReset={reset} onRetryAnalysis={lastBurstRef.current ? handleRetryAnalysis : undefined} />;
   }
 }

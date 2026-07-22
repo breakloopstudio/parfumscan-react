@@ -679,6 +679,8 @@ interface Props {
 
 Pager horizontal 4 pages (Catalogue / Favoris / Historique / Parfumerie) avec `GestureDetector` + Reanimated. Gesture config : `activeOffsetX([-30, 30])`, `failOffsetY([-15, 15])`, spring animation (damping 25, stiffness 250). 4 pages rendues en `flexDirection: 'row'`, translatées via `translateX` animé. DockBar hide/show au scroll vertical, barre de recherche persistante `BlurView`.
 
+**Anti-conflit swipe** : le pan du pager est désactivé (`.enabled(false)`) pendant qu'une rangée horizontale interne est draguée — sinon le scroller natif (touch slop ~8px) et le pan RNGH (activation 30px) se déclenchent ensemble. Chaque rangée horizontale (BrandCapsules, CatalogRow, FamilyAmbianceCards, FilterBar pills) appelle `onHorizontalScrollActive(true|false)` sur `onScrollBeginDrag` / `onScrollEndDrag` / `onMomentumScrollEnd`, remonté au pager via CatalogPage / CollectionPage → `rowScrollActive` state. Le pager est aussi désactivé quand un sheet est ouvert (`sheetOpen`) ou l'overlay vocal visible. Garde-fou : `goTo()` reset le flag (rangée démontée pendant un drag).
+
 ---
 
 ## §7 — Algorithme de recherche

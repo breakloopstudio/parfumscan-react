@@ -275,9 +275,13 @@ function extractJson(text: string): string {
  * et retourne les informations du parfum détecté.
  */
 export const analyzePerfumeImage = functions.https.onCall(
-  { region: 'europe-west1' },
+  { region: 'europe-west1', timeoutSeconds: 120, memory: '512MiB' },
   async (request: functions.https.CallableRequest<{ imageBase64?: string; imagesBase64?: string[] }>): Promise<ScanResult> => {
     const { imageBase64, imagesBase64 } = request.data;
+
+    if (!request.auth?.uid) {
+      throw new functions.https.HttpsError('unauthenticated', 'Connexion requise pour analyser une image.');
+    }
 
     const isBurst = Array.isArray(imagesBase64) && imagesBase64.length > 0;
     const hasSingle = typeof imageBase64 === 'string' && imageBase64.length > 0;
@@ -346,6 +350,7 @@ RÈGLES :
         ],
         max_tokens: 500,
         temperature: 0.1,
+        response_format: { type: 'json_object' },
       });
     };
 
@@ -378,18 +383,22 @@ RÈGLES :
     };
 
     try {
-      // Premier essai avec detail:'auto' (bon compromis qualité/coût)
       const response = await callOpenAI('auto');
       const finishReason = response.choices[0]?.finish_reason;
       console.log(`[analyzePerfumeImage] ${isBurst ? `Burst (${images.length} images)` : 'Single'} — Attempt 1 finish_reason:`, finishReason);
 
       const content = response.choices[0]?.message?.content;
       if (content && content.trim().length > 0) {
-        return parseResponse(content, finishReason ?? null);
+        try {
+          return parseResponse(content, finishReason ?? null);
+        } catch {
+          // JSON parse failed — retry with detail:'high'
+          console.log('[analyzePerfumeImage] JSON parse failed on attempt 1, retrying with detail:high...');
+        }
       }
 
-      // Fallback : contenu vide → réessayer avec detail:'high'
-      console.log('[analyzePerfumeImage] Empty content on attempt 1, retrying with detail:high...');
+      // Fallback: empty content or parse failure → retry with detail:'high'
+      console.log('[analyzePerfumeImage] Retrying with detail:high...');
       const retryResponse = await callOpenAI('high');
       const retryFinish = retryResponse.choices[0]?.finish_reason;
       console.log('[analyzePerfumeImage] Attempt 2 — finish_reason:', retryFinish);

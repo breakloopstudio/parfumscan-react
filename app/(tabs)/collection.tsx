@@ -29,9 +29,10 @@ import type { WardrobeItem } from '../../src/models/wardrobe.interface';
 interface Props {
   onScroll?: (y: number) => void;
   onSheetOpen?: (visible: boolean) => void;
+  onHorizontalScrollActive?: (active: boolean) => void;
 }
 
-export default function WardrobePage({ onScroll, onSheetOpen }: Props) {
+export default function WardrobePage({ onScroll, onSheetOpen, onHorizontalScrollActive }: Props) {
   const { theme, resolvedMode } = useTheme();
   const s = useMemo(() => getStyles(theme), [theme]);
   const { user, authReady, isAuthenticated } = useAuthContext();
@@ -207,6 +208,7 @@ export default function WardrobePage({ onScroll, onSheetOpen }: Props) {
         onSortChange={setActiveSort}
         onSearchChange={setSearchQuery}
         onManageShelves={() => setShelfManagerVisible(true)}
+        onHorizontalScrollActive={onHorizontalScrollActive}
       />
 
       <WardrobeGrid

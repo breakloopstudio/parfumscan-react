@@ -1,4 +1,4 @@
-import { scanReducer, SCAN_STEPS } from '../../src/hooks/useScanReducer';
+import { scanReducer } from '../../src/hooks/useScanReducer';
 import type { ScanState, ScanAction } from '../../src/hooks/useScanReducer';
 import type { ScanResult, Parfum } from '../../src/models';
 
@@ -27,22 +27,10 @@ function makeScanResult(overrides: Partial<ScanResult> = {}): ScanResult {
   };
 }
 
-describe('SCAN_STEPS', () => {
-  it('has 3 steps', () => {
-    expect(SCAN_STEPS).toHaveLength(3);
-  });
-
-  it('contains the expected labels', () => {
-    expect(SCAN_STEPS[0]).toBe('Capture du flacon');
-    expect(SCAN_STEPS[1]).toBe('Analyse IA');
-    expect(SCAN_STEPS[2]).toBe('Comparaison des prix');
-  });
-});
-
 describe('scanReducer', () => {
   const idle: ScanState = { kind: 'idle' };
   const camera: ScanState = { kind: 'camera' };
-  const scanning: ScanState = { kind: 'scanning', step: 0 };
+  const scanning: ScanState = { kind: 'scanning' };
   const parfums = [makeParfum()];
   const scanResult = makeScanResult();
 
@@ -67,31 +55,24 @@ describe('scanReducer', () => {
   });
 
   describe('START_SCAN', () => {
-    it('transitions to scanning with step 0', () => {
-      expect(scanReducer(idle, { type: 'START_SCAN' })).toEqual({ kind: 'scanning', step: 0 });
+    it('transitions to scanning', () => {
+      expect(scanReducer(idle, { type: 'START_SCAN' })).toEqual({ kind: 'scanning' });
     });
 
-    it('resets step to 0 even if already scanning', () => {
-      const scanningStep2: ScanState = { kind: 'scanning', step: 2 };
-      expect(scanReducer(scanningStep2, { type: 'START_SCAN' })).toEqual({ kind: 'scanning', step: 0 });
-    });
-  });
-
-  describe('STEP_1 / STEP_2', () => {
-    it('STEP_1 increments step to 1 when scanning', () => {
-      expect(scanReducer(scanning, { type: 'STEP_1' })).toEqual({ kind: 'scanning', step: 1 });
+    it('resets even if already scanning', () => {
+      const scanningWithImages: ScanState = { kind: 'scanning', images: ['a'] };
+      expect(scanReducer(scanningWithImages, { type: 'START_SCAN' })).toEqual({ kind: 'scanning' });
     });
 
-    it('STEP_2 increments step to 2 when scanning', () => {
-      expect(scanReducer(scanning, { type: 'STEP_2' })).toEqual({ kind: 'scanning', step: 2 });
+    it('stores images payload in scanning state', () => {
+      const images = ['data:image/jpeg;base64,aabbcc'];
+      const result = scanReducer(idle, { type: 'START_SCAN', images });
+      expect(result).toMatchObject({ kind: 'scanning', images });
     });
 
-    it('STEP_1 ignores non-scanning states', () => {
-      expect(scanReducer(idle, { type: 'STEP_1' })).toEqual({ kind: 'idle' });
-    });
-
-    it('STEP_2 ignores non-scanning states', () => {
-      expect(scanReducer(idle, { type: 'STEP_2' })).toEqual({ kind: 'idle' });
+    it('stores scanResult payload in scanning state', () => {
+      const result = scanReducer(idle, { type: 'START_SCAN', scanResult });
+      expect(result).toMatchObject({ kind: 'scanning', scanResult });
     });
   });
 
@@ -189,14 +170,10 @@ describe('scanReducer', () => {
       expect(state.kind).toBe('idle');
     });
 
-    it('idle → scan → step progression → success', () => {
+    it('idle → scan → success', () => {
       let state: ScanState = { kind: 'idle' };
       state = scanReducer(state, { type: 'START_SCAN' });
-      expect(state).toEqual({ kind: 'scanning', step: 0 });
-      state = scanReducer(state, { type: 'STEP_1' });
-      expect(state).toEqual({ kind: 'scanning', step: 1 });
-      state = scanReducer(state, { type: 'STEP_2' });
-      expect(state).toEqual({ kind: 'scanning', step: 2 });
+      expect(state).toEqual({ kind: 'scanning' });
       state = scanReducer(state, { type: 'SCAN_SUCCESS', parfums });
       expect(state).toEqual({ kind: 'results', parfums });
       state = scanReducer(state, { type: 'RESET' });

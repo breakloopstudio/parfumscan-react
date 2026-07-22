@@ -1,4 +1,4 @@
-# ParfumScan React — Environment & Commands (v6.15)
+# ParfumScan React — Environment & Commands (v6.16)
 
 ## Environnement local (Windows)
 | Variable | Valeur |
@@ -83,7 +83,7 @@ npx tsc --noEmit     # vérifier la compilation (0 erreur attendu)
 
 ### Tests
 ```bash
-npx jest --ci         # 166 tests, 13 suites, ~6s
+npx jest --ci         # 170 tests, 13 suites, ~6s
 npm test              # watch mode
 npm run test:ci       # CI mode avec couverture
 ```
@@ -97,19 +97,17 @@ react-native-svg ^15 · react-native-pager-view ^8.0 · @react-native-vector-ico
 react-hook-form ^7.81 · zod ^4.4
 expo-speech-recognition ^56 · expo-audio ~57 · expo-file-system ~57 · expo-location ~57
 
-## Notes v6.14 — Voix, Météo & Images WebP (22/07/2026)
+## Notes v6.16 — Scan stability, BrandSheet, Pager gestures (22/07/2026)
 
-**Recherche vocale** : nouveau module complet avec architecture dual-mode. `useVoiceSearch` hook wrappe `expo-speech-recognition` (STT on-device, 60+ marques en `contextualStrings`) + `expo-audio` (enregistrement audio en parallèle). Fallback `transcribeVoice` Cloud Function (OpenAI Whisper-1) quand le STT local ne trouve rien. `VoiceOverlay` — panneau overlay 5 phases (listening/searching/results/empty/error) avec transcript live, top 5 ParfumCard compact, lien "Voir tous les résultats". Intégré dans la barre de recherche du TabPager (long-press 400ms) et dans l'écran `/search` (bouton micro toggle). Dépendances : `expo-speech-recognition`, `expo-audio`, `expo-file-system`.
+**Scan stability** : phase 1–3 du diagnostic (15 bugs). Auth obligatoire sur `analyzePerfumeImage` (CF), payload state-driven (plus de `pendingAnalysis` ref), bouton Annuler sur ScanLoading, resize images `expo-image-manipulator` → 1024px (~100-300KB au lieu de 4MB), timeouts client 90s / serveur 120s, JSON mode GPT-4o + retry JSON invalide. Erreurs réseau Firestore → `SCAN_ERROR` (plus de `[]` silencieux), chemin `low-confidence` → `ScanClarify`, analyse immédiate (plus de délai 2.5s), suppression `step`/`STEP_1`/`STEP_2`/`SCAN_STEPS` (dead code), volumeMl correctement passé. Compteur burst visible ("1/3"), burst 1-appel `analyzeMultipleImages`, retry sans re-capture depuis `ScanError`, `KeyboardAvoidingView` sur `ScanClarify`. Dépendances : `expo-image-manipulator`.
 
-**Météo & suggestions** : module complet de météo avec suggestion de parfum adapté. `useWeather` hook → `expo-location` (GPS + fallback ville stockée) → Open-Meteo API (gratuit, sans clé). `WeatherWidget` pastille compacte dans la page Parfumerie (icône + température + "Parfait pour X" si SOTD). `weather-scoring.ts` — algorithme de scoring basé sur `familleOlactive` du wardrobe (12 familles × 31 codes WMO × saisons × jour/nuit). Tri "Météo" dans la FilterBar. SOTDPicker pré-trié par score météo + badge `85%` coloré. Cloud Function `sendWeatherNotifications` (every day 07:00 Europe/Paris) — fetch Open-Meteo + scoring serveur-side + FCM push. Coordonnées persistées dans `users/{uid}/settings/preferences`. Toggle "Suggestions météo" dans Settings. Dépendance : `expo-location`.
+**BrandSheet** : refonte complète (11 bugs). Strip en colonne sibling (plus d'overlay absolu), hauteurs fixes `ROW_H=48`/`HEADER_H=40` → offsets exacts via `scrollToOffset` (plus de dérive `getItemLayout`), mapping y→lettre exact via cellules `flex:1`, active = pill primary (plus de `fontSize` change → zéro jitter), loupe Reanimated (zéro `setState` 60fps), highlight de la lettre visible via `onScroll`, haptics sur changement de lettre, strip masquée en recherche, état vide.
 
-**Migration images WebP + background removal** : `scripts/migrate-webp.ts` — conversion batch JPEG/PNG → WebP (sharp quality 82), upload Firebase Storage. `scripts/migrate-bgremoval.ts` — suppression de fond bouteilles via `@imgly/background-removal-node` (MODNet) → PNG transparent → WebP alpha. Sous-processus isolé `scripts/bgremoval/`. Commandes : `npm run migrate-webp`, `npm run migrate-bg`. Dépendances dev : `sharp`, `tsx`.
+**BrandCapsules** : `useRouter()` dead code retiré, `borderStyle: 'dashed'` cassé Android → fond `primarySoft` + icône flèche.
 
-**Cloud Functions mises à jour** : `sendWeatherNotifications` créée, `transcribeVoice` créée, `searchFragrance` supprimée (orpheline). `npm run functions:build && npm run functions:deploy`.
+**Pager gestures** : `onHorizontalScrollActive` câblé de bout en bout (auparavant code mort v6.9). Le pager se désactive pendant le drag d'une rangée horizontale interne (BrandCapsules, CatalogRow, FamilyAmbianceCards, FilterBar pills). `.enabled(!sheetOpen && !rowScrollActive && !overlayVisible)`. Garde-fou `setRowScrollActive(false)` dans `goTo()`. 4 fichiers modifiés : `index.tsx`, `collection.tsx`, `FilterBar.tsx`, `reference.md`.
 
-**Settings** : toggle "Suggestions météo" (`weatherNotifs`). `getUserSettings` enrichi : `weatherLat`, `weatherLon`, `weatherNotifs`. Nouvelle méthode `saveWeatherCoords()`.
-
-**Dépendances retirées** : `expo-notifications` (remplacé par FCM push).
+**Tests** : 170 tests, 13 suites. Tests `useScanReducer` mis à jour (suppression `SCAN_STEPS`/`STEP_1`/`STEP_2`, ajout 2 tests payload images/scanResult).
 
 ## Notes v6.15 — Flacon Runner (endless runner, 22/07/2026)
 
