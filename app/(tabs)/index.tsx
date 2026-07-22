@@ -26,7 +26,8 @@ import { consumePendingParfum, setPendingParfum } from '../../src/services/catal
 import { searchParfumsCached } from '../../src/services/firestore';
 import { transcribeVoice } from '../../src/services/voice-search';
 import { useVoiceSearch } from '../../src/hooks/useVoiceSearch';
-import type { VoiceState } from '../../src/hooks/useVoiceSearch';
+import { useVoicePreference } from '../../src/hooks/useVoicePreference';
+import type { VoiceState, VoiceResult } from '../../src/hooks/useVoiceSearch';
 import type { Parfum } from '../../src/models';
 import CatalogPage from '../../src/features/catalog/CatalogPage';
 import FavoritesPage from './favorites';
@@ -179,90 +180,65 @@ export default function TabPager() {
   const [voicePhase, setVoicePhase] = useState<VoicePhase>({ type: 'listening', transcript: '' });
   const [voiceTranscript, setVoiceTranscript] = useState('');
   const [voiceResults, setVoiceResults] = useState<Parfum[]>([]);
-  const [voiceAudioPending, setVoiceAudioPending] = useState<string | null>(null);
-  const [voiceSearching, setVoiceSearching] = useState(false);
   const voiceRequestIdRef = useRef(0);
 
-  const handleVoiceResult = useCallback(async (text: string) => {
-    if (!text.trim()) {
-      setVoicePhase({ type: 'empty' });
-      return;
-    }
-    setVoiceTranscript(text);
-    setVoiceSearching(true);
+  const handleVoiceResult = useCallback(async (result: VoiceResult) => {
     setVoicePhase({ type: 'searching' });
-
     const requestId = ++voiceRequestIdRef.current;
 
     try {
-      const results = await searchParfumsCached(text.trim());
-      if (requestId !== voiceRequestIdRef.current) return;
-      if (results.length > 0) {
-        setVoiceResults(results);
-        setVoicePhase({ type: 'results', results });
-      } else {
-        setVoicePhase({ type: 'empty' });
-      }
-    } catch {
-      if (requestId !== voiceRequestIdRef.current) return;
-      setVoicePhase({ type: 'empty' });
-    } finally {
-      if (requestId === voiceRequestIdRef.current) {
-        setVoiceSearching(false);
-      }
-    }
-  }, []);
-
-  // Fallback Whisper si searchParfumsCached ne trouve rien
-  useEffect(() => {
-    if (!voiceAudioPending) return;
-    if (voiceSearching) return;
-    if (voicePhase.type !== 'empty') {
-      setVoiceAudioPending(null);
-      return;
-    }
-
-    const audio = voiceAudioPending;
-    setVoiceAudioPending(null);
-
-    transcribeVoice(audio, 'audio/mp4').then(whisperText => {
-      if (!whisperText.trim()) return;
-      setVoiceTranscript(whisperText);
-      searchParfumsCached(whisperText.trim()).then(results => {
+      if (result.text) {
+        setVoiceTranscript(result.text);
+        const results = await searchParfumsCached(result.text.trim());
+        if (requestId !== voiceRequestIdRef.current) return;
         if (results.length > 0) {
           setVoiceResults(results);
           setVoicePhase({ type: 'results', results });
-        } else {
-          setVoicePhase({ type: 'empty' });
+          return;
         }
-      }).catch(() => {
-        setVoicePhase({ type: 'empty' });
-      });
-    }).catch(() => {
+      }
+
+      if (result.audioBase64) {
+        const whisperText = await transcribeVoice(result.audioBase64, 'audio/wav');
+        if (requestId !== voiceRequestIdRef.current) return;
+        if (whisperText.trim()) {
+          setVoiceTranscript(whisperText);
+          const results = await searchParfumsCached(whisperText.trim());
+          if (requestId !== voiceRequestIdRef.current) return;
+          if (results.length > 0) {
+            setVoiceResults(results);
+            setVoicePhase({ type: 'results', results });
+            return;
+          }
+        }
+      }
+
+      if (requestId !== voiceRequestIdRef.current) return;
       setVoicePhase({ type: 'empty' });
-    });
-  }, [voiceAudioPending, voiceSearching, voicePhase.type]);
+    } catch {
+      if (requestId !== voiceRequestIdRef.current) return;
+      setVoicePhase({ type: 'empty' });
+    }
+  }, []);
 
   const handleVoiceError = useCallback((msg: string) => {
     setVoicePhase({ type: 'error', message: msg || 'Erreur de reconnaissance vocale.' });
   }, []);
 
   const voiceSearch = useVoiceSearch(handleVoiceResult, handleVoiceError);
+  const { voiceEnabled } = useVoicePreference();
 
-  // Capture audio quand la voix s'arrête, pour le fallback Whisper
-  const prevVoiceStateRef = useRef<VoiceState>('idle');
+  const overlayVisible = voicePhase.type !== 'listening' || voiceSearch.state !== 'idle';
+  const showVoiceTranscript = voiceSearch.state === 'listening' || voiceSearch.state === 'processing';
+
   useEffect(() => {
-    const prev = prevVoiceStateRef.current;
-    prevVoiceStateRef.current = voiceSearch.state;
-    if (prev !== 'listening' || voiceSearch.state !== 'idle') return;
-    voiceSearch.getAudioForFallback().then(audio => {
-      if (audio) setVoiceAudioPending(audio);
-    }).catch(() => {});
-  }, [voiceSearch.state, voiceSearch]);
+    if (voicePhase.type !== 'searching') return;
+    const t = setTimeout(() => {
+      setVoicePhase({ type: 'error', message: 'La recherche prend trop de temps. Veuillez réessayer.' });
+    }, 20_000);
+    return () => clearTimeout(t);
+  }, [voicePhase.type]);
 
-  const voiceIsActive = voiceSearch.state !== 'idle' || voicePhase.type === 'searching';
-
-  // Synchroniser l'affichage avec le transcript du hook
   useEffect(() => {
     if (voiceSearch.state === 'listening') {
       setVoiceTranscript(voiceSearch.transcript);
@@ -270,41 +246,33 @@ export default function TabPager() {
     }
   }, [voiceSearch.transcript, voiceSearch.state]);
 
-  const handleVoiceLongPress = useCallback(() => {
+  const handleFabPressIn = useCallback(() => {
     setVoiceResults([]);
-    setVoiceAudioPending(null);
-    setVoiceSearching(false);
     setVoiceTranscript('');
+    setVoicePhase({ type: 'listening', transcript: '' });
     hapticsLight();
     voiceSearch.start({ continuous: true });
   }, [voiceSearch]);
 
-  const voicePollRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const handleFabPressOut = useCallback(() => {
+    voiceSearch.stop();
+  }, [voiceSearch]);
 
-  useEffect(() => {
-    return () => {
-      if (voicePollRef.current) clearTimeout(voicePollRef.current);
-    };
-  }, []);
-
-  const handlePressOut = useCallback(() => {
-    if (voicePollRef.current) clearTimeout(voicePollRef.current);
-    const attemptStop = (attempts: number) => {
-      if (voiceSearch.state === 'listening') {
-        voiceSearch.stop();
-        return;
-      }
-      if (attempts < 6 && voiceSearch.state === 'idle') {
-        voicePollRef.current = setTimeout(() => attemptStop(attempts + 1), 150);
-      }
-    };
-    attemptStop(0);
+  const handleSearchMicToggle = useCallback(() => {
+    if (voiceSearch.state === 'listening' || voiceSearch.state === 'processing') {
+      voiceSearch.stop();
+    } else {
+      setVoiceResults([]);
+      setVoiceTranscript('');
+      setVoicePhase({ type: 'listening', transcript: '' });
+      voiceSearch.start({ continuous: true });
+    }
   }, [voiceSearch]);
 
   const handleSearchPress = useCallback(() => {
-    if (voiceIsActive) return;
+    if (overlayVisible) return;
     router.push('/(tabs)/search');
-  }, [voiceIsActive, router]);
+  }, [overlayVisible, router]);
 
   const handleVoiceResultPress = useCallback((id: string) => {
     voiceSearch.cancel();
@@ -327,12 +295,10 @@ export default function TabPager() {
     setVoicePhase({ type: 'listening', transcript: '' });
     setVoiceTranscript('');
     setVoiceResults([]);
-    setVoiceAudioPending(null);
   }, [voiceSearch]);
 
   const handleVoiceRetry = useCallback(() => {
     setVoiceResults([]);
-    setVoiceAudioPending(null);
     setVoiceTranscript('');
     setVoicePhase({ type: 'listening', transcript: '' });
     voiceSearch.start({ continuous: true });
@@ -347,41 +313,42 @@ export default function TabPager() {
   return (
     <SafeAreaView edges={['top']} style={[s.root, { backgroundColor: theme.colors.background }]}>
       <View style={[m.searchWrap, m.searchBarShadow]}>
-        <Pressable
-          style={({ pressed }) => [
-            m.searchBar,
-            pressed && !voiceIsActive && m.searchBarPressed,
-            voiceIsActive && m.searchBarVoiceActive,
-          ]}
-          onPress={handleSearchPress}
-          onLongPress={handleVoiceLongPress}
-          onPressOut={handlePressOut}
-          delayLongPress={400}
-        >
+        <View style={[m.searchBar, showVoiceTranscript && m.searchBarVoiceActive]}>
           <BlurView
             intensity={20}
             tint={resolvedMode === 'dark' ? 'dark' : 'light'}
             style={StyleSheet.absoluteFill}
           />
           <View style={[StyleSheet.absoluteFill, m.searchBarOverlay]} />
-          {voiceIsActive ? (
-            <>
-              <Ionicons name="mic" size={18} color={theme.colors.primary} />
+          <Pressable
+            onPress={handleSearchPress}
+            style={m.searchBarPressable}
+          >
+            <Ionicons name="search-outline" size={18} color={theme.colors.textMuted} />
+            {showVoiceTranscript ? (
               <Text style={m.voiceTranscript} numberOfLines={1}>
                 {voiceTranscript || 'Parle...'}
               </Text>
-            </>
-          ) : (
-            <>
-              <Ionicons name="search-outline" size={18} color={theme.colors.textMuted} />
-              <Text style={m.searchPlaceholder}>Rechercher un parfum...</Text>
-            </>
-          )}
-        </Pressable>
+            ) : (
+              <Text style={m.searchPlaceholder} numberOfLines={1}>Rechercher un parfum...</Text>
+            )}
+          </Pressable>
+            <Pressable
+              onPress={handleSearchMicToggle}
+              style={m.micBtn}
+              hitSlop={4}
+            >
+            <Ionicons
+              name={showVoiceTranscript ? 'mic' : 'mic-outline'}
+              size={20}
+              color={showVoiceTranscript ? theme.colors.primary : theme.colors.textMuted}
+            />
+          </Pressable>
+        </View>
       </View>
 
       <VoiceOverlay
-        visible={voiceIsActive || voicePhase.type === 'results' || voicePhase.type === 'empty' || voicePhase.type === 'error'}
+        visible={overlayVisible}
         phase={voicePhase}
         onResultPress={handleVoiceResultPress}
         onViewAll={handleVoiceViewAll}
@@ -416,6 +383,26 @@ export default function TabPager() {
           onTabPress={onTabPress}
         />
       </Animated.View>
+
+      {voiceEnabled && (
+        <Animated.View style={[dockFadeStyle, m.micFabWrap]}>
+          <Pressable
+            onPressIn={handleFabPressIn}
+            onPressOut={handleFabPressOut}
+            style={({ pressed }) => [
+              m.micFab,
+              pressed && m.micFabPressed,
+              showVoiceTranscript && m.micFabActive,
+            ]}
+          >
+            <Ionicons
+              name={showVoiceTranscript ? 'mic' : 'mic-outline'}
+              size={22}
+              color={showVoiceTranscript ? '#FFFFFF' : theme.colors.primary}
+            />
+          </Pressable>
+        </Animated.View>
+      )}
     </SafeAreaView>
   );
 }
@@ -438,9 +425,9 @@ function getSearchStyles(t: Theme) {
       flexDirection: 'row',
       alignItems: 'center',
       borderRadius: 20,
-      paddingHorizontal: 14,
+      paddingLeft: 14,
+      paddingRight: 4,
       height: 44,
-      gap: 10,
       overflow: 'hidden',
       borderWidth: StyleSheet.hairlineWidth,
       borderColor: t.colors.border,
@@ -448,6 +435,13 @@ function getSearchStyles(t: Theme) {
     searchBarPressed: {
       borderColor: t.colors.primary,
     } as ViewStyle,
+    searchBarPressable: {
+      flex: 1,
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 10,
+      height: 44,
+    },
     searchBarOverlay: {
       backgroundColor: t.colors.background + 'E0',
     },
@@ -456,6 +450,7 @@ function getSearchStyles(t: Theme) {
       fontFamily: 'Inter_400Regular',
       fontSize: 15,
       color: t.colors.textMuted,
+      flex: 1,
     },
     searchBarVoiceActive: {
       borderColor: t.colors.primary,
@@ -467,5 +462,35 @@ function getSearchStyles(t: Theme) {
       color: t.colors.text,
       flex: 1,
     },
+    micBtn: {
+      width: 44,
+      height: 44,
+      alignItems: 'center',
+      justifyContent: 'center',
+    },
+    micFabWrap: {
+      position: 'absolute' as const,
+      bottom: 100,
+      right: t.spacing.md,
+      zIndex: 50,
+    },
+    micFab: {
+      width: 48,
+      height: 48,
+      borderRadius: t.radius.full,
+      backgroundColor: t.colors.surface,
+      alignItems: 'center',
+      justifyContent: 'center',
+      borderWidth: 1,
+      borderColor: t.colors.border,
+      ...t.shadow.button,
+    },
+    micFabPressed: {
+      opacity: 0.85,
+    } as ViewStyle,
+    micFabActive: {
+      backgroundColor: t.colors.primary,
+      borderColor: t.colors.primary,
+    } as ViewStyle,
   } as const;
 }

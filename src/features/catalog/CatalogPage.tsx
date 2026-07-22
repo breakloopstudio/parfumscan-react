@@ -69,9 +69,26 @@ export default function CatalogPage({ onScroll, onHorizontalScrollActive }: Prop
   const [gridLoading, setGridLoading] = useState(true);
   const [brandSheetVisible, setBrandSheetVisible] = useState(false);
 
+  const [sharedPool, setSharedPool] = useState<Parfum[]>([]);
+  const [sharedLoading, setSharedLoading] = useState(true);
+
   const today = Math.floor(Date.now() / 86400000);
 
-  // ── Suggestions (Pour vous / Populaires) ──
+  // ── Shared pool: 1 seul fetch Firestore pour toutes les rangées ──
+  useEffect(() => {
+    let cancelled = false;
+    async function load() {
+      try {
+        const popular = await getPopularParfums(120);
+        if (!cancelled) setSharedPool(popular);
+      } catch {}
+      if (!cancelled) setSharedLoading(false);
+    }
+    load();
+    return () => { cancelled = true; };
+  }, []);
+
+  // ── Suggestions (Pour vous / Populaires) — depuis le pool partagé ──
   useEffect(() => {
     let cancelled = false;
     async function load() {
@@ -86,71 +103,47 @@ export default function CatalogPage({ onScroll, onHorizontalScrollActive }: Prop
           }
         } catch (e: unknown) { console.warn('[catalog] getPersonalizedSuggestions failed:', (e as Error)?.message ?? String(e)); }
       }
-      try {
-        const popular = await getPopularParfums(30);
+      if (sharedPool.length > 0) {
         if (!cancelled) {
-          setSuggestionParfums(seededShuffle(popular, today).slice(0, 8));
+          setSuggestionParfums(seededShuffle(sharedPool, today).slice(0, 8));
           setSuggestionLabel('Tendances du moment');
           setSuggestionLoading(false);
         }
-      } catch {
+      } else if (!sharedLoading) {
         if (!cancelled) { setSuggestionParfums([]); setSuggestionLoading(false); }
       }
     }
     load();
     return () => { cancelled = true; };
-  }, [authReady, isAuthenticated, user?.uid]);
+  }, [authReady, isAuthenticated, user?.uid, sharedPool, sharedLoading]);
 
-  // ── Meilleures affaires (ratio-based) ──
+  // ── Meilleures affaires (ratio-based) — depuis le pool partagé ──
   useEffect(() => {
-    let cancelled = false;
-    async function load() {
-      try {
-        const popular = await getPopularParfums(60);
-        if (cancelled) return;
-        const scored = popular
-          .filter(p => typeof p.bestPrice === 'number' && typeof p.referencePrice === 'number' && p.bestPrice > 0 && p.referencePrice > 0)
-          .map(p => ({ p, ratio: p.bestPrice! / p.referencePrice! }))
-          .filter(({ ratio }) => ratio <= 0.85)
-          .sort((a, b) => a.ratio - b.ratio);
-        setBestDeals(seededShuffle(scored.map(x => x.p), today).slice(0, 8));
-      } catch (e: unknown) { console.warn('[catalog] getPopularParfums (deals) failed:', (e as Error)?.message ?? String(e)); }
-      if (!cancelled) setDealsLoading(false);
-    }
-    load();
-    return () => { cancelled = true; };
-  }, []);
+    if (sharedLoading) return;
+    const scored = sharedPool
+      .filter(p => typeof p.bestPrice === 'number' && typeof p.referencePrice === 'number' && p.bestPrice > 0 && p.referencePrice > 0)
+      .map(p => ({ p, ratio: p.bestPrice! / p.referencePrice! }))
+      .filter(({ ratio }) => ratio <= 0.85)
+      .sort((a, b) => a.ratio - b.ratio);
+    setBestDeals(seededShuffle(scored.map(x => x.p), today).slice(0, 8));
+    setDealsLoading(false);
+  }, [sharedPool, sharedLoading]);
 
-  // ── Icônes intemporelles ──
+  // ── Icônes intemporelles — depuis le pool partagé ──
   useEffect(() => {
-    let cancelled = false;
-    async function load() {
-      try {
-        const popular = await getPopularParfums(100);
-        if (cancelled) return;
-        const icons = popular.filter(p => ICONIC_NAMES.some(name =>
-          p.nom.toLowerCase().includes(name.toLowerCase())
-        ));
-        setIconicParfums(seededShuffle(icons, today).slice(0, 8));
-      } catch {}
-    }
-    load();
-    return () => { cancelled = true; };
-  }, []);
+    if (sharedLoading) return;
+    const icons = sharedPool.filter(p => ICONIC_NAMES.some(name =>
+      p.nom.toLowerCase().includes(name.toLowerCase())
+    ));
+    setIconicParfums(seededShuffle(icons, today).slice(0, 8));
+  }, [sharedPool, sharedLoading]);
 
-  // ── Grille ──
+  // ── Grille — depuis le pool partagé ──
   useEffect(() => {
-    let cancelled = false;
-    async function load() {
-      try {
-        const popular = await getPopularParfums(40);
-        if (!cancelled) setGridParfums(seededShuffle(popular, today));
-      } catch (e: unknown) { console.warn('[catalog] getPopularParfums (grid) failed:', (e as Error)?.message ?? String(e)); }
-      if (!cancelled) setGridLoading(false);
-    }
-    load();
-    return () => { cancelled = true; };
-  }, []);
+    if (sharedLoading) return;
+    setGridParfums(seededShuffle(sharedPool.slice(0, 40), today));
+    setGridLoading(false);
+  }, [sharedPool, sharedLoading]);
 
   const handleBrandTap = useCallback((brand: string) => {
     router.push(`/(tabs)/search?q=${encodeURIComponent(brand)}`);

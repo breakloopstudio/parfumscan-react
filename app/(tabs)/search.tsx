@@ -9,7 +9,7 @@ import { useRouter, useLocalSearchParams } from 'expo-router';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import Ionicons from '@react-native-vector-icons/ionicons/static';
 import { useCatalog } from '../../src/hooks/useCatalog';
-import { useVoiceSearch, type VoiceState } from '../../src/hooks/useVoiceSearch';
+import { useVoiceSearch, type VoiceState, type VoiceResult } from '../../src/hooks/useVoiceSearch';
 import { transcribeVoice } from '../../src/services/voice-search';
 import ParfumCard from '../../src/components/ParfumCard';
 import { useTheme, type Theme } from '../../src/theme/ThemeContext';
@@ -53,12 +53,21 @@ export default function SearchScreen() {
   const { density: searchDensity, setDensity: setSearchDensity } = useDensityPreference();
   const [recentSearches, setRecentSearches] = useState<string[]>(recentStore.items);
 
-  const [voiceAudioPending, setVoiceAudioPending] = useState<string | null>(null);
-
-  const handleVoiceResult = useCallback((text: string) => {
-    if (!text.trim()) return;
-    setSearchText(text);
-    search(text.trim());
+  const handleVoiceResult = useCallback(async (result: VoiceResult) => {
+    if (result.text) {
+      setSearchText(result.text);
+      search(result.text.trim());
+      return;
+    }
+    if (result.audioBase64) {
+      try {
+        const whisperText = await transcribeVoice(result.audioBase64, 'audio/wav');
+        if (whisperText.trim()) {
+          setSearchText(whisperText);
+          search(whisperText.trim());
+        }
+      } catch { /* silent — user sees existing results or empty state */ }
+    }
   }, [search]);
 
   const handleVoiceError = useCallback((msg: string) => {
@@ -69,16 +78,11 @@ export default function SearchScreen() {
 
   const voiceState: VoiceState = voiceSearch.state;
 
-  // Capture audio quand la voix s'arrête, pour le fallback Whisper
-  const prevVoiceStateRef = useRef<VoiceState>('idle');
   useEffect(() => {
-    const prev = prevVoiceStateRef.current;
-    prevVoiceStateRef.current = voiceState;
-    if (prev !== 'listening' || voiceState !== 'idle') return;
-      voiceSearch.getAudioForFallback().then(audio => {
-        if (audio) setVoiceAudioPending(audio);
-      }).catch(() => {});
-  }, [voiceState, voiceSearch]);
+    if (voiceState === 'listening') {
+      setSearchText(voiceSearch.transcript);
+    }
+  }, [voiceSearch.transcript, voiceState]);
 
   useEffect(() => {
     const t = setTimeout(() => inputRef.current?.focus(), 250);
@@ -101,38 +105,20 @@ export default function SearchScreen() {
     }
   }, [initialQuery]);
 
-  // Whisper fallback : si la recherche on-device ne donne rien, on réessaie via Whisper
-  useEffect(() => {
-    if (!voiceAudioPending) return;
-    if (searching) return;
-    const audio = voiceAudioPending;
-    setVoiceAudioPending(null);
-    if (parfums.length === 0) {
-      transcribeVoice(audio, 'audio/mp4').then(whisperText => {
-        if (whisperText.trim()) {
-          setSearchText(whisperText);
-          search(whisperText.trim());
-        }
-      }).catch(() => {
-        // l'utilisateur voit "Aucun résultat"
-      });
-    }
-  }, [searching, parfums.length, voiceAudioPending, search]);
-
   const handleTextChange = useCallback((t: string) => {
     setSearchText(t);
     if (voiceState !== 'idle') voiceSearch.cancel();
-    setVoiceAudioPending(null);
     t.trim().length >= 3 ? search(t) : clear();
   }, [search, clear, voiceState, voiceSearch]);
 
   const handleVoiceToggle = useCallback(() => {
-    if (voiceState === 'listening') {
+    if (voiceState === 'listening' || voiceState === 'processing') {
       voiceSearch.stop();
     } else {
+      clear();
       voiceSearch.start();
     }
-  }, [voiceState, voiceSearch]);
+  }, [voiceState, voiceSearch, clear]);
 
   const handleResultPress = useCallback((id: string) => {
     const text = searchText.trim();
@@ -162,18 +148,6 @@ export default function SearchScreen() {
             size={18}
             color={theme.colors.primary}
           />
-          <Pressable
-            onPress={handleVoiceToggle}
-            hitSlop={8}
-            style={s.micBtn}
-            disabled={voiceState === 'processing'}
-          >
-            <Ionicons
-              name={voiceState === 'listening' ? 'mic' : 'mic-outline'}
-              size={18}
-              color={voiceState === 'listening' ? theme.colors.primary : theme.colors.textMuted}
-            />
-          </Pressable>
           <TextInput
             ref={inputRef}
             style={s.input}
@@ -186,6 +160,18 @@ export default function SearchScreen() {
             returnKeyType="search"
             keyboardAppearance={keyboardAppearance}
           />
+          <Pressable
+            onPress={handleVoiceToggle}
+            hitSlop={8}
+            style={s.micBtn}
+            disabled={voiceState === 'processing'}
+          >
+            <Ionicons
+              name={voiceState === 'listening' ? 'mic' : 'mic-outline'}
+              size={18}
+              color={voiceState === 'listening' ? theme.colors.primary : theme.colors.textMuted}
+            />
+          </Pressable>
           {searchText.length > 0 && (
             <Pressable onPress={() => { setSearchText(''); clear(); }} hitSlop={8}>
               <Ionicons name="close-circle" size={18} color={theme.colors.textMuted} />

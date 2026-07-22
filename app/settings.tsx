@@ -9,6 +9,7 @@ import { useAuthContext } from '../src/contexts/AuthContext';
 import { getUserSettings, updateUserSetting } from '../src/services/user-data';
 import { requestFcmPermission, deleteFcmToken } from '../src/services/fcm';
 import { useTheme, type Theme } from '../src/theme/ThemeContext';
+import { useVoicePreference } from '../src/hooks/useVoicePreference';
 import type { ThemeMode } from '../src/services/theme-storage';
 import RunnerGame from '../src/features/runner/RunnerGame';
 
@@ -20,6 +21,7 @@ export default function SettingsPage() {
   const [priceAlerts, setPriceAlerts] = useState(false);
   const [pushNotifs, setPushNotifs] = useState(true);
   const [weatherNotifs, setWeatherNotifs] = useState(false);
+  const { voiceEnabled, setVoiceEnabled } = useVoicePreference();
 
   const [showRunner, setShowRunner] = useState(false);
   const easterEggTaps = useRef(0);
@@ -158,6 +160,21 @@ export default function SettingsPage() {
                 </Pressable>
               );
             })}
+          </View>
+        </View>
+
+        <View style={s.section}>
+          <Text style={s.sectionTitle}>Recherche</Text>
+
+          <View style={s.row}>
+            <View style={s.rowLeft}>
+              <Ionicons name="mic-outline" size={20} color={theme.colors.text} />
+              <View>
+                <Text style={s.rowLabel}>Raccourci vocal</Text>
+                <Text style={s.rowDesc}>Afficher le micro en bas de l'écran pour une recherche rapide à la voix</Text>
+              </View>
+            </View>
+            <Switch value={voiceEnabled} onValueChange={setVoiceEnabled} trackColor={{ false: theme.colors.border, true: theme.colors.primarySoft }} thumbColor={voiceEnabled ? theme.colors.primary : theme.colors.textMuted} />
           </View>
         </View>
 

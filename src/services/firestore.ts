@@ -13,21 +13,32 @@ const parfumsCol = () => collection(db, 'parfums');
 
 type ScoredDoc = { id: string; _score: number; _pop: number; searchKeywords?: string[] } & Record<string, unknown>;
 
+type CacheEntry = { results: Parfum[]; cachedAt: number };
+
+const CACHE_TTL_MS = 10 * 60 * 1000; // 10 minutes
+
 class LRUCache {
-  private map = new Map<string, Parfum[]>();
+  private map = new Map<string, CacheEntry>();
   private maxSize: number;
 
   constructor(maxSize = 200) {
     this.maxSize = maxSize;
   }
 
+  private isExpired(entry: CacheEntry): boolean {
+    return Date.now() - entry.cachedAt > CACHE_TTL_MS;
+  }
+
   get(key: string): Parfum[] | undefined {
-    const val = this.map.get(key);
-    if (val !== undefined) {
+    const entry = this.map.get(key);
+    if (entry === undefined) return undefined;
+    if (this.isExpired(entry)) {
       this.map.delete(key);
-      this.map.set(key, val);
+      return undefined;
     }
-    return val;
+    this.map.delete(key);
+    this.map.set(key, entry);
+    return entry.results;
   }
 
   set(key: string, value: Parfum[]): void {
@@ -37,15 +48,27 @@ class LRUCache {
       const first = this.map.keys().next().value;
       if (first !== undefined) this.map.delete(first);
     }
-    this.map.set(key, value);
+    this.map.set(key, { results: value, cachedAt: Date.now() });
   }
 
   has(key: string): boolean {
-    return this.map.has(key);
+    const entry = this.map.get(key);
+    if (entry === undefined) return false;
+    if (this.isExpired(entry)) {
+      this.map.delete(key);
+      return false;
+    }
+    return true;
   }
 
   entries(): IterableIterator<[string, Parfum[]]> {
-    return this.map.entries();
+    const valid: [string, Parfum[]][] = [];
+    for (const [key, entry] of this.map.entries()) {
+      if (!this.isExpired(entry)) {
+        valid.push([key, entry.results]);
+      }
+    }
+    return valid[Symbol.iterator]();
   }
 }
 
@@ -124,6 +147,7 @@ export async function getParfumById(id: string): Promise<Parfum | undefined> {
 export function onParfumsByMarque(marque: string, cb: (parfums: Parfum[]) => void): () => void {
   const q = query(parfumsCol(), where('marque', '>=', marque), where('marque', '<=', marque + '\uf8ff'), orderBy('marque'));
   return onSnapshot(q, (snap) => {
+    if (!snap) { cb([]); return; }
     cb(snap.docs.map(docToParfum)
       .filter((p: Parfum) => p.marque.toLowerCase().includes(marque.toLowerCase())));
   }, (err) => { console.warn('[firestore] onParfumsByMarque error:', err.message); cb([]); });
@@ -272,13 +296,18 @@ export async function searchParfumsCached(queryStr: string): Promise<Parfum[]> {
       const seen = new Set<string>();
       const allDocs: ScoredDoc[] = [];
 
-      const snaps = await Promise.all(
+      const snapResults = await Promise.allSettled(
         searchTokens.map(token =>
           getDocs(query(parfumsCol(), where('searchKeywords', 'array-contains', token), orderBy('reviewCount', 'desc'), limit(300)))
         )
       );
 
-      for (const s of snaps) {
+      for (const result of snapResults) {
+        if (result.status === 'rejected') {
+          console.warn('[firestore] searchParfumsCached token query failed:', (result.reason as Error)?.message ?? String(result.reason));
+          continue;
+        }
+        const s = result.value;
         for (const d of s.docs) {
           if (!seen.has(d.id)) {
             seen.add(d.id);

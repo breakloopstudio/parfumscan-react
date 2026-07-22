@@ -70,8 +70,13 @@ export default function WardrobePage({ onScroll, onSheetOpen }: Props) {
     onSheetOpen?.(quickSheetItem !== null || sotdPickerVisible);
   }, [quickSheetItem, sotdPickerVisible, onSheetOpen]);
 
+  const lastWeatherCoords = useRef<string | null>(null);
+
   useEffect(() => {
     if (!isAuthenticated || !coords || !uid) return;
+    const key = `${coords.lat.toFixed(4)},${coords.lon.toFixed(4)}`;
+    if (lastWeatherCoords.current === key) return;
+    lastWeatherCoords.current = key;
     saveWeatherCoords(uid, coords.lat, coords.lon).catch(() => {});
   }, [isAuthenticated, coords, uid]);
 

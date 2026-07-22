@@ -1,7 +1,7 @@
 // src/features/catalog/BrandSheet.tsx — Bottom sheet alphabétique des marques
 
-import { useState, useMemo, useCallback } from 'react';
-import { View, Text, Pressable, Modal, FlatList, TextInput, StyleSheet } from 'react-native';
+import { useState, useMemo, useCallback, useRef } from 'react';
+import { View, Text, Pressable, Modal, FlatList, TextInput, StyleSheet, PanResponder } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Ionicons from '@react-native-vector-icons/ionicons/static';
 import { useTheme, type Theme } from '../../theme/ThemeContext';
@@ -57,6 +57,10 @@ export default function BrandSheet({ visible, onClose, onSelectBrand }: Props) {
   const keyboardAppearance = resolvedMode === 'dark' ? 'dark' : 'light';
 
   const [search, setSearch] = useState('');
+  const [activeLetter, setActiveLetter] = useState<string | null>(null);
+  const [isScrubbing, setIsScrubbing] = useState(false);
+  const [scrubY, setScrubY] = useState(0);
+  const [scrubViewHeight, setScrubViewHeight] = useState(0);
 
   const filtered = useMemo(() => {
     if (!search.trim()) return ALL_BRANDS;
@@ -78,6 +82,62 @@ export default function BrandSheet({ visible, onClose, onSelectBrand }: Props) {
   }, [onClose]);
 
   const letterIndex = useMemo(() => sections.map(s => s.letter), [sections]);
+  const listRef = useRef<FlatList<{ letter: string; brands: string[] }>>(null);
+
+  const getLetterFromY = useCallback((y: number) => {
+    if (scrubViewHeight === 0 || letterIndex.length === 0) return null;
+    const ratio = Math.max(0, Math.min(1, y / scrubViewHeight));
+    const idx = Math.floor(ratio * letterIndex.length);
+    return letterIndex[Math.min(idx, letterIndex.length - 1)];
+  }, [letterIndex, scrubViewHeight]);
+
+  const scrollToLetter = useCallback((letter: string) => {
+    const idx = sections.findIndex(s => s.letter === letter);
+    if (idx >= 0 && listRef.current) {
+      listRef.current.scrollToIndex({ index: idx, animated: false, viewPosition: 0 });
+    }
+  }, [sections]);
+
+  const getLetterFromYRef = useRef(getLetterFromY);
+  const scrollToLetterRef = useRef(scrollToLetter);
+  const activeLetterRef = useRef(activeLetter);
+  getLetterFromYRef.current = getLetterFromY;
+  scrollToLetterRef.current = scrollToLetter;
+  activeLetterRef.current = activeLetter;
+
+  const panResponder = useRef(PanResponder.create({
+    onStartShouldSetPanResponder: () => true,
+    onMoveShouldSetPanResponder: () => true,
+    onPanResponderGrant: (evt) => {
+      setIsScrubbing(true);
+      const letter = getLetterFromYRef.current(evt.nativeEvent.locationY);
+      if (letter !== null) {
+        setActiveLetter(letter);
+        setScrubY(evt.nativeEvent.locationY);
+        activeLetterRef.current = letter;
+        scrollToLetterRef.current(letter);
+      }
+    },
+    onPanResponderMove: (evt) => {
+      const letter = getLetterFromYRef.current(evt.nativeEvent.locationY);
+      if (letter !== null && letter !== activeLetterRef.current) {
+        setActiveLetter(letter);
+        setScrubY(evt.nativeEvent.locationY);
+        activeLetterRef.current = letter;
+        scrollToLetterRef.current(letter);
+      }
+    },
+    onPanResponderRelease: () => {
+      setIsScrubbing(false);
+      setActiveLetter(null);
+      activeLetterRef.current = null;
+    },
+    onPanResponderTerminate: () => {
+      setIsScrubbing(false);
+      setActiveLetter(null);
+      activeLetterRef.current = null;
+    },
+  })).current;
 
   return (
     <Modal visible={visible} animationType="slide" presentationStyle="pageSheet" onRequestClose={handleClose}>
@@ -116,8 +176,25 @@ export default function BrandSheet({ visible, onClose, onSelectBrand }: Props) {
 
         <View style={s.listWrap}>
           <FlatList
+            style={{ flex: 1 }}
+            ref={listRef}
             data={sections}
             keyExtractor={item => item.letter}
+            getItemLayout={(_, index) => {
+              const sec = sections[index];
+              const headerH = 38;
+              const itemH = 44;
+              const sectionGap = 8;
+              const offset = sections.slice(0, index).reduce(
+                (acc, s2) => acc + headerH + s2.brands.length * itemH + sectionGap, 0,
+              );
+              return { length: headerH + sec.brands.length * itemH + sectionGap, offset, index };
+            }}
+            onScrollToIndexFailed={(info) => {
+              setTimeout(() => {
+                listRef.current?.scrollToIndex({ index: info.index, animated: false, viewPosition: 0 });
+              }, 100);
+            }}
             renderItem={({ item }) => (
               <View style={s.section}>
                 <Text style={s.letter}>{item.letter}</Text>
@@ -138,13 +215,32 @@ export default function BrandSheet({ visible, onClose, onSelectBrand }: Props) {
           />
 
           {sections.length > 3 && (
-            <View style={s.quickIndex}>
-              {letterIndex.map(letter => (
-                <Pressable key={letter} hitSlop={4} style={s.quickIndexItem}>
-                  <Text style={s.quickIndexText}>{letter}</Text>
-                </Pressable>
-              ))}
-            </View>
+            <>
+              <View
+                style={s.quickIndex}
+                onLayout={(e) => { setScrubViewHeight(e.nativeEvent.layout.height); }}
+                {...panResponder.panHandlers}
+              >
+                {letterIndex.map(letter => (
+                  <Text
+                    key={letter}
+                    style={[
+                      s.quickIndexText,
+                      isScrubbing && activeLetter === letter && s.quickIndexTextActive,
+                    ]}
+                    allowFontScaling={false}
+                  >
+                    {letter}
+                  </Text>
+                ))}
+              </View>
+
+              {isScrubbing && activeLetter && (
+                <View style={[s.loupe, { top: Math.max(0, scrubY - 28) }]} pointerEvents="none">
+                  <Text style={s.loupeText} allowFontScaling={false}>{activeLetter}</Text>
+                </View>
+              )}
+            </>
           )}
         </View>
       </View>
@@ -185,10 +281,24 @@ function getStyles(t: Theme) {
     brandText: { fontFamily: 'Inter_500Medium', fontSize: 15, color: t.colors.text },
     quickIndex: {
       position: 'absolute', right: 4, top: 0, bottom: 0,
-      justifyContent: 'center', alignItems: 'center',
-      paddingVertical: 8, gap: 1,
+      justifyContent: 'space-between', alignItems: 'center',
+      paddingVertical: 12,
+      zIndex: 10,
     },
-    quickIndexItem: { paddingHorizontal: 6, paddingVertical: 2 },
     quickIndexText: { fontFamily: 'Inter_600SemiBold', fontSize: 10, color: t.colors.primary },
+    quickIndexTextActive: { fontSize: 13, color: t.colors.secondary },
+    loupe: {
+      position: 'absolute',
+      right: 36,
+      width: 56, height: 56, borderRadius: 28,
+      backgroundColor: t.colors.primary,
+      justifyContent: 'center', alignItems: 'center',
+      shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.3, shadowRadius: 6,
+      elevation: 6,
+      zIndex: 20,
+    },
+    loupeText: {
+      fontFamily: 'PlayfairDisplay_700Bold', fontSize: 24, color: '#FFFFFF',
+    },
   } as const;
 }

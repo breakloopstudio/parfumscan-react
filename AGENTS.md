@@ -1,4 +1,4 @@
-# ParfumScan React — Environment & Commands (v6.14)
+# ParfumScan React — Environment & Commands (v6.15)
 
 ## Environnement local (Windows)
 | Variable | Valeur |
@@ -110,6 +110,25 @@ expo-speech-recognition ^56 · expo-audio ~57 · expo-file-system ~57 · expo-lo
 **Settings** : toggle "Suggestions météo" (`weatherNotifs`). `getUserSettings` enrichi : `weatherLat`, `weatherLon`, `weatherNotifs`. Nouvelle méthode `saveWeatherCoords()`.
 
 **Dépendances retirées** : `expo-notifications` (remplacé par FCM push).
+
+## Notes v6.15 — Flacon Runner (endless runner, 22/07/2026)
+
+**Easter egg** : mini-jeu Flacon Runner accessible depuis Settings (5 taps sur le numéro de version). Endless runner vertical avec saut/double-saut, obstacles (cristaux), bonus réduction, combo aérien, near-miss, score chase lisse, countdown 3·2·1, palette progressive, speed lines, sons WAV synthétisés, skins déblocables, pause auto AppState, milestones (Nez confirmé / Expert / Maître parfumeur / Légende). Toute la logique est sur le UI thread (SharedValues + useFrameCallback + useAnimatedStyle), zéro `setState` en boucle.
+
+**Architecture** : `src/features/runner/` — 10 fichiers :
+- `useRunnerLoop.ts` — game loop via `useFrameCallback` (physique, collisions, spawn, scoring)
+- `RunnerGame.tsx` — intégration (gestes, cycle de vie, score chase, sons, shake, milestones, skins)
+- `RunnerBottle.tsx` — flacon joueur (squash/stretch aérien, landing spring, death flash)
+- `RunnerBackground.tsx` — 2 couches parallaxe seamless avec wrapping périodique
+- `RunnerGround.tsx` — sol défiant avec marques
+- `RunnerObstacles.tsx` — pool de 8 cristaux (4 types + volant), rendus via opacity toggling
+- `RunnerPickups.tsx` — pool de 4 badges réduction (altitudes variables)
+- `RunnerSpeedLines.tsx` — traits de vitesse horizontaux (opacité liée à la vitesse)
+- `runner-sounds.ts` — 4 WAV synthétisés (jump, pickup, death, record) via `expo-audio`
+- `runner-types.ts` — types, constantes, helpers AABB, altitudes
+- `runner-storage.ts` — high score + skins persistés AsyncStorage
+
+**Dépendances** : `react-native-reanimated` (useFrameCallback, SharedValue, useAnimatedStyle), `react-native-gesture-handler` (Gesture.Tap), `expo-audio` (useAudioPlayer), `@react-native-async-storage/async-storage`.
 
 ## Notes v6.13 — Scan search & dedup
 **Recherche scan** : nouvelle fonction `searchParfumFromScan()` — wrapper au-dessus de `searchParfumsCached` qui exploite la sortie structurée de GPT-4o (champs marque+nom séparés). Rescoring : +50 nom exact, +25 nom partiel, +15 marque exacte, +8 marque partielle. Le +50 garantit que le match exact écrase les variants/flankers plus populaires.

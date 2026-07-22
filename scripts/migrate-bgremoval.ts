@@ -436,15 +436,16 @@ async function main() {
     const etaSec = rate > 0 ? remaining / rate : 0;
     const totalConverted = progress.converted.length;
 
-    const pct = ((completedBatch / candidates.length) * 100).toFixed(1);
-    process.stdout.write(
-      `\r[${pct.padStart(5)}%] ${completedBatch}/${candidates.length} | ` +
-        `${'█'.repeat(Math.floor((completedBatch / candidates.length) * 30))}${'░'.repeat(
-          Math.max(0, 30 - Math.floor((completedBatch / candidates.length) * 30)),
-        )} | ` +
-        `OK: ${totalConverted} | Échecs: ${progress.failed.length} | ` +
-        `ETA: ${etaSec > 0 ? formatDuration(etaSec * 1000) : '--'}   `,
-    );
+    // Log progress: every batch for first 100 items, then every 200
+    const early = completedBatch <= 100;
+    if (early || completedBatch % 200 === 0 || i + CONCURRENCY >= candidates.length) {
+      const pct = ((completedBatch / candidates.length) * 100).toFixed(1);
+      process.stdout.write(
+        `\r[${pct.padStart(5)}%] ${completedBatch}/${candidates.length} | ` +
+          `OK: ${totalConverted} | Échecs: ${progress.failed.length} | ` +
+          `ETA: ${etaSec > 0 ? formatDuration(etaSec * 1000) : '--'}   \n`,
+      );
+    }
 
     if (completedBatch % 50 === 0) {
       saveProgress(progress);

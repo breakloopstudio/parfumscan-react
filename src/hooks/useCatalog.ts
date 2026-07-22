@@ -37,6 +37,7 @@ export function useCatalog() {
         }
         if (timestamps.length >= MAX_SEARCHES_PER_MINUTE) {
           if (mountedRef.current && requestIdRef.current === id) {
+            setParfums([]);
             setSearching(false);
           }
           return;

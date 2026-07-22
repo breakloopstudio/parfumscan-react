@@ -10,6 +10,7 @@ export interface GameDimensions {
 export interface ObstacleDef {
   width: number;
   height: number;
+  airborne?: boolean;
 }
 
 export interface PickupDef {
@@ -39,7 +40,31 @@ export const OBSTACLE_DEFS: ObstacleDef[] = [
   { width: 28, height: 56 },
   { width: 55, height: 28 },
   { width: 33, height: 48 },
+  { width: 50, height: 20, airborne: true },
 ];
+
+export const FLYING_OBSTACLE_Y_OFFSET = 110;
+export const FLYING_OBSTACLE_MIN_SCORE = 300;
+
+export const PALETTE_INTERVAL = 800;
+
+export const PALETTES = [
+  { crystal: '#1D1728', crystal2: '#221930', crystal3: '#2A2238', crystal4: '#1A1420', bottle: '#6C3ED9', cap: '#D4A960' },
+  { crystal: '#1A1525', crystal2: '#1F1035', crystal3: '#26183D', crystal4: '#150D22', bottle: '#5B21B6', cap: '#C8945A' },
+  { crystal: '#151028', crystal2: '#1A0E38', crystal3: '#201440', crystal4: '#100A20', bottle: '#4C1D95', cap: '#B8860B' },
+  { crystal: '#120D22', crystal2: '#160C32', crystal3: '#1C1238', crystal4: '#0E0818', bottle: '#7C3AED', cap: '#F59E0B' },
+] as const;
+
+export const SPEED_LINE_MIN_SPEED = 450;
+export const SPEED_LINE_COUNT = 3;
+
+export const OBSTACLE_HITBOX_INSET = 4;
+export const BOTTLE_HITBOX_INSET_TOP = 6;
+export const BOTTLE_HITBOX_INSET_SIDE = 4;
+
+export const NEAR_MISS_GAP = 30;
+export const NEAR_MISS_BONUS = 10;
+export const MAX_COMBO = 4;
 
 export const PICKUP_DEFS: PickupDef[] = [
   { discount: 10, label: '−10%', altitude: 'low', scoreBonus: 25 },
@@ -62,15 +87,6 @@ export function getPickupSpawnDistance(score: number): number {
   'worklet';
   const base = 600 + Math.random() * 500;
   return Math.max(350, base - score * 0.06);
-}
-
-export function getAltitudes(altitude: PickupDef['altitude'], groundY: number): number {
-  switch (altitude) {
-    case 'low': return groundY - 85;
-    case 'medium': return groundY - 130;
-    case 'high': return groundY - 180;
-    case 'very_high': return groundY - 230;
-  }
 }
 
 export function getDoubleObstacleChance(score: number): number {

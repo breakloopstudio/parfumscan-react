@@ -1,10 +1,12 @@
-// src/features/runner/RunnerBottle.tsx — Flacon joueur animé
+// src/features/runner/RunnerBottle.tsx — Flacon joueur anime
 
+import { memo } from 'react';
 import { View } from 'react-native';
 import Animated, {
   useSharedValue,
   useAnimatedStyle,
   useAnimatedReaction,
+  withSpring,
   type SharedValue,
 } from 'react-native-reanimated';
 import { BOTTLE_WIDTH, BOTTLE_HEIGHT } from './runner-types';
@@ -16,15 +18,19 @@ interface Props {
   isDoubleJumping: SharedValue<boolean>;
   landingTrigger: SharedValue<number>;
   gameState: SharedValue<string>;
+  bottleColor?: string;
+  capColor?: string;
 }
 
-export default function RunnerBottle({
+function RunnerBottle({
   bottleX,
   bottleY,
   isJumping,
-  isDoubleJumping,
+  isDoubleJumping: _isDoubleJumping,
   landingTrigger,
   gameState,
+  bottleColor = '#6C3ED9',
+  capColor = '#D4A960',
 }: Props) {
   const bottleStyle = useAnimatedStyle(() => ({
     transform: [
@@ -33,40 +39,58 @@ export default function RunnerBottle({
     ],
   }));
 
-  const squashScaleX = useSharedValue(1);
-  const squashScaleY = useSharedValue(1);
-  const bottleRotation = useSharedValue(0);
-
-  useAnimatedReaction(
-    () => isDoubleJumping.value,
-    (isDouble) => {
-      if (isDouble) {
-        bottleRotation.value = 0;
-      }
-    },
-  );
+  const sqX = useSharedValue(1);
+  const sqY = useSharedValue(1);
+  const bottleOpacity = useSharedValue(1);
+  const flashOpacity = useSharedValue(0);
 
   useAnimatedReaction(
     () => landingTrigger.value,
     () => {
-      squashScaleX.value = 1;
-      squashScaleY.value = 1;
+      sqY.value = 0.78;
+      sqX.value = 1.25;
+      sqY.value = withSpring(1, { damping: 10, stiffness: 300 });
+      sqX.value = withSpring(1, { damping: 10, stiffness: 300 });
     },
   );
 
-  const bodyStyle = useAnimatedStyle(() => ({
-    transform: [
-      { scaleX: squashScaleX.value },
-      { scaleY: squashScaleY.value },
-    ],
-  }));
+  useAnimatedReaction(
+    () => gameState.value,
+    (state) => {
+      if (state === 'dying') {
+        flashOpacity.value = 1;
+        flashOpacity.value = withSpring(0, { damping: 12, stiffness: 200 });
+        bottleOpacity.value = 0.35;
+      }
+      if (state === 'idle' || state === 'playing') {
+        bottleOpacity.value = 1;
+        flashOpacity.value = 0;
+        sqX.value = 1;
+        sqY.value = 1;
+      }
+    },
+  );
 
-  const flipStyle = useAnimatedStyle(() => {
-    const rot = bottleRotation.value;
+  const bodyStyle = useAnimatedStyle(() => {
+    const airStretch = isJumping.value
+      ? 1 + Math.abs(bottleY.value) * 0.0001
+      : 1;
     return {
-      transform: [{ rotateZ: `${rot}deg` }],
+      transform: [
+        { scaleX: Math.min(1.12, airStretch * 0.95 + 0.05) * sqX.value },
+        { scaleY: Math.min(1.12, airStretch) * sqY.value },
+      ],
+      opacity: bottleOpacity.value,
     };
   });
+
+  const flashStyle = useAnimatedStyle(() => ({
+    position: 'absolute' as const,
+    top: 0, left: 0, right: 0, bottom: 0,
+    backgroundColor: '#FFFFFF',
+    opacity: flashOpacity.value,
+    borderRadius: 4,
+  }));
 
   return (
     <Animated.View
@@ -79,47 +103,18 @@ export default function RunnerBottle({
           height: BOTTLE_HEIGHT,
         },
         bottleStyle,
-        flipStyle,
       ]}
     >
       <Animated.View style={[{ width: BOTTLE_WIDTH, height: BOTTLE_HEIGHT }, bodyStyle]}>
-        <View
-          style={{
-            width: 14,
-            height: 10,
-            backgroundColor: '#D4A960',
-            borderRadius: 3,
-            alignSelf: 'center',
-          }}
-        />
-        <View
-          style={{
-            width: 8,
-            height: 8,
-            backgroundColor: '#6C3ED9',
-            alignSelf: 'center',
-          }}
-        />
-        <View
-          style={{
-            flex: 1,
-            backgroundColor: '#6C3ED9',
-            borderBottomLeftRadius: 8,
-            borderBottomRightRadius: 8,
-            alignItems: 'center',
-          }}
-        >
-          <View
-            style={{
-              width: 14,
-              height: 12,
-              backgroundColor: '#D4A960',
-              borderRadius: 2,
-              marginTop: 6,
-            }}
-          />
+        <View style={{ width: 14, height: 10, backgroundColor: capColor, borderRadius: 3, alignSelf: 'center' }} />
+        <View style={{ width: 8, height: 8, backgroundColor: bottleColor, alignSelf: 'center' }} />
+        <View style={{ flex: 1, backgroundColor: bottleColor, borderBottomLeftRadius: 8, borderBottomRightRadius: 8, alignItems: 'center' }}>
+          <View style={{ width: 14, height: 12, backgroundColor: capColor, borderRadius: 2, marginTop: 6 }} />
         </View>
       </Animated.View>
+      <Animated.View style={flashStyle} pointerEvents="none" />
     </Animated.View>
   );
 }
+
+export default memo(RunnerBottle);

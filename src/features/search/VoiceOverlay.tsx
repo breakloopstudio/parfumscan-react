@@ -136,10 +136,12 @@ export default function VoiceOverlay({
               data={phase.results.slice(0, 5)}
               keyExtractor={(p) => p.id}
               renderItem={({ item }) => (
-                <Pressable onPress={() => onResultPress(item.id)} style={s.resultItem}>
-                  <ParfumCard parfum={item} mode="compact" />
-                </Pressable>
-              )}
+                  <ParfumCard
+                    parfum={item}
+                    mode="compact"
+                    onPressOverride={() => onResultPress(item.id)}
+                  />
+                )}
               ItemSeparatorComponent={() => <View style={s.resultSeparator} />}
               scrollEnabled={phase.results.length > 3}
             />

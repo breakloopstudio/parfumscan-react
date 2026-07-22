@@ -227,6 +227,38 @@ src/
 
 ---
 
+## §17 — Flacon Runner (easter egg)
+
+Mini-jeu endless runner accessible depuis Settings (5 taps sur numéro de version). Architecture entièrement sur le UI thread (Reanimated).
+
+### Architecture des fichiers
+```
+src/features/runner/
+├── useRunnerLoop.ts      # Game loop (useFrameCallback) : physique, collisions, spawn, scoring
+├── RunnerGame.tsx         # Intégration : gestes, cycle de vie, score chase, sons, shake, milestones, skins
+├── RunnerBottle.tsx       # Flacon joueur : squash/stretch aérien, landing spring, death flash
+├── RunnerBackground.tsx   # 2 couches parallaxe seamless (wrapping périodique)
+├── RunnerGround.tsx       # Sol défilant avec marques
+├── RunnerObstacles.tsx    # Pool de 8 cristaux (4 types + volant), rendus via opacity toggling
+├── RunnerPickups.tsx      # Pool de 4 badges réduction (altitudes variables)
+├── RunnerSpeedLines.tsx   # Traits de vitesse horizontaux (opacité liée à la vitesse)
+├── runner-sounds.ts       # 4 WAV synthétisés (jump, pickup, death, record) via expo-audio
+├── runner-types.ts        # Types, constantes, helpers AABB, altitudes
+└── runner-storage.ts      # High score + skins persistés AsyncStorage
+```
+
+### Règles
+- **Zéro `setState` en boucle** — toute la logique temps réel est en SharedValues + `useAnimatedStyle`
+- **Pools fixes** — pas de mount/unmount pendant le jeu (pré-alloué en SharedValues)
+- **Collisions** : `checkAABB()` (worklet), hitbox obstacle = `width - 4`, bottle = `width-8 × height-6`
+- **Score chase** : JS-side rAF lissant les sauts de score (bonus pickups jusqu'à +800)
+- **Sons** : générés en base64 inline (zéro asset binaire), via `expo-audio` `useAudioPlayer`
+- **Persistance** : high score + skins dans AsyncStorage, clé `@parfumscan/runner-*`
+- **Ouverture** : 5 taps sur le numéro de version dans Settings, minuterie 2s de reset
+- **Skins déblocables** : 500→Ambre, 1500→Frost, 3000→Noir, auto-équipés sur game over
+
+---
+
 ## §18 — Environnement
 
 - Windows 11, PowerShell 5.1

@@ -1,5 +1,6 @@
 // src/features/runner/RunnerPickups.tsx — Badges réduction
 
+import { memo } from 'react';
 import { View, Text } from 'react-native';
 import Animated, { useAnimatedStyle, type SharedValue } from 'react-native-reanimated';
 import { PICKUP_DEFS, PICKUP_POOL_SIZE } from './runner-types';
@@ -33,9 +34,11 @@ function Slot({ slot }: { slot: PkpSlot }) {
   </Animated.View>;
 }
 
-export default function RunnerPickups({ pkp }: Props) {
+function RunnerPickupsImpl({ pkp }: Props) {
   return <View style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0 }} pointerEvents="none">
     {pkp.slice(0, PICKUP_POOL_SIZE).map((s, i) => <Slot key={i} slot={s} />)}
   </View>;
 }
+
+export default memo(RunnerPickupsImpl);
 

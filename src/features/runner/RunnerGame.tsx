@@ -1,22 +1,29 @@
 // src/features/runner/RunnerGame.tsx — Composant principal du mini-jeu
 
-import { useState, useEffect, useMemo, useCallback } from 'react';
-import { View, Text, Pressable, StyleSheet, useWindowDimensions } from 'react-native';
-import {
+import { useState, useEffect, useMemo, useCallback, useRef } from 'react';
+import { View, Text, Pressable, StyleSheet, useWindowDimensions, AppState } from 'react-native';
+import Animated, {
   useAnimatedReaction,
   useSharedValue,
+  useAnimatedStyle,
+  withSequence,
+  withTiming,
+  withSpring,
 } from 'react-native-reanimated';
 import { scheduleOnRN } from 'react-native-worklets';
 import { Gesture, GestureDetector } from 'react-native-gesture-handler';
 import { useTheme, type Theme } from '../../theme/ThemeContext';
-import { hapticsLight, hapticsSuccess } from '../../services/haptics';
-import { getHighScore, setHighScore } from './runner-storage';
+import { hapticsLight, hapticsSuccess, hapticsError } from '../../services/haptics';
+import { getHighScore, setHighScore, getSkinForScore, unlockSkin, getUnlockedSkins } from './runner-storage';
+import { SKINS } from './runner-storage';
 import { useRunnerLoop } from './useRunnerLoop';
 import RunnerBackground from './RunnerBackground';
 import RunnerGround from './RunnerGround';
 import RunnerBottle from './RunnerBottle';
 import RunnerObstacles from './RunnerObstacles';
 import RunnerPickups from './RunnerPickups';
+import RunnerSpeedLines from './RunnerSpeedLines';
+import { useRunnerSounds } from './runner-sounds';
 import {
   type GameDimensions,
   JUMP_VELOCITY,
@@ -170,13 +177,64 @@ function getStyles(t: Theme) {
       color: '#988EA8',
       marginTop: 12,
     },
-    deathContainer: {
-      ...StyleSheet.absoluteFill,
-      position: 'absolute' as const,
-      top: 0, left: 0, right: 0, bottom: 0,
-      pointerEvents: 'none' as const,
+    popupText: {
+      fontFamily: 'Inter_800ExtraBold',
+      fontSize: 16,
+      color: '#D4A960',
+      textShadowColor: 'rgba(0,0,0,0.5)',
+      textShadowOffset: { width: 0, height: 1 },
+      textShadowRadius: 3,
     },
   } as const;
+}
+
+interface PopupEntry {
+  id: number;
+  x: number;
+  y: number;
+  text: string;
+}
+
+const MILESTONE_LABELS: Record<number, string> = {
+  500: 'Nez confirmé',
+  1000: 'Expert olfactif',
+  2000: 'Maître parfumeur',
+  3000: 'Légende',
+};
+
+function FloatingPopup({ entry, onDone }: { entry: PopupEntry; onDone: (id: number) => void }) {
+  const opacity = useSharedValue(1);
+  const ty = useSharedValue(0);
+  const scale = useSharedValue(1);
+
+  useEffect(() => {
+    opacity.value = withTiming(0, { duration: 800 });
+    ty.value = withTiming(-70, { duration: 800 });
+    scale.value = withSequence(
+      withSpring(1.3, { damping: 12, stiffness: 300 }),
+      withTiming(1, { duration: 500 }),
+    );
+    const t = setTimeout(() => onDone(entry.id), 850);
+    return () => clearTimeout(t);
+  }, []);
+
+  const s = useAnimatedStyle(() => ({
+    position: 'absolute',
+    left: entry.x - 30,
+    top: entry.y,
+    opacity: opacity.value,
+    transform: [{ translateY: ty.value }, { scale: scale.value }],
+    minWidth: 60,
+    alignItems: 'center',
+  }));
+
+  return (
+    <Animated.View style={s}>
+      <Text allowFontScaling={false} style={{fontFamily:'Inter_800ExtraBold',fontSize:16,color:'#D4A960',textShadowColor:'rgba(0,0,0,0.5)',textShadowOffset:{width:0,height:1},textShadowRadius:3}}>
+        {entry.text}
+      </Text>
+    </Animated.View>
+  );
 }
 
 export default function RunnerGame({ onClose }: Props) {
@@ -194,11 +252,16 @@ export default function RunnerGame({ onClose }: Props) {
   const {
     bottleY, isJumping, isDoubleJumping, landingTrigger,
     jumpVelocity, canDoubleJump,
-    gameState, score,
+    gameState, score, speed,
     obs, pkp,
     bgOffset, midOffset, groundOffset,
+    speedLineOffset, palettePhase,
     frameCallback, resetGame,
     lastCollectedDiscount,
+    airCombo,
+    nearMissTrigger,
+    popupTrigger,
+    popupBonus,
   } = useRunnerLoop(dims);
 
   const [uiState, setUiState] = useState('idle');
@@ -208,18 +271,120 @@ export default function RunnerGame({ onClose }: Props) {
   const [isRecord, setIsRecord] = useState(false);
   const [collectedText, setCollectedText] = useState('');
 
+  const [countdown, setCountdown] = useState(-1);
+  const countdownScale = useSharedValue(1);
+
+  const sounds = useRunnerSounds();
+
   const collectedCounts = useMemo(() => ({ 10: 0, 20: 0, 30: 0, 50: 0 } as Record<number, number>), []);
+  const [popups, setPopups] = useState<PopupEntry[]>([]);
+  const popupIdRef = useRef(0);
+
+  const [milestone, setMilestone] = useState('');
+  const milestoneTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  const [skin, setSkin] = useState<typeof SKINS[number]>(SKINS[0]);
+
+  const shakeX = useSharedValue(0);
+  const shakeStyle = useAnimatedStyle(() => ({ transform: [{ translateX: shakeX.value }] }));
+
+  // Score chase
+  const targetScoreRef = useRef(0);
+  const displayScoreRef = useRef(0);
+  const chaseRafRef = useRef<number | null>(null);
+
+  const startChase = useCallback(() => {
+    if (chaseRafRef.current !== null) return;
+    const chase = () => {
+      const target = targetScoreRef.current;
+      const current = displayScoreRef.current;
+      const gap = target - current;
+      if (Math.abs(gap) < 0.6) {
+        displayScoreRef.current = target;
+        setDisplayScore(Math.round(target));
+        chaseRafRef.current = null;
+        return;
+      }
+      const step = Math.sign(gap) * Math.max(1.2, Math.abs(gap) * 0.25);
+      displayScoreRef.current += step;
+      const newFloor = Math.floor(displayScoreRef.current);
+      if (newFloor !== Math.floor(current)) {
+        setDisplayScore(newFloor);
+      }
+      chaseRafRef.current = requestAnimationFrame(chase);
+    };
+    chaseRafRef.current = requestAnimationFrame(chase);
+  }, []);
+
+  const updateScoreTarget = useCallback((floor: number) => {
+    targetScoreRef.current = floor;
+    startChase();
+  }, [startChase]);
+
+  const stopChase = useCallback(() => {
+    if (chaseRafRef.current !== null) {
+      cancelAnimationFrame(chaseRafRef.current);
+      chaseRafRef.current = null;
+    }
+  }, []);
 
   useEffect(() => {
     getHighScore().then(v => setHighScoreState(v)).catch(() => {});
+    getUnlockedSkins().then(keys => {
+      const best = [...keys].sort((a, b) => {
+        const sa = SKINS.find(s => s.key === a);
+        const sb = SKINS.find(s => s.key === b);
+        return (sb?.threshold ?? 0) - (sa?.threshold ?? 0);
+      })[0];
+      const skin = SKINS.find(s => s.key === best);
+      if (skin) setSkin(skin);
+    }).catch(() => {});
   }, []);
+
+  useEffect(() => {
+    if (countdown <= 0) return;
+    if (countdown === 1) {
+      const t = setTimeout(() => {
+        gameState.value = 'playing';
+        jumpVelocity.value = JUMP_VELOCITY;
+        isJumping.value = true;
+        setCountdown(-1);
+        countdownScale.value = withSpring(1, { damping: 12, stiffness: 300 });
+      }, 400);
+      return () => clearTimeout(t);
+    }
+    countdownScale.value = 1.4;
+    countdownScale.value = withSpring(1, { damping: 12, stiffness: 300 });
+    const t = setTimeout(() => setCountdown(c => c - 1), 400);
+    return () => clearTimeout(t);
+  }, [countdown]);
 
   useAnimatedReaction(
     () => gameState.value,
     (state) => {
       scheduleOnRN(setUiState, state);
+      if (state === 'dying') {
+        scheduleOnRN(hapticsError);
+        scheduleOnRN(sounds.playDeath);
+        shakeX.value = withSequence(
+          withTiming(7, { duration: 35 }),
+          withTiming(-6, { duration: 50 }),
+          withTiming(5, { duration: 40 }),
+          withTiming(-4, { duration: 55 }),
+          withTiming(2, { duration: 45 }),
+          withTiming(0, { duration: 90 }),
+        );
+      }
     },
   );
+
+  const handleMilestone = useCallback((label: string) => {
+    setMilestone(label);
+    if (milestoneTimer.current) clearTimeout(milestoneTimer.current);
+    milestoneTimer.current = setTimeout(() => setMilestone(''), 2000);
+  }, []);
+
+  const lastMilestoneShared = useSharedValue(0);
 
   useAnimatedReaction(
     () => score.value,
@@ -227,7 +392,29 @@ export default function RunnerGame({ onClose }: Props) {
       const floor = Math.floor(score.value);
       if (floor !== lastFloorShared.value) {
         lastFloorShared.value = floor;
-        scheduleOnRN(setDisplayScore, floor);
+        scheduleOnRN(updateScoreTarget, floor);
+        for (const m of [500, 1000, 2000, 3000]) {
+          if (floor >= m && lastMilestoneShared.value < m) {
+            lastMilestoneShared.value = m;
+            scheduleOnRN(handleMilestone, MILESTONE_LABELS[m] ?? '');
+            break;
+          }
+        }
+      }
+    },
+  );
+
+  const handlePopupTrigger = useCallback((bonus: number) => {
+    const id = ++popupIdRef.current;
+    setPopups(prev => [...prev, { id, x: dims.bottleX, y: dims.groundY - 120, text: `+${bonus}` }]);
+  }, []);
+
+  useAnimatedReaction(
+    () => popupTrigger.value,
+    () => {
+      const bonus = popupBonus.value;
+      if (bonus > 0) {
+        scheduleOnRN(handlePopupTrigger, bonus);
       }
     },
   );
@@ -235,7 +422,8 @@ export default function RunnerGame({ onClose }: Props) {
   const onPickupCollected = useCallback((discount: number) => {
     collectedCounts[discount] = (collectedCounts[discount] || 0) + 1;
     hapticsSuccess();
-  }, [collectedCounts]);
+    sounds.playPickup();
+  }, [collectedCounts, sounds]);
 
   useAnimatedReaction(
     () => lastCollectedDiscount.value,
@@ -249,25 +437,29 @@ export default function RunnerGame({ onClose }: Props) {
 
   useEffect(() => {
     frameCallback.setActive(true);
-    return () => { frameCallback.setActive(false); };
+    return () => {
+      frameCallback.setActive(false);
+      stopChase();
+    };
   }, [frameCallback]);
 
-  const handleRestart = useCallback(() => {
-    resetGame();
-    frameCallback.setActive(true);
-    collectedCounts[10] = 0;
-    collectedCounts[20] = 0;
-    collectedCounts[30] = 0;
-    collectedCounts[50] = 0;
-    lastFloorShared.value = 0;
-    setIsRecord(false);
-    setCollectedText('');
-    setDisplayScore(0);
-  }, [resetGame, frameCallback, collectedCounts]);
+  useEffect(() => {
+    const sub = AppState.addEventListener('change', (state) => {
+      if (state === 'active') frameCallback.setActive(true);
+      else frameCallback.setActive(false);
+    });
+    return () => sub.remove();
+  }, [frameCallback]);
 
+  // Finalize score on game over
   useEffect(() => {
     if (uiState === 'gameover') {
-      const s = lastFloorShared.value;
+      stopChase();
+      const finalScore = lastFloorShared.value;
+      setDisplayScore(finalScore);
+      displayScoreRef.current = finalScore;
+      targetScoreRef.current = finalScore;
+
       const parts: string[] = [];
       if (collectedCounts[10]) parts.push(`${collectedCounts[10]}× −10%`);
       if (collectedCounts[20]) parts.push(`${collectedCounts[20]}× −20%`);
@@ -275,13 +467,43 @@ export default function RunnerGame({ onClose }: Props) {
       if (collectedCounts[50]) parts.push(`${collectedCounts[50]}× −50%`);
       setCollectedText(parts.length > 0 ? `Réduc' collectées : ${parts.join(', ')}` : '');
 
-      if (s > highScore) {
-        setHighScoreState(s);
+      if (finalScore > highScore) {
+        setHighScoreState(finalScore);
         setIsRecord(true);
-        setHighScore(s).catch(() => {});
+        setHighScore(finalScore).catch(() => {});
+        sounds.playRecord();
       }
+      const newSkin = getSkinForScore(finalScore);
+      setSkin(newSkin);
+      unlockSkin(newSkin.key).catch(() => {});
     }
   }, [uiState, highScore, collectedCounts]);
+
+  const handleRestart = useCallback(() => {
+    stopChase();
+    resetGame();
+    lastFloorShared.value = 0;
+    targetScoreRef.current = 0;
+    displayScoreRef.current = 0;
+    setDisplayScore(0);
+    collectedCounts[10] = 0;
+    collectedCounts[20] = 0;
+    collectedCounts[30] = 0;
+    collectedCounts[50] = 0;
+    setIsRecord(false);
+    setCollectedText('');
+    setPopups([]);
+    setCountdown(-1);
+    setMilestone('');
+    lastMilestoneShared.value = 0;
+    shakeX.value = 0;
+  }, [resetGame, stopChase]);
+
+  const handlePopupDone = useCallback((id: number) => {
+    setPopups(prev => prev.filter(p => p.id !== id));
+  }, []);
+
+  const startCountdown = useCallback(() => setCountdown(3), []);
 
   const tapGesture = useMemo(() =>
     Gesture.Tap()
@@ -289,9 +511,7 @@ export default function RunnerGame({ onClose }: Props) {
         'worklet';
         const state = gameState.value;
         if (state === 'idle') {
-          gameState.value = 'playing';
-          jumpVelocity.value = JUMP_VELOCITY;
-          isJumping.value = true;
+          scheduleOnRN(startCountdown);
           return;
         }
         if (state === 'playing') {
@@ -299,6 +519,7 @@ export default function RunnerGame({ onClose }: Props) {
             jumpVelocity.value = JUMP_VELOCITY;
             isJumping.value = true;
             scheduleOnRN(hapticsLight);
+            scheduleOnRN(sounds.playJump);
             return;
           }
           if (canDoubleJump.value) {
@@ -306,16 +527,13 @@ export default function RunnerGame({ onClose }: Props) {
             canDoubleJump.value = false;
             isDoubleJumping.value = true;
             scheduleOnRN(hapticsSuccess);
+            scheduleOnRN(sounds.playJump);
             return;
           }
           return;
         }
-        if (state === 'gameover') {
-          scheduleOnRN(handleRestart);
-          return;
-        }
       }),
-    [handleRestart],
+    [],
   );
 
   const showStart = uiState === 'idle' || uiState === 'entering';
@@ -323,9 +541,11 @@ export default function RunnerGame({ onClose }: Props) {
 
   return (
     <GestureDetector gesture={tapGesture}>
-      <View style={s.container}>
+      <Animated.View style={[s.container, shakeStyle]}>
         <RunnerBackground bgOffset={bgOffset} midOffset={midOffset} />
         <RunnerGround groundOffset={groundOffset} groundY={dims.groundY} screenW={screenW} />
+
+        <RunnerSpeedLines speed={speed} speedLineOffset={speedLineOffset} groundY={dims.groundY} />
 
         <RunnerBottle
           bottleX={dims.bottleX}
@@ -334,6 +554,8 @@ export default function RunnerGame({ onClose }: Props) {
           isDoubleJumping={isDoubleJumping}
           landingTrigger={landingTrigger}
           gameState={gameState}
+          bottleColor={skin.bottle}
+          capColor={skin.cap}
         />
 
         <RunnerObstacles obs={obs} groundY={dims.groundY} />
@@ -358,18 +580,40 @@ export default function RunnerGame({ onClose }: Props) {
           <Text style={s.closeText}>✕</Text>
         </Pressable>
 
+        {popups.map(p => (
+          <FloatingPopup key={p.id} entry={p} onDone={handlePopupDone} />
+        ))}
+
+        {milestone !== '' && (
+          <View style={{ position: 'absolute', top: dims.groundY * 0.45, left: 0, right: 0, alignItems: 'center' }} pointerEvents="none">
+            <Text allowFontScaling={false} style={{ fontFamily: 'PlayfairDisplay_700Bold', fontSize: 26, color: '#D4A960', textShadowColor: 'rgba(212,169,96,0.4)', textShadowOffset: { width: 0, height: 0 }, textShadowRadius: 12 }}>
+              {milestone}
+            </Text>
+          </View>
+        )}
+
         {showStart && (
           <View style={s.startOverlay} pointerEvents="none">
-            <Text style={s.title}>Flacon Runner</Text>
-            <Text style={s.subtitle}>Esquive les cristaux</Text>
-            <Text style={s.tapLabel}>TAP TO START</Text>
-            <Text style={s.hint}>
-              Tap = saut{'\n'}Double tap = double saut{'\n'}Attrape les réductions en l'air !
-            </Text>
-            {highScore > 0 && (
+            {countdown > 0 ? (
               <>
-                <Text style={s.startHiLabel}>Record</Text>
-                <Text allowFontScaling={false} style={s.startHiScore}>{highScore}</Text>
+                <Animated.View style={{ transform: [{ scale: countdownScale }] }}>
+                  <Text allowFontScaling={false} style={[s.goScore, { fontSize: 72 }]}>{countdown}</Text>
+                </Animated.View>
+              </>
+            ) : (
+              <>
+                <Text style={s.title}>Flacon Runner</Text>
+                <Text style={s.subtitle}>Esquive les cristaux</Text>
+                <Text style={s.tapLabel}>TAP TO START</Text>
+                <Text style={s.hint}>
+                  Tap = saut{'\n'}Double tap = double saut{'\n'}Enchainement aérien = combo{'\n'}Attrape les réductions !
+                </Text>
+                {highScore > 0 && (
+                  <>
+                    <Text style={s.startHiLabel}>Record</Text>
+                    <Text allowFontScaling={false} style={s.startHiScore}>{highScore}</Text>
+                  </>
+                )}
               </>
             )}
           </View>
@@ -398,9 +642,9 @@ export default function RunnerGame({ onClose }: Props) {
         )}
 
         {uiState === 'dying' && (
-          <View style={s.deathContainer} pointerEvents="none" />
+          <View style={{ ...StyleSheet.absoluteFill, position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, pointerEvents: 'none' }} />
         )}
-      </View>
+      </Animated.View>
     </GestureDetector>
   );
 }

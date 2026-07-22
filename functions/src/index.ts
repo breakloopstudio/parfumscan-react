@@ -416,6 +416,10 @@ export const transcribeVoice = functions.https.onCall(
     audioBase64: string;
     mimeType: string;
   }>): Promise<{ text: string }> => {
+    if (!request.auth?.uid) {
+      throw new functions.https.HttpsError('unauthenticated', 'Authentification requise pour la transcription vocale.');
+    }
+
     const { audioBase64, mimeType } = request.data;
 
     if (typeof audioBase64 !== 'string' || audioBase64.length === 0) {
@@ -438,16 +442,19 @@ export const transcribeVoice = functions.https.onCall(
     }
 
     const buffer = Buffer.from(audioBase64, 'base64');
-    const file = new File([buffer], 'audio.m4a', { type: mimeType });
+    const ext = mimeType === 'audio/wav' ? '.wav' : mimeType === 'audio/mp4' ? '.m4a' : '.audio';
+    const file = new File([buffer], `audio${ext}`, { type: mimeType });
 
     try {
       const transcription = await openai.audio.transcriptions.create({
         model: 'whisper-1',
         file,
         response_format: 'text',
+        language: 'fr',
+        prompt: 'Dior, Chanel, Guerlain, Yves Saint Laurent, Lancôme, Hermès, Jean Paul Gaultier, Paco Rabanne, Givenchy, Versace, Armani, Tom Ford, Calvin Klein, Hugo Boss, Burberry, Dolce & Gabbana, Bvlgari, Creed, Le Labo, Byredo, Diptyque, Maison Margiela, Prada, Valentino, Azzaro, Kenzo, Mugler, Cartier, Cacharel, Lalique, Acqua di Parma, Maison Francis Kurkdjian, Xerjoff, Parfums de Marly, Amouage, By Kilian, Initio',
       });
 
-      console.log('[transcribeVoice] Transcription:', transcription);
+      console.log('[transcribeVoice] User:', request.auth.uid, 'Transcription:', transcription);
       return { text: transcription };
     } catch (error: unknown) {
       const message = error instanceof Error ? error.message : 'Erreur inconnue.';

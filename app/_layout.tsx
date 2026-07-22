@@ -1,6 +1,6 @@
 // app/_layout.tsx — Root layout (GestureHandler + Auth + SplashScreen + Edge-to-edge)
 
-import { useEffect } from 'react';
+import { useEffect, useRef } from 'react';
 import { Stack, useRouter, useSegments } from 'expo-router';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { GoogleSignin } from '@react-native-google-signin/google-signin';
@@ -9,6 +9,7 @@ import { AuthProvider, useAuthContext } from '../src/contexts/AuthContext';
 import { ThemeProvider, useTheme } from '../src/theme/ThemeContext';
 import { ErrorBoundary } from '../src/components/ErrorBoundary';
 import { isFirebaseReady } from '../src/services/firebase';
+import { createNotificationChannels, startFcmRegistration } from '../src/services/fcm';
 import '../src/services/firebase';
 
 try {
@@ -21,9 +22,22 @@ try {
 SplashScreen.preventAutoHideAsync().catch(() => {});
 
 function AuthGuard({ children }: { children: React.ReactNode }) {
-  const { authReady, isAuthenticated } = useAuthContext();
+  const { authReady, isAuthenticated, user } = useAuthContext();
   const segments = useSegments();
   const router = useRouter();
+  const fcmCleanupRef = useRef<(() => void) | null>(null);
+
+  useEffect(() => {
+    createNotificationChannels();
+  }, []);
+
+  useEffect(() => {
+    if (fcmCleanupRef.current) { fcmCleanupRef.current(); fcmCleanupRef.current = null; }
+    if (authReady && isAuthenticated && user) {
+      fcmCleanupRef.current = startFcmRegistration(user.uid);
+    }
+    return () => { if (fcmCleanupRef.current) fcmCleanupRef.current(); };
+  }, [authReady, isAuthenticated, user]);
 
   useEffect(() => {
     if (authReady) {

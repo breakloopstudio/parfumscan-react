@@ -35,6 +35,7 @@
 | 🌓 **Dark Mode** | 3 modes (système/clair/sombre), persistance AsyncStorage, SystemUI + NavigationBar theming, keyboardAppearance adaptatif |
 | 🎙️ **Recherche vocale** | Dictée vocale (expo-speech-recognition, on-device) + fallback OpenAI Whisper (Cloud Function), VoiceOverlay 5 phases avec transcript live et top résultats |
 | 🌤️ **Météo & suggestions** | Widget météo (Open-Meteo, gratuit), scoring des parfums adaptés à la météo dans la parfumerie, tri "Météo", SOTDPicker pré-trié, badge de compatibilité, notification push quotidienne à 7h via Cloud Function |
+| 🎮 **Flacon Runner** | Easter egg : endless runner dans Settings (5 taps version). Saut/double-saut, obstacles, combos, score lisse, milestones, skins déblocables, Reanimated UI thread |
 
 ---
 
@@ -159,6 +160,7 @@ src/
 │   ├── catalog/  (9)         # CatalogPage, BrandCapsules, BrandSheet, CatalogRow, FamilyAmbianceCards, OlfactoryPyramid v5, HeroPriceOverlay, CollapsingHeader, StickyBottomBar
 │   ├── wardrobe/ (10)        # WardrobeAddSheet, WardrobeCard, WardrobeGrid, WardrobeQuickSheet, SOTDCard, SOTDPicker, FilterBar, StarRating, ShelfManager, WeatherWidget
 │   ├── search/   (1)         # VoiceOverlay (panneau overlay 5 phases)
+│   ├── runner/   (11)        # Flacon Runner (easter egg endless runner — game loop, sprites, sons, persistance)
 │   └── navigation/ (1)       # DockBar (barre flottante 5 positions + FAB, indicateur doré, pulse ring, show/hide)
 ├── models/       (8)         # Parfum, WardrobeItem, Shelf, SotdEntry, UserFavori, UserScan, UserCollectionItem, UserWishlistItem
 ├── config/       (3)         # Firebase config, env, index
