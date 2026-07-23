@@ -1,8 +1,5 @@
 // src/services/weather.ts — Météo Open-Meteo (gratuit, sans clé API)
 
-import AsyncStorage from '@react-native-async-storage/async-storage';
-
-const CITY_KEY = '@parfumscan/weather-city';
 const CACHE_DURATION_MS = 30 * 60 * 1000;
 
 export interface WeatherData {
@@ -44,22 +41,6 @@ interface CacheEntry {
 let cached: CacheEntry | null = null;
 const pendingRequests = new Map<string, Promise<WeatherData | null>>();
 
-export async function getStoredCity(): Promise<string | null> {
-  try {
-    return await AsyncStorage.getItem(CITY_KEY);
-  } catch {
-    return null;
-  }
-}
-
-export async function setStoredCity(city: string): Promise<void> {
-  try {
-    await AsyncStorage.setItem(CITY_KEY, city);
-  } catch (e: unknown) {
-    console.warn('[weather] setStoredCity failed:', (e as Error)?.message ?? String(e));
-  }
-}
-
 function locationKey(lat: number, lon: number): string {
   return `${lat.toFixed(2)},${lon.toFixed(2)}`;
 }
@@ -85,7 +66,10 @@ export async function fetchWeather(lat: number, lon: number): Promise<WeatherDat
       url.searchParams.set('timezone', 'auto');
       url.searchParams.set('forecast_days', '1');
 
-      const res = await fetch(url.toString());
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 10_000);
+      const res = await fetch(url.toString(), { signal: controller.signal });
+      clearTimeout(timeoutId);
       if (!res.ok) {
         console.warn('[weather] API error:', res.status);
         return null;
@@ -118,9 +102,4 @@ export async function fetchWeather(lat: number, lon: number): Promise<WeatherDat
 
   pendingRequests.set(key, promise);
   return promise;
-}
-
-export function clearWeatherCache(): void {
-  cached = null;
-  pendingRequests.clear();
 }

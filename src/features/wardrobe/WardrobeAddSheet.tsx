@@ -3,6 +3,7 @@ import { View, Text, Pressable, TextInput, ActivityIndicator } from 'react-nativ
 import { Image } from 'expo-image';
 import Ionicons from '@react-native-vector-icons/ionicons/static';
 import { useTheme, type Theme } from '../../theme/ThemeContext';
+import { textOn } from '../../utils/contrast';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { ownershipLabel } from '../../utils/ownership';
 import { hapticsLight, hapticsSuccess, hapticsError } from '../../services/haptics';
@@ -124,7 +125,7 @@ export default function WardrobeAddSheet({
           disabled={!selected || (selected === 'decant' && !sizeMl) || loading}
         >
           {loading ? (
-            <ActivityIndicator size="small" color="#FFFFFF" />
+            <ActivityIndicator size="small" color={textOn(theme.colors.primary)} />
           ) : (
             <Text style={s.confirmBtnText}>Ajouter à ma parfumerie</Text>
           )}
@@ -286,7 +287,7 @@ function getStyles(t: Theme) {
     confirmBtnText: {
       fontFamily: 'Inter_600SemiBold',
       fontSize: 15,
-      color: '#FFFFFF',
+      color: textOn(t.colors.primary),
     },
     cancelBtn: {
       alignSelf: 'center',

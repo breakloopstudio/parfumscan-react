@@ -2,7 +2,7 @@ import * as functions from 'firebase-functions';
 import * as admin from 'firebase-admin';
 import { onSchedule } from 'firebase-functions/v2/scheduler';
 import OpenAI from 'openai';
-import { fetchWeatherForServer, scoreItemForWeather, weatherEmoji, type WardrobeEntry } from './weather-scoring';
+import { fetchWeatherForServer, scoreItemForWeather, weatherEmoji, getWmoMeta, type WardrobeEntry } from './weather-scoring';
 
 admin.initializeApp();
 
@@ -14,7 +14,10 @@ const db = admin.firestore();
  * Scheduled every 6 hours — checks all active price alerts for drops.
  * Utilise uniquement les données Firestore (bestPrice) — plus de dépendance à l'API Fragella.
  */
-export const checkPriceAlerts = onSchedule('every 6 hours', async () => {
+export const checkPriceAlerts = onSchedule({
+    schedule: 'every 6 hours',
+    region: 'europe-west1',
+  }, async () => {
   const usersSnap = await db.collection('users').get();
   let alertsChecked = 0;
   let notificationsSent = 0;
@@ -30,7 +33,7 @@ export const checkPriceAlerts = onSchedule('every 6 hours', async () => {
     } catch {
       continue;
     }
-    if (settings.priceAlerts !== true || settings.pushNotifs !== true) continue;
+    if (settings.priceAlerts !== true || settings.pushNotifs === false) continue;
 
     // Get user's active price alerts
     let alertsSnap: FirebaseFirestore.QuerySnapshot<FirebaseFirestore.DocumentData>;
@@ -506,7 +509,7 @@ export const sendWeatherNotifications = onSchedule(
         continue;
       }
 
-      if (settings.pushNotifs !== true || settings.weatherNotifs !== true) continue;
+      if (settings.pushNotifs === false || settings.weatherNotifs !== true) continue;
       if (typeof settings.weatherLat !== 'number' || typeof settings.weatherLon !== 'number') continue;
 
       const weather = await fetchWeatherForServer(settings.weatherLat, settings.weatherLon);
@@ -542,7 +545,7 @@ export const sendWeatherNotifications = onSchedule(
       }
       if (tokens.length === 0) continue;
 
-      const wmo = WMO_META[weather.weatherCode] ?? WMO_META[1];
+      const wmo = getWmoMeta(weather.weatherCode);
       const icon = weather.isDay ? wmo.icon : (NIGHT_ICON[wmo.icon] ?? wmo.icon);
       const emoji = weatherEmoji(icon);
 
@@ -572,35 +575,4 @@ export const sendWeatherNotifications = onSchedule(
 const NIGHT_ICON: Record<string, string> = {
   sunny: 'moon',
   'partly-sunny': 'cloudy-night',
-};
-
-const WMO_META: Record<number, { label: string; icon: string; seasonBoost: Record<string, number> }> = {
-  0:  { label: 'Ensoleillé',  icon: 'sunny',             seasonBoost: {} as Record<string, number> },
-  1:  { label: 'Clair',       icon: 'partly-sunny',      seasonBoost: {} as Record<string, number> },
-  2:  { label: 'Nuageux',     icon: 'cloudy',            seasonBoost: {} as Record<string, number> },
-  3:  { label: 'Couvert',     icon: 'cloudy',            seasonBoost: {} as Record<string, number> },
-  45: { label: 'Brouillard',  icon: 'cloudy',            seasonBoost: {} as Record<string, number> },
-  48: { label: 'Brouillard',  icon: 'cloudy',            seasonBoost: {} as Record<string, number> },
-  51: { label: 'Bruine',      icon: 'rainy-outline',     seasonBoost: {} as Record<string, number> },
-  53: { label: 'Bruine',      icon: 'rainy-outline',     seasonBoost: {} as Record<string, number> },
-  55: { label: 'Bruine',      icon: 'rainy-outline',     seasonBoost: {} as Record<string, number> },
-  56: { label: 'Verglas',     icon: 'snow',              seasonBoost: {} as Record<string, number> },
-  57: { label: 'Verglas',     icon: 'snow',              seasonBoost: {} as Record<string, number> },
-  61: { label: 'Pluie',       icon: 'rainy',             seasonBoost: {} as Record<string, number> },
-  63: { label: 'Pluie',       icon: 'rainy',             seasonBoost: {} as Record<string, number> },
-  65: { label: 'Pluie forte', icon: 'rainy',             seasonBoost: {} as Record<string, number> },
-  66: { label: 'Verglas',     icon: 'snow',              seasonBoost: {} as Record<string, number> },
-  67: { label: 'Verglas',     icon: 'snow',              seasonBoost: {} as Record<string, number> },
-  71: { label: 'Neige',       icon: 'snow',              seasonBoost: {} as Record<string, number> },
-  73: { label: 'Neige',       icon: 'snow',              seasonBoost: {} as Record<string, number> },
-  75: { label: 'Neige forte', icon: 'snow',              seasonBoost: {} as Record<string, number> },
-  77: { label: 'Neige',       icon: 'snow',              seasonBoost: {} as Record<string, number> },
-  80: { label: 'Averses',     icon: 'rainy-outline',     seasonBoost: {} as Record<string, number> },
-  81: { label: 'Averses',     icon: 'rainy-outline',     seasonBoost: {} as Record<string, number> },
-  82: { label: 'Averses',     icon: 'thunderstorm-outline', seasonBoost: {} as Record<string, number> },
-  85: { label: 'Neige',       icon: 'snow',              seasonBoost: {} as Record<string, number> },
-  86: { label: 'Neige',       icon: 'snow',              seasonBoost: {} as Record<string, number> },
-  95: { label: 'Orage',       icon: 'thunderstorm',      seasonBoost: {} as Record<string, number> },
-  96: { label: 'Orage',       icon: 'thunderstorm',      seasonBoost: {} as Record<string, number> },
-  99: { label: 'Orage',       icon: 'thunderstorm',      seasonBoost: {} as Record<string, number> },
 };

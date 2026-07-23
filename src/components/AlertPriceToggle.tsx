@@ -53,7 +53,7 @@ export default function AlertPriceToggle({ parfumId, uid, currentPrice }: Props)
         </View>
       </View>
       <Pressable onPress={toggle} style={[s.track, active && s.trackActive]}>
-        <Animated.View style={[s.knob, knobStyle]} />
+        <Animated.View style={[s.knob, { backgroundColor: active ? theme.colors.primary : theme.colors.textMuted }, knobStyle]} />
       </Pressable>
     </Pressable>
   );

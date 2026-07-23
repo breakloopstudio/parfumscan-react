@@ -1,51 +1,89 @@
 // app/auth/login.tsx — Connexion (email + Google)
 
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useRef } from 'react';
 import {
   View, Text, TextInput, Pressable, ActivityIndicator,
-  KeyboardAvoidingView, Platform, ScrollView,
+  KeyboardAvoidingView, Platform, ScrollView, Keyboard,
 } from 'react-native';
-import { Link, useRouter } from 'expo-router';
+import { Link } from 'expo-router';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Ionicons from '@react-native-vector-icons/ionicons/static';
+import { getAuth, sendPasswordResetEmail } from '@react-native-firebase/auth';
 import { useAuthContext } from '../../src/contexts/AuthContext';
 import { useTheme, type Theme } from '../../src/theme/ThemeContext';
+import { textOn } from '../../src/utils/contrast';
+
+const EMAIL_RE = /^\S+@\S+\.\S+$/;
 
 export default function LoginPage() {
   const { theme, resolvedMode } = useTheme();
   const s = useMemo(() => getStyles(theme), [theme]);
   const keyboardAppearance = resolvedMode === 'dark' ? 'dark' : 'light';
+  const insets = useSafeAreaInsets();
   const { login, loginWithGoogle } = useAuthContext();
-  const router = useRouter();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
-  const [loading, setLoading] = useState<'email' | 'google' | null>(null);
+  const [showPassword, setShowPassword] = useState(false);
+  const [loading, setLoading] = useState<'email' | 'google' | 'forgotPassword' | null>(null);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const [successMessage, setSuccessMessage] = useState<string | null>(null);
+  const passwordRef = useRef<TextInput>(null);
 
   const canSubmit = email.trim().length > 0 && password.length > 0;
 
   const handleEmailLogin = async () => {
     if (!canSubmit) return;
+    if (!EMAIL_RE.test(email.trim())) { setErrorMessage('Adresse email invalide.'); return; }
+    Keyboard.dismiss();
     setLoading('email'); setErrorMessage(null);
-    try { await login(email.trim(), password); router.replace('/(tabs)'); }
-    catch (e: unknown) { setErrorMessage(e instanceof Error ? e.message : 'Erreur de connexion.'); }
+    try { await login(email.trim(), password); }
+    catch (e: unknown) {
+      const code = (e as { code?: string }).code;
+      if (code === 'auth/cancelled') return;
+      setErrorMessage(e instanceof Error ? e.message : 'Erreur de connexion.');
+    }
     finally { setLoading(null); }
   };
 
   const handleGoogle = async () => {
+    Keyboard.dismiss();
     setLoading('google'); setErrorMessage(null);
-    try { await loginWithGoogle(); router.replace('/(tabs)'); }
-    catch (e: unknown) { setErrorMessage(e instanceof Error ? e.message : 'Erreur connexion Google.'); }
+    try { await loginWithGoogle(); }
+    catch (e: unknown) {
+      const code = (e as { code?: string }).code;
+      if (code === 'auth/cancelled') return;
+      setErrorMessage(e instanceof Error ? e.message : 'Erreur connexion Google.');
+    }
     finally { setLoading(null); }
   };
 
+  const handleForgotPassword = async () => {
+    const trimmed = email.trim();
+    if (!EMAIL_RE.test(trimmed)) { setErrorMessage("Saisissez d'abord votre adresse email."); return; }
+    Keyboard.dismiss();
+    setLoading('forgotPassword'); setErrorMessage(null); setSuccessMessage(null);
+    try {
+      await sendPasswordResetEmail(getAuth(), trimmed);
+      setSuccessMessage('Email de réinitialisation envoyé ! Vérifiez votre boîte de réception.');
+    } catch (e: unknown) {
+      const code = (e as { code?: string }).code;
+      if (code === 'auth/user-not-found') setErrorMessage('Aucun compte trouvé avec cet email.');
+      else setErrorMessage(e instanceof Error ? e.message : "Erreur lors de l'envoi.");
+    }
+    finally { setLoading(null); }
+  };
+
+  const onEmailChange = (v: string) => { setEmail(v); if (errorMessage) setErrorMessage(null); if (successMessage) setSuccessMessage(null); };
+  const onPasswordChange = (v: string) => { setPassword(v); if (errorMessage) setErrorMessage(null); if (successMessage) setSuccessMessage(null); };
+
+  const togglePassword = () => setShowPassword(v => !v);
   const isLoading = loading !== null;
 
   return (
-    <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'} style={s.bg}>
+    <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : undefined} style={s.bg}>
       <ScrollView
-        contentContainerStyle={s.scroll}
+        contentContainerStyle={[s.scroll, { paddingTop: insets.top + 16, paddingBottom: insets.bottom + 24 }]}
         keyboardShouldPersistTaps="handled"
-        style={Platform.OS !== 'ios' ? s.bgScroll : undefined}
       >
         <View style={s.form}>
           <View style={s.iconCircle}>
@@ -56,7 +94,12 @@ export default function LoginPage() {
             <Text style={s.subtitle}>Découvrez l'univers des parfums</Text>
           </View>
 
-          <Pressable style={[s.googleBtn, isLoading && s.submitBtnDisabled]} onPress={handleGoogle} disabled={isLoading}>
+          <Pressable
+            style={[s.googleBtn, isLoading && s.submitBtnDisabled]}
+            onPress={handleGoogle}
+            disabled={isLoading}
+            accessibilityRole="button"
+          >
             {loading === 'google' ? (
               <ActivityIndicator size="small" color={theme.colors.text} style={{ marginRight: 8 }} />
             ) : (
@@ -77,39 +120,70 @@ export default function LoginPage() {
               placeholder="votre@email.com"
               placeholderTextColor={theme.colors.textMuted}
               value={email}
-              onChangeText={setEmail}
+              onChangeText={onEmailChange}
               keyboardType="email-address"
               autoCapitalize="none"
+              autoCorrect={false}
+              spellCheck={false}
               autoComplete="email"
+              textContentType="emailAddress"
+              returnKeyType="next"
+              onSubmitEditing={() => passwordRef.current?.focus()}
+              blurOnSubmit={false}
               keyboardAppearance={keyboardAppearance}
+              accessibilityLabel="Adresse email"
             />
           </View>
           <View style={s.inputGroup}>
             <TextInput
-              style={s.input}
+              ref={passwordRef}
+              style={[s.input, { paddingRight: 40 }]}
               placeholder="••••••"
               placeholderTextColor={theme.colors.textMuted}
               value={password}
-              onChangeText={setPassword}
-              secureTextEntry
+              onChangeText={onPasswordChange}
+              secureTextEntry={!showPassword}
               autoComplete="current-password"
+              textContentType="password"
+              returnKeyType="go"
+              onSubmitEditing={handleEmailLogin}
               keyboardAppearance={keyboardAppearance}
+              accessibilityLabel="Mot de passe"
             />
+            <Pressable
+              onPress={togglePassword}
+              style={s.eyeBtn}
+              hitSlop={8}
+              accessibilityRole="button"
+              accessibilityLabel={showPassword ? 'Masquer le mot de passe' : 'Afficher le mot de passe'}
+            >
+              <Ionicons name={showPassword ? 'eye-off-outline' : 'eye-outline'} size={20} color={theme.colors.textMuted} />
+            </Pressable>
           </View>
 
-          {errorMessage && (
+          <Pressable onPress={handleForgotPassword} style={s.forgotLink} disabled={isLoading}>
+            <Text style={s.forgotText}>Mot de passe oublié ?</Text>
+          </Pressable>
+
+          {errorMessage ? (
             <View style={s.errorBox}>
               <Text style={s.errorText}>{errorMessage}</Text>
             </View>
-          )}
+          ) : null}
+          {successMessage ? (
+            <View style={s.successBox}>
+              <Text style={s.successText}>{successMessage}</Text>
+            </View>
+          ) : null}
 
           <Pressable
             style={[s.submitBtn, (!canSubmit || isLoading) && s.submitBtnDisabled]}
             onPress={handleEmailLogin}
             disabled={!canSubmit || isLoading}
+            accessibilityRole="button"
           >
             {loading === 'email' ? (
-              <ActivityIndicator size="small" color="#FFFFFF" />
+              <ActivityIndicator size="small" color={textOn(theme.colors.primary)} />
             ) : (
               <Text style={s.submitText}>Se connecter</Text>
             )}
@@ -129,7 +203,6 @@ export default function LoginPage() {
 function getStyles(t: Theme) {
   return {
     bg: { flex: 1, backgroundColor: t.colors.background },
-    bgScroll: { flex: 1 },
     scroll: { flexGrow: 1, justifyContent: 'center', paddingHorizontal: 24 },
     form: { maxWidth: 400, alignSelf: 'center', width: '100%', paddingVertical: 24, paddingHorizontal: 4 },
     iconCircle: { width: 72, height: 72, borderRadius: 36, backgroundColor: t.colors.primarySoft, justifyContent: 'center', alignItems: 'center', alignSelf: 'center', marginBottom: 12 },
@@ -143,11 +216,16 @@ function getStyles(t: Theme) {
     dividerText: { paddingHorizontal: 16, fontFamily: 'Inter_400Regular', fontSize: 13, color: t.colors.textMuted },
     inputGroup: { marginBottom: 12 },
     input: { borderRadius: t.radius.base, backgroundColor: t.colors.surface, borderWidth: 1, borderColor: t.colors.border, paddingHorizontal: 12, height: 48, fontFamily: 'Inter_400Regular', fontSize: 15, color: t.colors.text },
+    eyeBtn: { position: 'absolute', right: 12, top: 0, bottom: 0, justifyContent: 'center' },
+    forgotLink: { alignSelf: 'flex-end', marginBottom: 4 },
+    forgotText: { fontFamily: 'Inter_500Medium', fontSize: 13, color: t.colors.primary },
     errorBox: { backgroundColor: t.colors.overpricedSoft, borderRadius: 10, padding: 10, marginTop: -4, marginBottom: 8 },
-    errorText: { fontFamily: 'Inter_400Regular', fontSize: 13, color: t.colors.overpriced },
+    errorText: { fontFamily: 'Inter_400Regular', fontSize: 13, color: t.colors.overpricedInk },
+    successBox: { backgroundColor: t.colors.dealSoft, borderRadius: 10, padding: 10, marginTop: -4, marginBottom: 8 },
+    successText: { fontFamily: 'Inter_400Regular', fontSize: 13, color: t.colors.deal },
     submitBtn: { backgroundColor: t.colors.primary, borderRadius: t.radius.base, height: 48, justifyContent: 'center', alignItems: 'center', marginTop: 12, ...t.shadow.button },
     submitBtnDisabled: { opacity: 0.5 },
-    submitText: { color: '#FFFFFF', fontFamily: 'Inter_600SemiBold', fontSize: 16, letterSpacing: 0.3 },
+    submitText: { color: textOn(t.colors.primary), fontFamily: 'Inter_600SemiBold', fontSize: 16, letterSpacing: 0.3 },
     link: { alignSelf: 'center', marginTop: 24 },
     linkText: { fontFamily: 'Inter_400Regular', fontSize: 14, color: t.colors.textMuted },
     linkBold: { fontFamily: 'Inter_600SemiBold', color: t.colors.primary },

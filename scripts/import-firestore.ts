@@ -176,7 +176,7 @@ function buildSearchKeywords(marque: string, nom: string, familleOlactive?: stri
   };
 
   const addWordAndPrefixes = (word: string) => {
-    if (STOP_WORDS_SCRIPT.has(word)) return;
+    if (word.length < 2 || STOP_WORDS_SCRIPT.has(word)) return;
     tokens.add(word);
     for (let i = 3; i < word.length; i++) {
       tokens.add(word.slice(0, i));
@@ -194,7 +194,6 @@ function buildSearchKeywords(marque: string, nom: string, familleOlactive?: stri
     .forEach((t) => addWordAndPrefixes(t));
 
   tokens.add(`${m}_${n}`);
-  tokens.add(`${m} ${n}`.trim());
   tokens.add(m);
   tokens.add(n);
 
@@ -368,7 +367,7 @@ async function processFile(
     const existing = await docRef.get();
     if (existing.exists) {
       await docRef.update({
-        popularityScore: entry.reviewCount ?? null,
+        popularityScore: entry.reviewCount ?? 0,
         brandLower: brandName.toLowerCase(),
         updatedAt: new Date(),
       });
@@ -446,13 +445,13 @@ async function processFile(
         sillage: sillageString(entry.sillageAverage),
         perfumeRating: entry.perfumeRating,
         bestRating: entry.bestRating,
-        ratingCount: entry.ratingCount,
-        reviewCount: entry.reviewCount,
+        ratingCount: entry.ratingCount ?? 0,
+        reviewCount: entry.reviewCount ?? 0,
         rating: entry.perfumeRating != null ? String(entry.perfumeRating) : null,
         ratingScore: entry.perfumeRating ?? null,
         priceValue: priceValueString(entry.priceValueAverage),
         popularity: null,
-        popularityScore: entry.reviewCount ?? null,
+        popularityScore: entry.reviewCount ?? 0,
         brandLower: brandName.toLowerCase(),
         country: null,
         confidence: null,

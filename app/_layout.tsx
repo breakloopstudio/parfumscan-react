@@ -1,6 +1,6 @@
 // app/_layout.tsx — Root layout (GestureHandler + Auth + SplashScreen + Edge-to-edge)
 
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { Stack, useRouter, useSegments } from 'expo-router';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { GoogleSignin } from '@react-native-google-signin/google-signin';
@@ -8,13 +8,18 @@ import * as SplashScreen from 'expo-splash-screen';
 import { AuthProvider, useAuthContext } from '../src/contexts/AuthContext';
 import { ThemeProvider, useTheme } from '../src/theme/ThemeContext';
 import { ErrorBoundary } from '../src/components/ErrorBoundary';
+import OfflineBanner from '../src/components/OfflineBanner';
+import { useNetwork } from '../src/hooks/useNetwork';
 import { isFirebaseReady } from '../src/services/firebase';
 import { createNotificationChannels, startFcmRegistration } from '../src/services/fcm';
 import '../src/services/firebase';
+import { useFonts } from 'expo-font';
+import { Inter_400Regular, Inter_500Medium, Inter_600SemiBold, Inter_700Bold, Inter_800ExtraBold } from '@expo-google-fonts/inter';
+import { PlayfairDisplay_500Medium, PlayfairDisplay_600SemiBold, PlayfairDisplay_700Bold, PlayfairDisplay_700Bold_Italic } from '@expo-google-fonts/playfair-display';
 
 try {
   GoogleSignin.configure({
-    webClientId: '831514606817-xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx.apps.googleusercontent.com',
+    webClientId: process.env.EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID,
     iosClientId: process.env.EXPO_PUBLIC_GOOGLE_IOS_CLIENT_ID,
   });
 } catch (e: unknown) { console.warn('[app] GoogleSignin.configure failed:', (e as Error)?.message ?? String(e)); }
@@ -59,6 +64,20 @@ function AuthGuard({ children }: { children: React.ReactNode }) {
 
 function RootLayoutInner() {
   const { theme } = useTheme();
+  const { isOnline } = useNetwork();
+  const [reconnected, setReconnected] = useState(false);
+  const prevOnlineRef = useRef(true);
+
+  useEffect(() => {
+    if (isOnline && !prevOnlineRef.current) {
+      setReconnected(true);
+      const t = setTimeout(() => setReconnected(false), 2500);
+      prevOnlineRef.current = true;
+      return () => clearTimeout(t);
+    }
+    prevOnlineRef.current = isOnline;
+  }, [isOnline]);
+
   return (
     <GestureHandlerRootView style={{ flex: 1, backgroundColor: theme.colors.background }}>
       <AuthProvider>
@@ -77,11 +96,19 @@ function RootLayoutInner() {
           </ErrorBoundary>
         </AuthGuard>
       </AuthProvider>
+      <OfflineBanner visible={!isOnline || reconnected} variant={reconnected ? 'reconnected' : 'offline'} />
     </GestureHandlerRootView>
   );
 }
 
 export default function RootLayout() {
+  // Chargement des polices AVANT tout rendu — le splash reste visible
+  // (preventAutoHideAsync est appelé au niveau module, L22).
+  const [fontsLoaded] = useFonts({
+    Inter_400Regular, Inter_500Medium, Inter_600SemiBold, Inter_700Bold, Inter_800ExtraBold,
+    PlayfairDisplay_500Medium, PlayfairDisplay_600SemiBold, PlayfairDisplay_700Bold, PlayfairDisplay_700Bold_Italic,
+  });
+  if (!fontsLoaded) return null;
   return (
     <ThemeProvider>
       <RootLayoutInner />

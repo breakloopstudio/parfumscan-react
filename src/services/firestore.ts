@@ -8,6 +8,14 @@ import { normalize, STOP_WORDS, generateTrigrams } from '../utils/normalize';
 const db = getFirestore();
 const parfumsCol = () => collection(db, 'parfums');
 
+export class SearchError extends Error {
+  constructor(message: string, cause?: unknown) {
+    super(message);
+    this.name = 'SearchError';
+    if (cause instanceof Error) this.cause = cause;
+  }
+}
+
 
 // ─── Type utilitaire pour le scoring local de searchParfumsCached ───
 
@@ -51,31 +59,27 @@ class LRUCache {
     this.map.set(key, { results: value, cachedAt: Date.now() });
   }
 
-  has(key: string): boolean {
-    const entry = this.map.get(key);
-    if (entry === undefined) return false;
-    if (this.isExpired(entry)) {
-      this.map.delete(key);
-      return false;
-    }
-    return true;
-  }
-
   entries(): IterableIterator<[string, Parfum[]]> {
     const valid: [string, Parfum[]][] = [];
     for (const [key, entry] of this.map.entries()) {
       if (!this.isExpired(entry)) {
         valid.push([key, entry.results]);
+      } else {
+        this.map.delete(key);
       }
     }
     return valid[Symbol.iterator]();
+  }
+
+  clear(): void {
+    this.map.clear();
   }
 }
 
 const _searchCache = new LRUCache(200);
 
 function generateQueryTrigrams(query: string): string[] {
-  const words = normalize(query).split('_').filter(w => w.length >= 2);
+  const words = normalize(query).split('_').filter(w => w.length >= 2 && !STOP_WORDS.has(w)).slice(0, 6);
   const trigrams = new Set<string>();
   for (const word of words) {
     for (const tg of generateTrigrams(word)) {
@@ -144,15 +148,6 @@ export async function getParfumById(id: string): Promise<Parfum | undefined> {
   return docToParfum(snap);
 }
 
-export function onParfumsByMarque(marque: string, cb: (parfums: Parfum[]) => void): () => void {
-  const q = query(parfumsCol(), where('marque', '>=', marque), where('marque', '<=', marque + '\uf8ff'), orderBy('marque'));
-  return onSnapshot(q, (snap) => {
-    if (!snap) { cb([]); return; }
-    cb(snap.docs.map(docToParfum)
-      .filter((p: Parfum) => p.marque.toLowerCase().includes(marque.toLowerCase())));
-  }, (err) => { console.warn('[firestore] onParfumsByMarque error:', err.message); cb([]); });
-}
-
 export async function createParfum(fragranceData: Omit<Parfum, 'id' | 'createdAt' | 'updatedAt'>): Promise<DocumentReference<DocumentData, DocumentData>> {
   const now = new Date();
   return addDoc(parfumsCol(), { ...fragranceData, createdAt: now, updatedAt: now });
@@ -204,7 +199,8 @@ export async function searchParfumsCached(queryStr: string): Promise<Parfum[]> {
   const searchTokens = rawTokens
     .flatMap(t => normalize(t).split('_'))
     .filter(t => t.length >= 2 && !STOP_WORDS.has(t))
-    .slice(0, 10);
+    .sort((a, b) => b.length - a.length)
+    .slice(0, 4);
 
   if (searchTokens.length === 0) {
     _searchCache.set(q, []);
@@ -247,26 +243,33 @@ export async function searchParfumsCached(queryStr: string): Promise<Parfum[]> {
   };
 
   // Prefix cache: if a shorter query is in cache, re-score locally instead of hitting Firestore.
-  // Only use prefix cache when the new query has the same number of words — otherwise
-  // the cached results come from fewer tokens and the target may be missing entirely.
-  if (rawTokens.length >= 2) {
-    for (const [key, results] of _searchCache.entries()) {
-      const keyTokens = key.split(/\s+/).filter(t => t.length >= 2).length;
-      if (results.length > 0 && q.startsWith(key) && q !== key && rawTokens.length <= keyTokens) {
-        const cachedDocs: ScoredDoc[] = results.map((p) => {
-          const d = p as unknown as Record<string, unknown>;
-          const rCount = (d.reviewCount as number) ?? 0;
-          const ratCount = (d.ratingCount as number) ?? 0;
-          return { id: p.id, _score: 0, _pop: Math.max(rCount, ratCount, p.popularityScore ?? 0), ...d } as ScoredDoc;
-        });
-        const reScored = _scoreDocs(cachedDocs);
-        let deduped: Parfum[];
-        try { deduped = _dedupByMarqueNom(reScored); } catch { deduped = reScored; }
-        _searchCache.set(q, deduped);
-        if (__DEV__) console.log(`[search] "${q}" — prefix cache hit (from "${key}", ${deduped.length} results)`);
-        return deduped;
-      }
+  // Picks the cached query with the most results (broadest candidate pool) for best recall.
+  // If re-scored results are < 5, falls through to Firestore + fuzzy for full recall.
+  let bestKey = '';
+  let bestResults: Parfum[] = [];
+  for (const [key, results] of _searchCache.entries()) {
+    if (results.length > 0 && q.startsWith(key) && q !== key && results.length > bestResults.length) {
+      bestKey = key;
+      bestResults = results;
     }
+  }
+
+  if (bestKey) {
+    const cachedDocs: ScoredDoc[] = bestResults.map((p) => {
+      const d = p as unknown as Record<string, unknown>;
+      const rCount = (d.reviewCount as number) ?? 0;
+      const ratCount = (d.ratingCount as number) ?? 0;
+      return { id: p.id, _score: 0, _pop: Math.max(rCount, ratCount, p.popularityScore ?? 0), ...d } as ScoredDoc;
+    });
+    const reScored = _scoreDocs(cachedDocs);
+    let deduped: Parfum[];
+    try { deduped = _dedupByMarqueNom(reScored); } catch { deduped = reScored; }
+    if (deduped.length >= 5) {
+      _searchCache.set(q, deduped);
+      if (__DEV__) console.log(`[search] "${q}" — prefix cache hit (from "${bestKey}", ${deduped.length} results)`);
+      return deduped;
+    }
+    if (__DEV__) console.log(`[search] "${q}" — prefix cache low recall (${deduped.length}), falling through to Firestore`);
   }
 
   const t0 = Date.now();
@@ -281,11 +284,11 @@ export async function searchParfumsCached(queryStr: string): Promise<Parfum[]> {
 
       if (!snap.empty) {
         const docs: ScoredDoc[] = snap.docs.map((d) => {
-          const data = d.data() as Record<string, unknown>;
-          const reviewCount = (data.reviewCount as number) ?? 0;
-          const ratingCount = (data.ratingCount as number) ?? 0;
-          const popularityScore = (data.popularityScore as number) ?? 0;
-          return { id: d.id, _score: 0, _pop: Math.max(reviewCount, ratingCount, popularityScore), ...data } as ScoredDoc;
+          const p = docToParfum(d);
+          const reviewCount = p.reviewCount ?? 0;
+          const ratingCount = p.ratingCount ?? 0;
+          const popularityScore = p.popularityScore ?? 0;
+          return { ...p, _score: 0, _pop: Math.max(reviewCount, ratingCount, popularityScore) } as ScoredDoc;
         });
 
         allResults = _scoreDocs(docs);
@@ -298,26 +301,32 @@ export async function searchParfumsCached(queryStr: string): Promise<Parfum[]> {
 
       const snapResults = await Promise.allSettled(
         searchTokens.map(token =>
-          getDocs(query(parfumsCol(), where('searchKeywords', 'array-contains', token), orderBy('reviewCount', 'desc'), limit(300)))
+          getDocs(query(parfumsCol(), where('searchKeywords', 'array-contains', token), orderBy('reviewCount', 'desc'), limit(150)))
         )
       );
 
+      let anySucceeded = false;
       for (const result of snapResults) {
         if (result.status === 'rejected') {
           console.warn('[firestore] searchParfumsCached token query failed:', (result.reason as Error)?.message ?? String(result.reason));
           continue;
         }
+        anySucceeded = true;
         const s = result.value;
         for (const d of s.docs) {
           if (!seen.has(d.id)) {
             seen.add(d.id);
-            const data = d.data() as Record<string, unknown>;
-            const reviewCount = (data.reviewCount as number) ?? 0;
-            const ratingCount = (data.ratingCount as number) ?? 0;
-            const popularityScore = (data.popularityScore as number) ?? 0;
-            allDocs.push({ id: d.id, _score: 0, _pop: Math.max(reviewCount, ratingCount, popularityScore), ...data } as ScoredDoc);
+            const p = docToParfum(d);
+            const reviewCount = p.reviewCount ?? 0;
+            const ratingCount = p.ratingCount ?? 0;
+            const popularityScore = p.popularityScore ?? 0;
+            allDocs.push({ ...p, _score: 0, _pop: Math.max(reviewCount, ratingCount, popularityScore) } as ScoredDoc);
           }
         }
+      }
+
+      if (!anySucceeded) {
+        throw new SearchError('Toutes les requêtes de recherche ont échoué. Vérifiez votre connexion.');
       }
 
       allResults = _scoreDocs(allDocs);
@@ -368,8 +377,10 @@ export async function searchParfumsCached(queryStr: string): Promise<Parfum[]> {
     _searchCache.set(q, deduped);
     return deduped;
   } catch (err: unknown) {
-    console.warn('[firestore] searchParfumsCached failed:', (err as Error)?.message ?? String(err));
-    return [];
+    throw new SearchError(
+      (err as Error)?.message ?? 'La recherche a échoué. Vérifiez votre connexion.',
+      err,
+    );
   }
 }
 
@@ -444,12 +455,12 @@ export async function getPersonalizedSuggestions(
   try {
     const familySnap = await getDocs(query(parfumsCol(), where('familleOlactive', 'in', topFamilies), limit(20)));
     candidates = familySnap.docs.map(docToParfum);
-  } catch (e: unknown) { console.warn('[firestore] getSimilarParfums family query failed:', (e as Error)?.message ?? String(e)); }
+  } catch (e: unknown) { console.warn('[firestore] getPersonalizedSuggestions family query failed:', (e as Error)?.message ?? String(e)); }
 
   let popular: Parfum[] = [];
   try {
     popular = await getPopularParfums(20);
-  } catch (e: unknown) { console.warn('[firestore] getSimilarParfums popular fallback failed:', (e as Error)?.message ?? String(e)); }
+  } catch (e: unknown) { console.warn('[firestore] getPersonalizedSuggestions popular fallback failed:', (e as Error)?.message ?? String(e)); }
 
   const unique = new Map<string, Parfum>();
   for (const p of candidates) unique.set(p.id, p);
@@ -526,13 +537,7 @@ export async function searchParfumFromScan(marque: string | null, nom: string | 
   const query = [marque, nom].filter(Boolean).join(' ').trim();
   if (query.length < 2) return [];
 
-  let results: Parfum[];
-  try {
-    results = await searchParfumsCached(query);
-  } catch {
-    return [];
-  }
-
+  const results = await searchParfumsCached(query);
   if (results.length === 0) return [];
 
   const normMarque = marque ? normalize(marque) : null;
@@ -541,8 +546,6 @@ export async function searchParfumFromScan(marque: string | null, nom: string | 
   const rescored = results.map((p) => {
     const docMarque = normalize(p.marque || '');
     const docNom = normalize(p.nom || '');
-    // Ne pas polluer l'objet Parfum original
-    const pWithScore = p as Parfum & { _scanScore?: number };
     let bonus = 0;
 
     if (normNom) {
@@ -561,8 +564,7 @@ export async function searchParfumFromScan(marque: string | null, nom: string | 
       }
     }
 
-    pWithScore._scanScore = bonus;
-    return pWithScore;
+    return { ...p, _scanScore: bonus };
   });
 
   rescored.sort((a, b) => {
@@ -574,4 +576,15 @@ export async function searchParfumFromScan(marque: string | null, nom: string | 
   });
 
   return _dedupByMarqueNom(rescored);
+}
+
+/** Vérifie si une query est en cache sans appel Firestore.
+ *  Utilisé par le rate limiter pour ne pas compter les cache hits. */
+export function peekSearchCache(queryStr: string): Parfum[] | undefined {
+  return _searchCache.get(queryStr.trim().toLowerCase());
+}
+
+/** Vide le cache de recherche. Appeler après une mutation admin (updateParfum, etc.). */
+export function clearSearchCache(): void {
+  _searchCache.clear();
 }

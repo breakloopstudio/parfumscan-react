@@ -1,4 +1,4 @@
-# ParfumScan React — Environment & Commands (v6.16)
+# ParfumScan React — Environment & Commands (v6.18)
 
 ## Environnement local (Windows)
 | Variable | Valeur |
@@ -83,7 +83,7 @@ npx tsc --noEmit     # vérifier la compilation (0 erreur attendu)
 
 ### Tests
 ```bash
-npx jest --ci         # 185 tests, 14 suites, ~8s
+npx jest --ci         # 194 tests, 15 suites, ~22s
 npm test              # watch mode
 npm run test:ci       # CI mode avec couverture
 ```
@@ -96,6 +96,38 @@ react-native-svg ^15 · react-native-pager-view ^8.0 · @react-native-vector-ico
 @react-native-async-storage/async-storage · expo-navigation-bar ~57 · expo-system-ui ~57 · typescript ~6.0
 react-hook-form ^7.81 · zod ^4.4
 expo-speech-recognition ^56 · expo-audio ~57 · expo-file-system ~57 · expo-location ~57
+
+## Notes v6.17 — Fiche détail refonte + polices réellement chargées (22/07/2026)
+
+**P0 polices** : Inter/Playfair n'étaient chargées nulle part (fallback système silencieux Android, crash iOS potentiel). Ajout `@expo-google-fonts/inter` + `@expo-google-fonts/playfair-display` + `useFonts` dans `_layout.tsx` (rendu bloqué jusqu'à `fontsLoaded`). Italique `PlayfairDisplay_700Bold_Italic` activée pour la ligne éditoriale.
+
+**Fiche détail** : refonte UX/UI complète. `DetailHero` remplace `HeroPriceOverlay` (prix retiré de l'image). Prix unique dans le flux. Sections renommées : « En résumé » → « Tenue & sillage » (jauge Popularité supprimée, `popularityScore` reste interne), « Toutes les offres » → « Comparer les marchands », « Parfums similaires » → « Dans le même esprit », « Saisonnalité »+« Occasions » → « Quand le porter » (saisons en 4 colonnes verticales, occasions en chips top 3). Bug day/night corrigé : whitelist `normalizeSeasonKey` + `rankAndDedupe`. Ligne éditoriale italique « Hiver · Soirée ». `StickyBottomBar` devient barre d'action flottante (langage DockBar) + icône `flask`. Titres de section à pastille teintée sémantique (plus d'emojis).
+
+**Design system v1.2** : 8 tokens saisonniers (`seasonSpring/Summer/Fall/Winter` + Soft, light+dark), patterns 4.9-4.11 (titre éditorial, colonnes de saison, barre flottante), règle useFonts en checklist.
+
+## Notes v6.18 — Auth v2, Search hardening, OfflineBanner global, Weather simplifié (23/07/2026)
+
+**Auth v2** : validation email regex, toggle visibilité mot de passe, mot de passe oublié (`sendPasswordResetEmail`), gestion `auth/cancelled` silencieux (Google), `textOn()` pour texte dynamique sur fond coloré. `KeyboardAvoidingView` corrigé (plus de `height` sur Android). SafeAreaInsets.
+
+**Search hardening** : `SearchError` typé, limité à 4 tokens (triés par taille décroissante), trigrammes filtrés par stop words. Prefix cache : prend la query la plus peuplée, retombe Firestore si < 5 résultats. `anySucceeded` guard → `SearchError` si toutes les queries échouent (plus de `[]` silencieux). `onParfumsByMarque` (dead code) supprimé. `peekSearchCache()` / `clearSearchCache()` exportés. `docToParfum()` utilisé partout. `searchParfumFromScan` propage les erreurs. `_scanScore` copie spread (plus de mutation).
+
+**useCatalog** : `peekSearchCache()` pour sauter le rate budget sur cache hit. `rateLimited` state + fallback gracieux (résultats précédents conservés). `error` state.
+
+**Weather simplifié** : suppression `getStoredCity`/`setStoredCity` (GPS only, plus de fallback ville). 10s abort timeout fetch. Permission en deux étapes : `getForegroundPermissionsAsync()` d'abord, `requestForegroundPermissionsAsync()` seulement si `undetermined`. Délai initial 1s.
+
+**VoiceOverlay** : safe areas + hauteur max dynamique (42% window, cap 360). Champ `query` dans phases searching/results. Separator line. `pointerEvents="box-none"`. Accessibilité voix.
+
+**TabPager** : vérification réseau avant recherche vocale. `showMicFab` plus précis (caché si overlay visible, pas seulement listening). `textOn()` pour icône micro.
+
+**OfflineBanner global** : `OfflineBanner` dans `_layout.tsx` (visible sur tous les écrans). État `reconnected` avec bannière 2.5s.
+
+**Contrast utility** : `contrast.ts` — `textOn(bgHex)` basé WCAG luminance. Utilisé dans auth, TabPager.
+
+**Theme** : 8 tokens saisonniers `seasonXxx`/`seasonXxxSoft` (light+dark). `dealInk`/`overpricedInk`/`fairInk`. `textMuted` éclairci `#6E6963`.
+
+**Tests** : 194 tests, 15 suites. Test `error-translator` corrigé (unknown code → générique FR).
+
+**Scripts** : `audit-search-fields.ts`, `backfill-search-fields.ts`.
 
 ## Notes v6.16 — Scan stability, BrandSheet, Pager gestures (22/07/2026)
 

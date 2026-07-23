@@ -2,14 +2,18 @@ import { renderHook, act, waitFor } from '@testing-library/react-native';
 import { useCatalog } from '../../src/hooks/useCatalog';
 
 const mockSearch = jest.fn();
+const mockPeek = jest.fn().mockReturnValue(undefined);
 jest.mock('../../src/services/firestore', () => ({
   searchParfumsCached: (...args: unknown[]) => mockSearch(...args),
+  peekSearchCache: (...args: unknown[]) => mockPeek(...args),
 }));
 
 describe('useCatalog', () => {
   beforeEach(() => {
     jest.useFakeTimers();
     mockSearch.mockClear();
+    mockPeek.mockClear();
+    mockPeek.mockReturnValue(undefined);
     mockSearch.mockResolvedValue([]);
   });
 

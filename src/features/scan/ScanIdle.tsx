@@ -13,17 +13,19 @@ import Animated, {
 } from 'react-native-reanimated';
 import Ionicons from '@react-native-vector-icons/ionicons/static';
 import { useTheme, type Theme } from '../../theme/ThemeContext';
+import { textOn } from '../../utils/contrast';
 
 interface Props {
   onStartScan: () => void;
   onImportGallery: () => void;
   onOpenManual: () => void;
+  isOnline?: boolean;
 }
 
 const VF = 220;
 const CORNER = 28;
 
-export function ScanIdle({ onStartScan, onImportGallery, onOpenManual }: Props) {
+export function ScanIdle({ onStartScan, onImportGallery, onOpenManual, isOnline = true }: Props) {
   const { theme } = useTheme();
   const s = useMemo(() => getStyles(theme), [theme]);
   const insets = useSafeAreaInsets();
@@ -69,12 +71,12 @@ export function ScanIdle({ onStartScan, onImportGallery, onOpenManual }: Props) 
       </Text>
 
       <View style={s.actions}>
-        <Pressable onPress={onStartScan} style={s.cta}>
-          <Ionicons name="camera-outline" size={20} color="#FFF" style={{ marginRight: 8 }} />
+        <Pressable onPress={onStartScan} style={[s.cta, !isOnline && { opacity: 0.5 }]}>
+          <Ionicons name="camera-outline" size={20} color={textOn(theme.colors.primary)} style={{ marginRight: 8 }} />
           <Text style={s.ctaText}>Scanner un flacon</Text>
         </Pressable>
 
-        <Pressable onPress={onImportGallery} style={s.outline}>
+        <Pressable onPress={onImportGallery} style={[s.outline, !isOnline && { opacity: 0.5 }]}>
           <Ionicons name="images-outline" size={20} color={theme.colors.primary} style={{ marginRight: 8 }} />
           <Text style={s.outlineText}>Importer de la galerie</Text>
         </Pressable>
@@ -84,6 +86,10 @@ export function ScanIdle({ onStartScan, onImportGallery, onOpenManual }: Props) 
           <Text style={s.linkText}>Rechercher sans scanner</Text>
         </Pressable>
       </View>
+
+      {!isOnline && (
+        <Text style={s.offlineHint}>Scan indisponible hors-ligne</Text>
+      )}
 
       <Text style={[s.tip, { bottom: 24 + insets.bottom }]}>
         Astuce : cadre la marque et le nom pour un résultat optimal
@@ -155,7 +161,7 @@ function getStyles(t: Theme) {
       ...t.shadow.button,
     },
     ctaText: {
-      color: '#FFFFFF',
+      color: textOn(t.colors.primary),
       fontFamily: 'Inter_600SemiBold',
       fontSize: 17,
     },
@@ -193,6 +199,13 @@ function getStyles(t: Theme) {
       color: t.colors.textMuted,
       textAlign: 'center',
       paddingHorizontal: 32,
+    },
+    offlineHint: {
+      fontFamily: 'Inter_400Regular',
+      fontSize: 12,
+      color: t.colors.textMuted,
+      marginTop: 4,
+      textAlign: 'center',
     },
   } as const;
 }

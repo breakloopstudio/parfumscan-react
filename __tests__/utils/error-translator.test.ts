@@ -46,10 +46,10 @@ describe('translateFirebaseError', () => {
     expect(translateFirebaseError(err)).toBe('Connexion requise. Veuillez vous reconnecter.');
   });
 
-  it('falls back to error.message if code is unknown', () => {
+  it('falls back to generic message if code is unknown', () => {
     const err = new Error('Custom error message') as Error & { code: string };
     err.code = 'auth/some-unknown-code';
-    expect(translateFirebaseError(err)).toBe('Custom error message');
+    expect(translateFirebaseError(err)).toBe('Une erreur est survenue. Réessayez.');
   });
 
   it('falls back to generic message for non-Error values', () => {

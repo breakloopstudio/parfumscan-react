@@ -2,9 +2,10 @@
 
 import { useState, useEffect, useCallback, useRef } from 'react';
 import * as Location from 'expo-location';
-import { fetchWeather, getStoredCity, type WeatherData } from '../services/weather';
+import { fetchWeather, type WeatherData } from '../services/weather';
 
 const POSITION_TIMEOUT_MS = 5000;
+const INITIAL_DELAY_MS = 1000;
 
 interface UseWeatherResult {
   weather: WeatherData | null;
@@ -28,11 +29,11 @@ export function useWeather(enabled = true): UseWeatherResult {
   const load = useCallback(async () => {
     if (!enabled) return;
 
-    setLoading(true);
-    setError(null);
+    if (mountedRef.current) setLoading(true);
+    if (mountedRef.current) setError(null);
 
     try {
-      const { status } = await Location.requestForegroundPermissionsAsync();
+      const { status } = await Location.getForegroundPermissionsAsync();
 
       if (status === 'granted') {
         let pos = await Location.getLastKnownPositionAsync();
@@ -50,29 +51,39 @@ export function useWeather(enabled = true): UseWeatherResult {
             if (data) {
               setWeather(data);
               setCoords({ lat: pos.coords.latitude, lon: pos.coords.longitude });
-            } else setError('Impossible de récupérer la météo.');
+            } else {
+              setError('Impossible de récupérer la météo.');
+            }
           }
           return;
         }
-      }
-
-      const city = await getStoredCity();
-      if (city) {
-        const coords = await geocodeCity(city);
-        if (coords) {
-          const data = await fetchWeather(coords.lat, coords.lon);
-          if (mountedRef.current) {
-            if (data) {
-              setWeather(data);
-              setCoords({ lat: coords.lat, lon: coords.lon });
-            } else setError('Impossible de récupérer la météo.');
+      } else if (status === 'undetermined') {
+        const { status: newStatus } = await Location.requestForegroundPermissionsAsync();
+        if (newStatus === 'granted') {
+          let pos = await Location.getLastKnownPositionAsync();
+          if (!pos) {
+            pos = await withTimeout(
+              Location.getCurrentPositionAsync({}),
+              POSITION_TIMEOUT_MS,
+            );
           }
-          return;
+          if (pos) {
+            const data = await fetchWeather(pos.coords.latitude, pos.coords.longitude);
+            if (mountedRef.current) {
+              if (data) {
+                setWeather(data);
+                setCoords({ lat: pos.coords.latitude, lon: pos.coords.longitude });
+              } else {
+                setError('Impossible de récupérer la météo.');
+              }
+            }
+            return;
+          }
         }
       }
 
       if (mountedRef.current) {
-        setError('Autorisez la localisation ou définissez une ville dans les paramètres.');
+        setError('Autorisez la localisation dans les paramètres système.');
       }
     } catch (e: unknown) {
       if (mountedRef.current) {
@@ -85,8 +96,10 @@ export function useWeather(enabled = true): UseWeatherResult {
   }, [enabled]);
 
   useEffect(() => {
-    load();
-  }, [load]);
+    if (!enabled) return;
+    const timer = setTimeout(load, INITIAL_DELAY_MS);
+    return () => clearTimeout(timer);
+  }, [load, enabled]);
 
   return { weather, loading, error, coords, refresh: load };
 }
@@ -98,15 +111,4 @@ function withTimeout<T>(promise: Promise<T>, ms: number): Promise<T | null> {
   return Promise.race([promise, timeout]);
 }
 
-async function geocodeCity(city: string): Promise<{ lat: number; lon: number } | null> {
-  try {
-    const results = await Location.geocodeAsync(city);
-    if (results.length > 0) {
-      return { lat: results[0].latitude, lon: results[0].longitude };
-    }
-    return null;
-  } catch (e: unknown) {
-    console.warn('[useWeather] geocode failed:', (e as Error)?.message ?? String(e));
-    return null;
-  }
-}
+

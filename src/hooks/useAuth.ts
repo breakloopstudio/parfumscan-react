@@ -60,15 +60,22 @@ export function useAuth() {
         await GoogleSignin.hasPlayServices({ showPlayServicesUpdateDialog: true });
       }
       const signInResult = await GoogleSignin.signIn();
+      if (signInResult.type === 'cancelled') {
+        throw Object.assign(new Error('cancel'), { code: 'auth/cancelled' });
+      }
       const idToken = signInResult.data?.idToken;
       if (!idToken) throw new Error('Google Sign-In annulé.');
       const googleCredential = GoogleAuthProvider.credential(idToken);
       return await signInWithCredential(getAuth(), googleCredential);
-    } catch (e: unknown) { throw new Error(translateFirebaseError(e)); }
+    } catch (e: unknown) {
+      const code = (e as { code?: string }).code;
+      if (code === 'auth/cancelled') throw e;
+      throw new Error(translateFirebaseError(e));
+    }
   }, []);
 
   const logout = useCallback(async () => {
-    await signOut(getAuth()).catch(() => {});
+    await signOut(getAuth()).catch((e) => console.warn('[auth] signOut failed:', (e as Error)?.message ?? String(e)));
     try { await GoogleSignin.signOut(); } catch (e: unknown) { console.warn('[auth] GoogleSignin.signOut failed:', (e as Error)?.message ?? String(e)); }
   }, []);
 

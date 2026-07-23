@@ -8,6 +8,7 @@ import Animated, { useSharedValue, useAnimatedStyle } from 'react-native-reanima
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Ionicons from '@react-native-vector-icons/ionicons/static';
 import { useTheme, type Theme } from '../../theme/ThemeContext';
+import { textOn } from '../../utils/contrast';
 import { hapticsLight } from '../../services/haptics';
 
 const ALL_BRANDS = [
@@ -356,7 +357,7 @@ function getStyles(t: Theme) {
     },
     stripPillActive: { backgroundColor: t.colors.primary },
     stripText: { fontFamily: 'Inter_600SemiBold', fontSize: 10, color: t.colors.textMuted },
-    stripTextActive: { color: '#FFFFFF' },
+    stripTextActive: { color: textOn(t.colors.primary) },
     loupe: {
       position: 'absolute',
       right: 44,
@@ -367,7 +368,7 @@ function getStyles(t: Theme) {
       zIndex: 20,
     },
     loupeText: {
-      fontFamily: 'PlayfairDisplay_700Bold', fontSize: 24, color: '#FFFFFF',
+      fontFamily: 'PlayfairDisplay_700Bold', fontSize: 24, color: textOn(t.colors.primary),
     },
   } as const;
 }

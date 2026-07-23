@@ -10,6 +10,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { useAuthContext } from '../src/contexts/AuthContext';
 import { onParfums, updateParfum } from '../src/services/firestore';
 import { useTheme, type Theme } from '../src/theme/ThemeContext';
+import { textOn } from '../src/utils/contrast';
 import type { Parfum } from '../src/models';
 import { uploadParfumImage } from '../src/services/storage';
 
@@ -114,7 +115,7 @@ export default function AdminPage() {
         {selectedUri && selectedId && (
           <Pressable style={[s.btnUpload, uploading && { opacity: 0.5 }]} onPress={doUpload} disabled={uploading}>
             {uploading
-              ? <ActivityIndicator size="small" color="#FFF"/>
+              ? <ActivityIndicator size="small" color={textOn(theme.colors.primary)}/>
               : <Text style={s.btnUploadText}>⬆️ Uploader pour {selectedParfum?.marque} – {selectedParfum?.nom}</Text>
             }
           </Pressable>
@@ -136,7 +137,7 @@ function getStyles(t: Theme) {
     sub: { fontSize: 16, fontFamily: 'Inter_600SemiBold', color: t.colors.text, marginBottom: 8 },
     desc: { fontSize: 14, fontFamily: 'Inter_400Regular', color: t.colors.textMuted, marginBottom: 16, lineHeight: 20 },
     btnUpload: { backgroundColor: t.colors.primary, borderRadius: t.radius.base, height: 48, justifyContent: 'center', alignItems: 'center', marginTop: 12, ...t.shadow.button },
-    btnUploadText: { color: '#FFF', fontFamily: 'Inter_600SemiBold', fontSize: 15 },
+    btnUploadText: { color: textOn(t.colors.primary), fontFamily: 'Inter_600SemiBold', fontSize: 15 },
     btnOutline: { borderWidth: 1, borderColor: t.colors.primary, borderRadius: t.radius.base, height: 48, justifyContent: 'center', alignItems: 'center', marginTop: 12 },
     btnOutlineText: { color: t.colors.primary, fontFamily: 'Inter_600SemiBold', fontSize: 15 },
     fieldLabel: { fontSize: 13, fontFamily: 'Inter_500Medium', color: t.colors.text, marginBottom: 8, marginTop: 8 },

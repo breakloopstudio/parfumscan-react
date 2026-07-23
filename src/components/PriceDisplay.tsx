@@ -4,6 +4,7 @@ import { useEffect, useMemo } from 'react';
 import { View, Text, type ViewStyle } from 'react-native';
 import Animated, { useSharedValue, useAnimatedStyle, withSpring } from 'react-native-reanimated';
 import { useTheme, type Theme } from '../theme/ThemeContext';
+import { textOn } from '../utils/contrast';
 
 type PriceValue = 'deal' | 'fair' | 'overpriced' | 'unknown';
 
@@ -66,12 +67,12 @@ export default function PriceDisplay({
         )}
         {pct !== null && pct > 0 && pct <= 95 && (
           <View style={[s.discountBadge, { backgroundColor: color }]}>
-            <Text style={s.discountText}>-{pct}%</Text>
+            <Text style={[s.discountText, { color: textOn(color) }]}>-{pct}%</Text>
           </View>
         )}
       </View>
       {valueLabel(val) && (
-        <Text style={[s.valueLabel, { color }]}>{valueLabel(val)}</Text>
+        <Text style={[s.valueLabel, { color: priceInk(val, theme) }]}>{valueLabel(val)}</Text>
       )}
     </Animated.View>
   );
@@ -89,6 +90,13 @@ function priceBg(v: PriceValue, t: Theme): string {
   if (v === 'overpriced') return t.colors.overpricedSoft;
   if (v === 'fair') return t.colors.fairSoft;
   return t.colors.surface2;
+}
+
+function priceInk(v: PriceValue, t: Theme): string {
+  if (v === 'deal') return t.colors.dealInk;
+  if (v === 'overpriced') return t.colors.overpricedInk;
+  if (v === 'fair') return t.colors.fairInk;
+  return t.colors.text;
 }
 
 function valueLabel(v: PriceValue): string | null {
@@ -129,7 +137,6 @@ function getStyles(t: Theme) {
     discountText: {
       fontSize: 13,
       fontFamily: 'Inter_700Bold',
-      color: '#FFFFFF',
     },
     valueLabel: {
       fontSize: 13,

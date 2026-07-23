@@ -17,6 +17,7 @@ import BrandSheet from './BrandSheet';
 import { getPopularParfums, getPersonalizedSuggestions } from '../../services/firestore';
 import { useDensityPreference, GRID_MODES } from '../../hooks/useDensityPreference';
 import { useTheme, type Theme } from '../../theme/ThemeContext';
+import { textOn } from '../../utils/contrast';
 import type { Parfum } from '../../models';
 
 const ICONIC_NAMES = [
@@ -320,7 +321,7 @@ function getStyles(t: Theme) {
       backgroundColor: t.colors.primary, paddingHorizontal: 12, paddingVertical: 6,
       borderRadius: t.radius.sm,
     },
-    bannerLinkText: { color: '#FFFFFF', fontFamily: 'Inter_600SemiBold', fontSize: 13 },
+    bannerLinkText: { color: textOn(t.colors.primary), fontFamily: 'Inter_600SemiBold', fontSize: 13 },
     headerBar: {
       flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
       paddingHorizontal: t.spacing.md, paddingTop: 8, paddingBottom: 12,

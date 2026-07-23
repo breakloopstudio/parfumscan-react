@@ -12,6 +12,9 @@ const AUTH_ERROR_MAP: Record<string, string> = {
   'auth/network-request-failed': 'Problème de connexion réseau.',
   'auth/internal-error': 'Une erreur interne est survenue.',
   'auth/popup-closed-by-user': 'Fenêtre de connexion fermée.',
+  'auth/user-disabled': 'Ce compte a été désactivé.',
+  'auth/account-exists-with-different-credential': 'Un compte existe déjà avec cet email via un autre mode de connexion.',
+  'auth/cancelled': '',
 };
 
 const FIRESTORE_ERROR_MAP: Record<string, string> = {
@@ -39,6 +42,7 @@ export function translateFirebaseError(error: unknown): string {
         FUNCTIONS_ERROR_MAP[firebaseError.code] ??
         FIRESTORE_ERROR_MAP[firebaseError.code];
       if (message) return message;
+      return 'Une erreur est survenue. Réessayez.';
     }
     return error.message;
   }

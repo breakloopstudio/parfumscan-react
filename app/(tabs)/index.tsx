@@ -21,11 +21,13 @@ import Animated, {
 } from 'react-native-reanimated';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useTheme, type Theme } from '../../src/theme/ThemeContext';
+import { textOn } from '../../src/utils/contrast';
 import { hapticsLight } from '../../src/services/haptics';
 import { consumePendingParfum, setPendingParfum } from '../../src/services/catalog-bridge';
 import { searchParfumsCached } from '../../src/services/firestore';
 import { transcribeVoice } from '../../src/services/voice-search';
 import { useVoiceSearch } from '../../src/hooks/useVoiceSearch';
+import { useNetwork } from '../../src/hooks/useNetwork';
 import { useVoicePreference } from '../../src/hooks/useVoicePreference';
 import type { VoiceState, VoiceResult } from '../../src/hooks/useVoiceSearch';
 import type { Parfum } from '../../src/models';
@@ -59,6 +61,8 @@ export default function TabPager() {
   const dockTranslateY = useSharedValue(0);
   const dockSheetVisible = useSharedValue(false);
   const [sheetOpen, setSheetOpen] = useState(false);
+
+  const { isOnline } = useNetwork();
 
   const translateX = useSharedValue(0);
   const startX = useSharedValue(0);
@@ -153,17 +157,19 @@ export default function TabPager() {
   const voiceRequestIdRef = useRef(0);
 
   const handleVoiceResult = useCallback(async (result: VoiceResult) => {
-    setVoicePhase({ type: 'searching' });
+    const searchQuery = result.text?.trim() || '';
+    setVoicePhase({ type: 'searching', query: searchQuery });
     const requestId = ++voiceRequestIdRef.current;
 
     try {
       if (result.text) {
         setVoiceTranscript(result.text);
-        const results = await searchParfumsCached(result.text.trim());
+        const resolvedQuery = result.text.trim();
+        const results = await searchParfumsCached(resolvedQuery);
         if (requestId !== voiceRequestIdRef.current) return;
         if (results.length > 0) {
           setVoiceResults(results);
-          setVoicePhase({ type: 'results', results });
+          setVoicePhase({ type: 'results', results, query: resolvedQuery });
           return;
         }
       }
@@ -171,13 +177,14 @@ export default function TabPager() {
       if (result.audioBase64) {
         const whisperText = await transcribeVoice(result.audioBase64, 'audio/wav');
         if (requestId !== voiceRequestIdRef.current) return;
-        if (whisperText.trim()) {
-          setVoiceTranscript(whisperText);
-          const results = await searchParfumsCached(whisperText.trim());
+        const resolvedQuery = whisperText.trim();
+        if (resolvedQuery) {
+          setVoiceTranscript(resolvedQuery);
+          const results = await searchParfumsCached(resolvedQuery);
           if (requestId !== voiceRequestIdRef.current) return;
           if (results.length > 0) {
             setVoiceResults(results);
-            setVoicePhase({ type: 'results', results });
+            setVoicePhase({ type: 'results', results, query: resolvedQuery });
             return;
           }
         }
@@ -187,7 +194,7 @@ export default function TabPager() {
       setVoicePhase({ type: 'empty' });
     } catch {
       if (requestId !== voiceRequestIdRef.current) return;
-      setVoicePhase({ type: 'empty' });
+      setVoicePhase({ type: 'error', message: 'La recherche a échoué. Vérifiez votre connexion.' });
     }
   }, []);
 
@@ -198,8 +205,9 @@ export default function TabPager() {
   const voiceSearch = useVoiceSearch(handleVoiceResult, handleVoiceError);
   const { voiceEnabled } = useVoicePreference();
 
-  const overlayVisible = voicePhase.type !== 'listening' || voiceSearch.state !== 'idle';
+  const overlayVisible = voicePhase.type !== 'listening';
   const showVoiceTranscript = voiceSearch.state === 'listening' || voiceSearch.state === 'processing';
+  const showMicFab = voiceEnabled && !overlayVisible;
 
   useEffect(() => {
     if (voicePhase.type !== 'searching') return;
@@ -217,18 +225,26 @@ export default function TabPager() {
   }, [voiceSearch.transcript, voiceSearch.state]);
 
   const handleFabPressIn = useCallback(() => {
+    if (!isOnline) {
+      handleVoiceError('Recherche vocale indisponible hors-ligne.');
+      return;
+    }
     setVoiceResults([]);
     setVoiceTranscript('');
     setVoicePhase({ type: 'listening', transcript: '' });
     hapticsLight();
     voiceSearch.start({ continuous: true });
-  }, [voiceSearch]);
+  }, [isOnline, voiceSearch, handleVoiceError]);
 
   const handleFabPressOut = useCallback(() => {
     voiceSearch.stop();
   }, [voiceSearch]);
 
   const handleSearchMicToggle = useCallback(() => {
+    if (!isOnline) {
+      handleVoiceError('Recherche vocale indisponible hors-ligne.');
+      return;
+    }
     if (voiceSearch.state === 'listening' || voiceSearch.state === 'processing') {
       voiceSearch.stop();
     } else {
@@ -237,7 +253,7 @@ export default function TabPager() {
       setVoicePhase({ type: 'listening', transcript: '' });
       voiceSearch.start({ continuous: true });
     }
-  }, [voiceSearch]);
+  }, [isOnline, voiceSearch, handleVoiceError]);
 
   const handleSearchPress = useCallback(() => {
     if (overlayVisible) return;
@@ -393,7 +409,7 @@ export default function TabPager() {
         />
       </Animated.View>
 
-      {voiceEnabled && (
+      {showMicFab && (
         <Animated.View style={[dockFadeStyle, m.micFabWrap]}>
           <Pressable
             onPressIn={handleFabPressIn}
@@ -407,7 +423,7 @@ export default function TabPager() {
             <Ionicons
               name={showVoiceTranscript ? 'mic' : 'mic-outline'}
               size={22}
-              color={showVoiceTranscript ? '#FFFFFF' : theme.colors.primary}
+              color={showVoiceTranscript ? textOn(theme.colors.primary) : theme.colors.primary}
             />
           </Pressable>
         </Animated.View>

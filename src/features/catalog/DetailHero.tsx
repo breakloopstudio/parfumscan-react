@@ -1,0 +1,84 @@
+// src/features/catalog/DetailHero.tsx — Image hero de la fiche détail (hero pur, sans overlay prix)
+
+import { useMemo } from 'react';
+import { View, Text, Pressable } from 'react-native';
+import { Image } from 'expo-image';
+import Ionicons from '@react-native-vector-icons/ionicons/static';
+import { useTheme, type Theme } from '../../theme/ThemeContext';
+
+const PALETTE = ['#5B21B6', '#1E40AF', '#065F46', '#92400E', '#991B1B', '#9D174D', '#3730A3', '#854D0E'];
+
+function brandColor(brand: string): string {
+  let hash = 0;
+  for (let i = 0; i < brand.length; i++) hash = brand.charCodeAt(i) + ((hash << 5) - hash);
+  return PALETTE[Math.abs(hash) % PALETTE.length];
+}
+
+interface Props {
+  imageUrl: string | null;
+  brand: string;
+  imgFailed: boolean;
+  onImageError: () => void;
+  onImagePress: () => void;
+}
+
+export default function DetailHero({ imageUrl, brand, imgFailed, onImageError, onImagePress }: Props) {
+  const { theme } = useTheme();
+  const s = useMemo(() => getStyles(theme), [theme]);
+
+  const hasImage = imageUrl && !imgFailed;
+
+  return (
+    <View style={s.container}>
+      {hasImage ? (
+        <Pressable onPress={onImagePress}>
+          <Image
+            source={{ uri: imageUrl }}
+            style={s.image}
+            contentFit="contain"
+            transition={300}
+            onError={onImageError}
+          />
+        </Pressable>
+      ) : (
+        <View style={[s.placeholder, { backgroundColor: brandColor(brand) }]}>
+          <Text style={s.placeholderText}>{brand.charAt(0).toUpperCase()}</Text>
+        </View>
+      )}
+
+      {hasImage ? (
+        <Pressable onPress={onImagePress} style={s.expandBtn} hitSlop={8} accessibilityLabel="Agrandir l'image">
+          <Ionicons name="expand-outline" size={16} color={theme.colors.textMuted} />
+        </Pressable>
+      ) : null}
+    </View>
+  );
+}
+
+function getStyles(t: Theme) {
+  return {
+    container: {
+      position: 'relative' as const,
+      width: '100%',
+      height: 340,
+      backgroundColor: t.colors.surface,
+      borderBottomWidth: 0.5,
+      borderBottomColor: t.colors.border,
+    },
+    image: { width: '100%', height: 340, backgroundColor: t.colors.surface },
+    placeholder: { width: '100%', height: 340, justifyContent: 'center' as const, alignItems: 'center' as const },
+    placeholderText: { fontSize: 72, fontFamily: 'Inter_700Bold', color: '#FFFFFF', opacity: 0.5 },
+    expandBtn: {
+      position: 'absolute' as const,
+      bottom: 12,
+      right: 12,
+      width: 32,
+      height: 32,
+      borderRadius: 16,
+      backgroundColor: t.colors.surface,
+      justifyContent: 'center' as const,
+      alignItems: 'center' as const,
+      ...t.shadow.card,
+    },
+  } as const;
+}

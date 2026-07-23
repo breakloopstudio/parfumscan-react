@@ -111,9 +111,18 @@ export const setDoc = jest.fn(async (ref: { path: string }, data: Record<string,
   const c = col(colPath);
   if (options?.merge) {
     const existing = c.get(docId) ?? {};
-    c.set(docId, { ...existing, ...data });
+    const resolved: Record<string, unknown> = { ...existing };
+    for (const [key, val] of Object.entries(data)) {
+      if (typeof val === 'object' && val !== null && '__sentinel' in val && (val as { __sentinel: symbol }).__sentinel === INCREMENT_SENTINEL) {
+        const current = typeof resolved[key] === 'number' ? (resolved[key] as number) : 0;
+        resolved[key] = current + (val as { n: number }).n;
+      } else {
+        resolved[key] = val;
+      }
+    }
+    c.set(docId, resolved);
   } else {
-    c.set(docId, data);
+    c.set(docId, { ...data });
   }
 });
 
@@ -209,4 +218,10 @@ export const onSnapshot = jest.fn((_q: unknown, cb: (snap: unknown) => void, err
 export const Timestamp = {
   now: () => ({ toDate: () => new Date(), seconds: Math.floor(Date.now() / 1000), nanoseconds: 0 }),
   fromDate: (d: Date) => ({ toDate: () => d, seconds: Math.floor(d.getTime() / 1000), nanoseconds: 0 }),
+};
+
+const INCREMENT_SENTINEL = Symbol('FieldValue.increment');
+
+export const FieldValue = {
+  increment: (n: number) => ({ __sentinel: INCREMENT_SENTINEL, n }),
 };

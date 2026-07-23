@@ -225,7 +225,7 @@ function getStyles(t: Theme) {
       flex: 1,
     },
     signatureLabelActive: {
-      color: t.colors.secondary,
+      color: t.colors.secondaryInk,
       fontFamily: 'Inter_600SemiBold',
     },
     signatureCount: {

@@ -1,6 +1,6 @@
 // src/services/wardrobe.ts — CRUD Firestore pour la Wardrobe
 
-import { getFirestore, collection, doc, query, where, orderBy, limit, getDoc, getDocs, setDoc, deleteDoc, writeBatch, onSnapshot, Timestamp } from '@react-native-firebase/firestore';
+import { getFirestore, collection, doc, query, where, orderBy, limit, getDoc, getDocs, setDoc, deleteDoc, writeBatch, onSnapshot, Timestamp, FieldValue } from '@react-native-firebase/firestore';
 import type { WardrobeItem, Shelf, SotdEntry } from '../models/wardrobe.interface';
 
 const db = getFirestore();
@@ -201,11 +201,8 @@ export async function setSotd(uid: string, parfumId: string, nom: string, marque
       marque,
       imageUrl: imageUrl ?? null,
     });
-    const wSnap = await getDoc(doc(wCol(uid), parfumId));
-    const wData = wSnap.data();
-    const currentCount: number = (wData?.sotdCount as number) ?? 0;
     batch.set(doc(wCol(uid), parfumId), {
-      sotdCount: currentCount + 1,
+      sotdCount: FieldValue.increment(1),
       updatedAt: new Date(),
     }, { merge: true });
     await batch.commit();

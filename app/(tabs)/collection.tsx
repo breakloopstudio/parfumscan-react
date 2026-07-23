@@ -10,6 +10,7 @@ import { useWardrobe } from '../../src/hooks/useWardrobe';
 import { useShelves } from '../../src/hooks/useShelves';
 import { useSotd } from '../../src/hooks/useSotd';
 import { useWeather } from '../../src/hooks/useWeather';
+import { useNetwork } from '../../src/hooks/useNetwork';
 import WeatherWidget from '../../src/features/wardrobe/WeatherWidget';
 import { scoreWardrobeItemForWeather } from '../../src/utils/weather-scoring';
 import { saveWeatherCoords } from '../../src/services/user-data';
@@ -42,10 +43,16 @@ export default function WardrobePage({ onScroll, onSheetOpen, onHorizontalScroll
   const { items, loading, update, remove } = useWardrobe(uid);
   const { shelves, create: createShelf, update: updateShelf, remove: removeShelf } = useShelves(uid);
   const { sotd, setTodaySotd } = useSotd(uid);
-  const { weather, loading: weatherLoading, coords } = useWeather(isAuthenticated);
+  const { isOnline } = useNetwork();
+  const { weather, loading: weatherLoading, error: weatherError, coords } = useWeather(isAuthenticated && isOnline);
 
   const haveItems = useMemo(() => items.filter(i => i.ownership === 'have'), [items]);
-  const sotdEligible = useMemo(() => items.filter(i => i.ownership !== 'want'), [items]);
+  const sotdScore = useMemo(() => {
+    if (!weather || !sotd) return null;
+    const sotdItem = items.find(i => i.parfumId === sotd.parfumId);
+    return sotdItem ? scoreWardrobeItemForWeather(sotdItem, weather) : null;
+  }, [items, weather, sotd]);
+  const sotdEligible = useMemo(() => items.filter(i => i.ownership === 'have'), [items]);
 
   const ownershipCounts = useMemo(() => {
     const counts: Record<string, number> = {};
@@ -186,7 +193,7 @@ export default function WardrobePage({ onScroll, onSheetOpen, onHorizontalScroll
         <ProfileAvatar />
       </View>
 
-      <WeatherWidget weather={weather} loading={weatherLoading} sotdName={sotd?.nom ?? undefined} />
+      <WeatherWidget weather={weather} loading={weatherLoading} error={weatherError} sotdName={sotd?.nom ?? undefined} sotdScore={sotdScore ?? undefined} />
 
       <View ref={sotdCardRef} onLayout={handleSotdCardLayout}>
         <SOTDCard
@@ -254,6 +261,10 @@ export default function WardrobePage({ onScroll, onSheetOpen, onHorizontalScroll
         anchorTop={sotdCardAnchor}
         weather={weather}
         onSelect={(parfumId) => {
+          if (parfumId === sotd?.parfumId) {
+            setSotdPickerVisible(false);
+            return;
+          }
           const item = sotdEligible.find(i => i.parfumId === parfumId);
           if (item) {
             hapticsLight();

@@ -14,6 +14,7 @@ import Animated, {
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import Ionicons from '@react-native-vector-icons/ionicons/static';
 import { useTheme, type Theme } from '../src/theme/ThemeContext';
+import { textOn } from '../src/utils/contrast';
 
 const ONBOARDING_KEY = '@parfumscan_onboarding_done';
 const SPRING = { damping: 28, stiffness: 300, mass: 0.8 };
@@ -143,6 +144,6 @@ function getStyles(t: Theme) {
     dot: { width: 8, height: 8, borderRadius: 4, backgroundColor: t.colors.border },
     dotActive: { backgroundColor: t.colors.primary, width: 24 },
     cta: { backgroundColor: t.colors.primary, borderRadius: t.radius.base, height: 50, width: '80%', maxWidth: 320, justifyContent: 'center', alignItems: 'center', ...t.shadow.button },
-    ctaText: { color: '#FFFFFF', fontFamily: 'Inter_600SemiBold', fontSize: 17 },
+    ctaText: { color: textOn(t.colors.primary), fontFamily: 'Inter_600SemiBold', fontSize: 17 },
   } as const;
 }

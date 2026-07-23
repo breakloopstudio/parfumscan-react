@@ -1,7 +1,7 @@
 # Guide de design — ParfumScan
 
 **Direction** : « Luxe malin »  
-**Version** : 1.1 — Juillet 2026  
+**Version** : 1.2 — Juillet 2026 (tokens saisonniers, italique éditorial, barre flottante, polices chargées)  
 **Cible** : iOS + Android (React Native 0.86 / Expo SDK 57)
 
 ---
@@ -54,6 +54,8 @@
 | `pyramidHeartSoft` | Fond de la zone notes de cœur. |
 | `pyramidBase` | Note de fond — cercle pyramide, pastille de note. |
 | `pyramidBaseSoft` | Fond de la zone notes de fond. |
+| `seasonSpring` / `seasonSummer` / `seasonFall` / `seasonWinter` | Identité chromatique des saisons — remplissage des barres de saison et icônes actives (fiche détail, « Quand le porter »). Ne jamais substituer `deal`/`fair`/`secondary` à ces usages. |
+| `seasonSpringSoft` → `seasonWinterSoft` | Pastille de la meilleure saison (fond atténué). |
 | `reward` / `rewardSoft` | Badge promo (-X%), fond de badge. Identique à `secondary`/`secondarySoft`. |
 | `danger` | État d'erreur, bouton destructif. |
 | `success` | État de succès, confirmation. |
@@ -120,6 +122,7 @@ fontWeight: '600'
 | Rôle | Police | Taille | Exemple |
 |---|---|---|---|
 | Titre de page (h1) | `PlayfairDisplay_700Bold` | 28–34 | "Cadre le flacon" |
+| Ligne éditoriale | `PlayfairDisplay_700Bold_Italic` | 15 | Accroche contextuelle en voix lookbook — fiche détail (« Hiver · Soirée »). **Unique usage de l'italique dans l'app** : une ligne max par écran, jamais pour un titre, un label ou du corps. |
 | Titre de section (h2) | `PlayfairDisplay_600SemiBold` | 18–20 | "Ta collection", "Pyramide olfactive" |
 | Titre de carte (h3) | `PlayfairDisplay_600SemiBold` | 18 | Nom du parfum |
 | Marque (overline) | `Inter_400Regular` | 10–12 | Texte uppercase + `letterSpacing: 1–1.5` |
@@ -323,9 +326,19 @@ color: t.colors.text
 placeholderTextColor: t.colors.textMuted
 ```
 
----
+### 4.9 Titre de section éditorial (fiche détail)
 
-## 5. Règles de spacing et layout
+Pastille 28×28 (`tintSoft`) + Ionicons 14px (`tint`) + titre PlayfairDisplay_600SemiBold 18px + sous-titre optionnel Inter_400Regular 12px `textMuted`. La teinte est sémantique : `deal` → marchands/prix, `reward` → performance, `secondary` → temporalité, `primary` (défaut) → contenu olfactif et recommandation. Remplace tout titre de section à emoji.
+
+### 4.10 Colonnes de saison (dataviz)
+
+4 colonnes égales (`flex: 1`, gap 8) : icône 15px dans cercle 30px, barre verticale 8×44px ancrée en bas (`justifyContent: 'flex-end'`, track `surface2`), label Inter_500Medium 11px. Fill = `ratio score/max` (min 10% si score > 0 ; barre fantôme 6% couleur `border` si 0). Meilleure saison : pastille `seasonXxxSoft`, label `Inter_600SemiBold` couleur `text`. Aucune valeur numérique ni label négatif : la dataviz relative suffit.
+
+### 4.11 Barre d'action flottante
+
+Barre persistante de bas d'écran (fiche détail) : carte `surface` flottante (`borderRadius: card`, `shadow.elevated`, marges 12px latérales, `paddingBottom: insets.bottom + 12`) — même langage que le DockBar, jamais de barre pleine largeur avec `borderTop`. Apparition en slide-in (`translateY 60→0` + fade) quand la section de référence sort de l'écran. Contenu : prix compact Inter_800ExtraBold 20px + actions 44px + CTA primary.
+
+---
 
 ### 5.1 Grille de spacing
 
@@ -617,6 +630,12 @@ src/theme/
 ├── ThemeContext.tsx      ← ThemeProvider + useTheme()
 └── (pas de theme-utils.ts séparé)
 
+Polices : chargées dans app/_layout.tsx via useFonts (expo-font) +
+@expo-google-fonts/inter (400/500/600/700/800) et
+@expo-google-fonts/playfair-display (500/600/700/700-italic).
+Le rendu de l'app est bloqué (splash maintenu) jusqu'à fontsLoaded —
+toute fontFamily référencée dans le code DOIT exister dans ce useFonts.
+
 src/services/
 └── theme-storage.ts     ← AsyncStorage, clé @parfumscan/theme
 ```
@@ -662,6 +681,8 @@ function getStyles(t: Theme) {
 - [ ] Utilise `useTheme()` (pas `import { theme }`)
 - [ ] Styles dans `getStyles(t: Theme)` → `useMemo(() => getStyles(theme), [theme])`
 - [ ] Aucun `fontWeight` → tout en `fontFamily`
+- [ ] Toute `fontFamily` utilisée existe dans le `useFonts` de `app/_layout.tsx`
+- [ ] Données saisonnières → tokens `seasonXxx`, jamais `deal`/`fair`/`secondary`
 - [ ] Couleurs via tokens (`t.colors.xxx`), jamais en dur (sauf §2.3)
 - [ ] Ombres via `t.shadow.xxx`, jamais en dur
 - [ ] Radius via `t.radius.xxx`

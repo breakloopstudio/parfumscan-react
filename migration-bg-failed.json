@@ -4426,5 +4426,3029 @@
     "brandName": "Ex Nihilo",
     "nom": "Sun Emperors",
     "reason": "download failed (URL dead or timeout)"
+  },
+  {
+    "parfumId": "ex_nihilo_exalt",
+    "brandName": "Ex Nihilo",
+    "nom": "Exalt",
+    "reason": "download failed (URL dead or timeout)"
+  },
+  {
+    "parfumId": "ex_nihilo_amber_sky_signature_rose_de_mai",
+    "brandName": "Ex Nihilo",
+    "nom": "Amber Sky Signature Rose De Mai",
+    "reason": "download failed (URL dead or timeout)"
+  },
+  {
+    "parfumId": "ex_nihilo_collection_signature",
+    "brandName": "Ex Nihilo",
+    "nom": "Collection Signature",
+    "reason": "download failed (URL dead or timeout)"
+  },
+  {
+    "parfumId": "fendi_fendi_uomo",
+    "brandName": "Fendi",
+    "nom": "Fendi Uomo",
+    "reason": "upload: request to https://storage.googleapis.com/upload/storage/v1/b/parfumscan-60549.f"
+  },
+  {
+    "parfumId": "fendi_fan_di_fendi_pour_homme_assoluto",
+    "brandName": "Fendi",
+    "nom": "Fan di Fendi Pour Homme Assoluto",
+    "reason": "download failed (URL dead or timeout)"
+  },
+  {
+    "parfumId": "fendi_fan_di_fendi_eau_fraiche",
+    "brandName": "Fendi",
+    "nom": "Fan di Fendi Eau Fraiche",
+    "reason": "download failed (URL dead or timeout)"
+  },
+  {
+    "parfumId": "fendi_sogni_d_oro",
+    "brandName": "Fendi",
+    "nom": "Sogni d'Oro",
+    "reason": "download failed (URL dead or timeout)"
+  },
+  {
+    "parfumId": "fendi_ambre_romain",
+    "brandName": "Fendi",
+    "nom": "Ambre Romain",
+    "reason": "download failed (URL dead or timeout)"
+  },
+  {
+    "parfumId": "filippo_sorcinelli_quando_rapita_in_estasi",
+    "brandName": "Filippo Sorcinelli",
+    "nom": "Quando rapita in estasi",
+    "reason": "download failed (URL dead or timeout)"
+  },
+  {
+    "parfumId": "filippo_sorcinelli_chi_lo_vuole_lo_puo_riscoprire_e_chi_lo_riscopre_lo_deve_scegliere_e_come_sempre_chi_davvero_lo_sceglie_avra_la_sua_pace_la_pace_appunto_del_natale_san_paolo_vi",
+    "brandName": "Filippo Sorcinelli",
+    "nom": "Chi lo vuole, lo può riscoprire. E chi lo riscopre, lo deve scegliere. E come sempre, chi davvero lo sceglie avrà la sua pace la pace appunto del Natale. San Paolo VI",
+    "reason": "upload: request to https://storage.googleapis.com/upload/storage/v1/b/parfumscan-60549.f"
+  },
+  {
+    "parfumId": "filippo_sorcinelli_scusami",
+    "brandName": "Filippo Sorcinelli",
+    "nom": "Scusami",
+    "reason": "download failed (URL dead or timeout)"
+  },
+  {
+    "parfumId": "filippo_sorcinelli_pincett",
+    "brandName": "Filippo Sorcinelli",
+    "nom": "Pincett",
+    "reason": "upload: request to https://storage.googleapis.com/upload/storage/v1/b/parfumscan-60549.f"
+  },
+  {
+    "parfumId": "fragrance_world_oud_madness",
+    "brandName": "Fragrance World",
+    "nom": "Oud Madness",
+    "reason": "upload: request to https://storage.googleapis.com/upload/storage/v1/b/parfumscan-60549.f"
+  },
+  {
+    "parfumId": "fragrance_world_cafe_n_cream",
+    "brandName": "Fragrance World",
+    "nom": "CAFE N' CREAM",
+    "reason": "upload: request to https://storage.googleapis.com/upload/storage/v1/b/parfumscan-60549.f"
+  },
+  {
+    "parfumId": "fragrance_world_divin_asylum",
+    "brandName": "Fragrance World",
+    "nom": "Divin Asylum",
+    "reason": "upload: request to https://storage.googleapis.com/upload/storage/v1/b/parfumscan-60549.f"
+  },
+  {
+    "parfumId": "fragrance_world_qahwa",
+    "brandName": "Fragrance World",
+    "nom": "Qahwa",
+    "reason": "upload: request to https://storage.googleapis.com/upload/storage/v1/b/parfumscan-60549.f"
+  },
+  {
+    "parfumId": "fragrance_world_elysia_marshmallow",
+    "brandName": "Fragrance World",
+    "nom": "Elysia Marshmallow",
+    "reason": "upload: request to https://storage.googleapis.com/upload/storage/v1/b/parfumscan-60549.f"
+  },
+  {
+    "parfumId": "fragrance_world_olfactory_music_fest",
+    "brandName": "Fragrance World",
+    "nom": "Olfactory Music Fest",
+    "reason": "upload: request to https://storage.googleapis.com/upload/storage/v1/b/parfumscan-60549.f"
+  },
+  {
+    "parfumId": "fragrance_world_elysia_sweet_banana",
+    "brandName": "Fragrance World",
+    "nom": "Elysia Sweet Banana",
+    "reason": "upload: request to https://storage.googleapis.com/upload/storage/v1/b/parfumscan-60549.f"
+  },
+  {
+    "parfumId": "fragrance_world_ace",
+    "brandName": "Fragrance World",
+    "nom": "Ace",
+    "reason": "upload: request to https://storage.googleapis.com/upload/storage/v1/b/parfumscan-60549.f"
+  },
+  {
+    "parfumId": "fragrance_world_bouquet_of_euphoria",
+    "brandName": "Fragrance World",
+    "nom": "Bouquet of Euphoria",
+    "reason": "upload: request to https://storage.googleapis.com/upload/storage/v1/b/parfumscan-60549.f"
+  },
+  {
+    "parfumId": "fragrance_world_oud_wonder",
+    "brandName": "Fragrance World",
+    "nom": "Oud Wonder",
+    "reason": "upload: request to https://storage.googleapis.com/upload/storage/v1/b/parfumscan-60549.f"
+  },
+  {
+    "parfumId": "fragrance_world_supreme_l_homme_extreme",
+    "brandName": "Fragrance World",
+    "nom": "Supreme L'homme Extreme",
+    "reason": "download failed (URL dead or timeout)"
+  },
+  {
+    "parfumId": "fragrance_world_oud_nuclear",
+    "brandName": "Fragrance World",
+    "nom": "Oud Nuclear",
+    "reason": "upload: request to https://storage.googleapis.com/upload/storage/v1/b/parfumscan-60549.f"
+  },
+  {
+    "parfumId": "fragrance_world_barakkat_aqua_stellar",
+    "brandName": "Fragrance World",
+    "nom": "Barakkat Aqua Stellar",
+    "reason": "upload: request to https://storage.googleapis.com/upload/storage/v1/b/parfumscan-60549.f"
+  },
+  {
+    "parfumId": "fragrance_world_adicto_noir",
+    "brandName": "Fragrance World",
+    "nom": "Adicto Noir",
+    "reason": "upload: request to https://storage.googleapis.com/upload/storage/v1/b/parfumscan-60549.f"
+  },
+  {
+    "parfumId": "fragrance_world_incense_alchemy",
+    "brandName": "Fragrance World",
+    "nom": "Incense Alchemy",
+    "reason": "upload: request to https://storage.googleapis.com/upload/storage/v1/b/parfumscan-60549.f"
+  },
+  {
+    "parfumId": "fragrance_world_bavaria_man_intense",
+    "brandName": "Fragrance World",
+    "nom": "Bavaria Man Intense",
+    "reason": "upload: request to https://storage.googleapis.com/upload/storage/v1/b/parfumscan-60549.f"
+  },
+  {
+    "parfumId": "fragrance_world_velvet_rouge",
+    "brandName": "Fragrance World",
+    "nom": "Velvet Rouge",
+    "reason": "upload: request to https://storage.googleapis.com/upload/storage/v1/b/parfumscan-60549.f"
+  },
+  {
+    "parfumId": "fragrance_world_king",
+    "brandName": "Fragrance World",
+    "nom": "King",
+    "reason": "upload: request to https://storage.googleapis.com/upload/storage/v1/b/parfumscan-60549.f"
+  },
+  {
+    "parfumId": "fragrance_world_icy_roses",
+    "brandName": "Fragrance World",
+    "nom": "Icy Roses",
+    "reason": "upload: request to https://storage.googleapis.com/upload/storage/v1/b/parfumscan-60549.f"
+  },
+  {
+    "parfumId": "fragrance_world_nudo_green_iris",
+    "brandName": "Fragrance World",
+    "nom": "Nudo Green Iris",
+    "reason": "upload: request to https://storage.googleapis.com/upload/storage/v1/b/parfumscan-60549.f"
+  },
+  {
+    "parfumId": "fragrance_world_mocha",
+    "brandName": "Fragrance World",
+    "nom": "Mocha",
+    "reason": "upload: request to https://storage.googleapis.com/upload/storage/v1/b/parfumscan-60549.f"
+  },
+  {
+    "parfumId": "fragrance_world_queen_of_hearts",
+    "brandName": "Fragrance World",
+    "nom": "Queen of Hearts",
+    "reason": "upload: request to https://storage.googleapis.com/upload/storage/v1/b/parfumscan-60549.f"
+  },
+  {
+    "parfumId": "fragrance_world_d_hommes_sport",
+    "brandName": "Fragrance World",
+    "nom": "D'hommes Sport",
+    "reason": "upload: request to https://storage.googleapis.com/upload/storage/v1/b/parfumscan-60549.f"
+  },
+  {
+    "parfumId": "fragrance_world_abraaj_enclosure",
+    "brandName": "Fragrance World",
+    "nom": "Abraaj Enclosure",
+    "reason": "upload: request to https://storage.googleapis.com/upload/storage/v1/b/parfumscan-60549.f"
+  },
+  {
+    "parfumId": "fragrance_world_le_fleur_narcotique",
+    "brandName": "Fragrance World",
+    "nom": "Le Fleur Narcotique",
+    "reason": "upload: request to https://storage.googleapis.com/upload/storage/v1/b/parfumscan-60549.f"
+  },
+  {
+    "parfumId": "fragrance_world_just_lychee",
+    "brandName": "Fragrance World",
+    "nom": "Just Lychee",
+    "reason": "upload: request to https://storage.googleapis.com/upload/storage/v1/b/parfumscan-60549.f"
+  },
+  {
+    "parfumId": "fragrance_world_terro_pura",
+    "brandName": "Fragrance World",
+    "nom": "Terro Pura",
+    "reason": "upload: request to https://storage.googleapis.com/upload/storage/v1/b/parfumscan-60549.f"
+  },
+  {
+    "parfumId": "fragrance_world_harmony_code_pour_homme",
+    "brandName": "Fragrance World",
+    "nom": "Harmony Code Pour Homme",
+    "reason": "upload: request to https://storage.googleapis.com/upload/storage/v1/b/parfumscan-60549.f"
+  },
+  {
+    "parfumId": "fragrance_world_yuzu",
+    "brandName": "Fragrance World",
+    "nom": "Yuzu",
+    "reason": "upload: request to https://storage.googleapis.com/upload/storage/v1/b/parfumscan-60549.f"
+  },
+  {
+    "parfumId": "fragrance_world_absolute_oud_magnificent_7",
+    "brandName": "Fragrance World",
+    "nom": "Absolute Oud Magnificent 7",
+    "reason": "upload: request to https://storage.googleapis.com/upload/storage/v1/b/parfumscan-60549.f"
+  },
+  {
+    "parfumId": "fragrance_world_la_nuit_rose",
+    "brandName": "Fragrance World",
+    "nom": "La Nuit Rose",
+    "reason": "upload: request to https://storage.googleapis.com/upload/storage/v1/b/parfumscan-60549.f"
+  },
+  {
+    "parfumId": "fragrance_world_champion_sugar",
+    "brandName": "Fragrance World",
+    "nom": "Champion Sugar",
+    "reason": "upload: request to https://storage.googleapis.com/upload/storage/v1/b/parfumscan-60549.f"
+  },
+  {
+    "parfumId": "fragrance_world_celestia_blu",
+    "brandName": "Fragrance World",
+    "nom": "Celestia Blu",
+    "reason": "upload: request to https://storage.googleapis.com/upload/storage/v1/b/parfumscan-60549.f"
+  },
+  {
+    "parfumId": "fragrance_world_vie_feu",
+    "brandName": "Fragrance World",
+    "nom": "Vie Feu",
+    "reason": "upload: request to https://storage.googleapis.com/upload/storage/v1/b/parfumscan-60549.f"
+  },
+  {
+    "parfumId": "fragrance_world_eau_de_neige",
+    "brandName": "Fragrance World",
+    "nom": "Eau de Neige",
+    "reason": "upload: request to https://storage.googleapis.com/upload/storage/v1/b/parfumscan-60549.f"
+  },
+  {
+    "parfumId": "fragrance_world_vetiver_moloko",
+    "brandName": "Fragrance World",
+    "nom": "Vetiver Moloko",
+    "reason": "upload: request to https://storage.googleapis.com/upload/storage/v1/b/parfumscan-60549.f"
+  },
+  {
+    "parfumId": "fragrance_world_salted_caramel_artisan_perfumery",
+    "brandName": "Fragrance World",
+    "nom": "Salted Caramel Artisan Perfumery",
+    "reason": "upload: request to https://storage.googleapis.com/upload/storage/v1/b/parfumscan-60549.f"
+  },
+  {
+    "parfumId": "fragrance_world_kristal",
+    "brandName": "Fragrance World",
+    "nom": "Kristal",
+    "reason": "upload: request to https://storage.googleapis.com/upload/storage/v1/b/parfumscan-60549.f"
+  },
+  {
+    "parfumId": "fragrance_world_classy_chic_girl",
+    "brandName": "Fragrance World",
+    "nom": "Classy Chic Girl",
+    "reason": "upload: request to https://storage.googleapis.com/upload/storage/v1/b/parfumscan-60549.f"
+  },
+  {
+    "parfumId": "fragrance_world_eclipse_extrait_nova",
+    "brandName": "Fragrance World",
+    "nom": "Eclipse Extrait Nova",
+    "reason": "upload: request to https://storage.googleapis.com/upload/storage/v1/b/parfumscan-60549.f"
+  },
+  {
+    "parfumId": "fragrance_world_berries_weekend_violet",
+    "brandName": "Fragrance World",
+    "nom": "Berries Weekend Violet",
+    "reason": "upload: request to https://storage.googleapis.com/upload/storage/v1/b/parfumscan-60549.f"
+  },
+  {
+    "parfumId": "fragrance_world_al_emir",
+    "brandName": "Fragrance World",
+    "nom": "Al Emir",
+    "reason": "upload: request to https://storage.googleapis.com/upload/storage/v1/b/parfumscan-60549.f"
+  },
+  {
+    "parfumId": "fragrance_world_caliber_declaration",
+    "brandName": "Fragrance World",
+    "nom": "Caliber Declaration",
+    "reason": "upload: request to https://storage.googleapis.com/upload/storage/v1/b/parfumscan-60549.f"
+  },
+  {
+    "parfumId": "fragrance_world_soleil_d_ombre",
+    "brandName": "Fragrance World",
+    "nom": "Soleil D'Ombre",
+    "reason": "upload: request to https://storage.googleapis.com/upload/storage/v1/b/parfumscan-60549.f"
+  },
+  {
+    "parfumId": "fragrance_world_oud_intense_saffron",
+    "brandName": "Fragrance World",
+    "nom": "Oud Intense Saffron",
+    "reason": "upload: request to https://storage.googleapis.com/upload/storage/v1/b/parfumscan-60549.f"
+  },
+  {
+    "parfumId": "fragrance_world_safari_elixir",
+    "brandName": "Fragrance World",
+    "nom": "Safari Elixir",
+    "reason": "download failed (URL dead or timeout)"
+  },
+  {
+    "parfumId": "fragrance_world_safari",
+    "brandName": "Fragrance World",
+    "nom": "Safari",
+    "reason": "upload: request to https://storage.googleapis.com/upload/storage/v1/b/parfumscan-60549.f"
+  },
+  {
+    "parfumId": "fragrance_world_eclipse_extrait",
+    "brandName": "Fragrance World",
+    "nom": "Eclipse Extrait",
+    "reason": "upload: request to https://storage.googleapis.com/upload/storage/v1/b/parfumscan-60549.f"
+  },
+  {
+    "parfumId": "fragrance_world_wurood_blanc_sapphire",
+    "brandName": "Fragrance World",
+    "nom": "Wurood Blanc Sapphire",
+    "reason": "download failed (URL dead or timeout)"
+  },
+  {
+    "parfumId": "fragrance_world_expose_unisexe",
+    "brandName": "Fragrance World",
+    "nom": "Expose Unisexe",
+    "reason": "upload: request to https://storage.googleapis.com/upload/storage/v1/b/parfumscan-60549.f"
+  },
+  {
+    "parfumId": "fragrance_world_suave_the_parfum",
+    "brandName": "Fragrance World",
+    "nom": "Suave The Parfum",
+    "reason": "upload: request to https://storage.googleapis.com/upload/storage/v1/b/parfumscan-60549.f"
+  },
+  {
+    "parfumId": "fragrance_world_redriguez_azure_pour_homme",
+    "brandName": "Fragrance World",
+    "nom": "Redriguez Azure Pour Homme",
+    "reason": "upload: request to https://storage.googleapis.com/upload/storage/v1/b/parfumscan-60549.f"
+  },
+  {
+    "parfumId": "fragrance_world_expose_pour_elle",
+    "brandName": "Fragrance World",
+    "nom": "Expose Pour Elle",
+    "reason": "upload: request to https://storage.googleapis.com/upload/storage/v1/b/parfumscan-60549.f"
+  },
+  {
+    "parfumId": "fragrance_world_amour_de_leuxe",
+    "brandName": "Fragrance World",
+    "nom": "Amour de Leuxe",
+    "reason": "upload: request to https://storage.googleapis.com/upload/storage/v1/b/parfumscan-60549.f"
+  },
+  {
+    "parfumId": "fragrance_world_lady_friendly_extreme",
+    "brandName": "Fragrance World",
+    "nom": "Lady Friendly Extreme",
+    "reason": "upload: request to https://storage.googleapis.com/upload/storage/v1/b/parfumscan-60549.f"
+  },
+  {
+    "parfumId": "fragrance_world_strings_pour_homme",
+    "brandName": "Fragrance World",
+    "nom": "Strings Pour Homme",
+    "reason": "upload: request to https://storage.googleapis.com/upload/storage/v1/b/parfumscan-60549.f"
+  },
+  {
+    "parfumId": "fragrance_world_eminence_oud",
+    "brandName": "Fragrance World",
+    "nom": "Eminence Oud",
+    "reason": "upload: request to https://storage.googleapis.com/upload/storage/v1/b/parfumscan-60549.f"
+  },
+  {
+    "parfumId": "fragrance_world_brone_pour_homme",
+    "brandName": "Fragrance World",
+    "nom": "Brone Pour Homme",
+    "reason": "upload: request to https://storage.googleapis.com/upload/storage/v1/b/parfumscan-60549.f"
+  },
+  {
+    "parfumId": "fragrance_world_oniro_extrait",
+    "brandName": "Fragrance World",
+    "nom": "Oniro Extrait",
+    "reason": "upload: request to https://storage.googleapis.com/upload/storage/v1/b/parfumscan-60549.f"
+  },
+  {
+    "parfumId": "fragrance_world_exchange_unlimited",
+    "brandName": "Fragrance World",
+    "nom": "Exchange Unlimited",
+    "reason": "upload: request to https://storage.googleapis.com/upload/storage/v1/b/parfumscan-60549.f"
+  },
+  {
+    "parfumId": "fragrance_world_the_player",
+    "brandName": "Fragrance World",
+    "nom": "The Player",
+    "reason": "upload: request to https://storage.googleapis.com/upload/storage/v1/b/parfumscan-60549.f"
+  },
+  {
+    "parfumId": "fragrance_world_safari_rose",
+    "brandName": "Fragrance World",
+    "nom": "Safari Rose",
+    "reason": "upload: request to https://storage.googleapis.com/upload/storage/v1/b/parfumscan-60549.f"
+  },
+  {
+    "parfumId": "fragrance_world_bleu_seduction",
+    "brandName": "Fragrance World",
+    "nom": "Bleu Seduction",
+    "reason": "upload: request to https://storage.googleapis.com/upload/storage/v1/b/parfumscan-60549.f"
+  },
+  {
+    "parfumId": "fragrance_world_atom_grey",
+    "brandName": "Fragrance World",
+    "nom": "Atom Grey",
+    "reason": "upload: request to https://storage.googleapis.com/upload/storage/v1/b/parfumscan-60549.f"
+  },
+  {
+    "parfumId": "fragrance_world_rage_black",
+    "brandName": "Fragrance World",
+    "nom": "Rage Black",
+    "reason": "upload: request to https://storage.googleapis.com/upload/storage/v1/b/parfumscan-60549.f"
+  },
+  {
+    "parfumId": "frederic_malle_editions_de_parfums_the_moon",
+    "brandName": "Frederic Malle Editions de Parfums",
+    "nom": "The Moon",
+    "reason": "upload: request to https://storage.googleapis.com/upload/storage/v1/b/parfumscan-60549.f"
+  },
+  {
+    "parfumId": "frederic_malle_editions_de_parfums_dans_mon_lit",
+    "brandName": "Frederic Malle Editions de Parfums",
+    "nom": "Dans Mon Lit",
+    "reason": "upload: request to https://storage.googleapis.com/upload/storage/v1/b/parfumscan-60549.f"
+  },
+  {
+    "parfumId": "frederic_malle_editions_de_parfums_le_parfum_de_therese",
+    "brandName": "Frederic Malle Editions de Parfums",
+    "nom": "Le Parfum de Therese",
+    "reason": "upload: request to https://storage.googleapis.com/upload/storage/v1/b/parfumscan-60549.f"
+  },
+  {
+    "parfumId": "frederic_malle_editions_de_parfums_portrait_of_a_lady_limited_edition_2018",
+    "brandName": "Frederic Malle Editions de Parfums",
+    "nom": "Portrait of a Lady Limited Edition 2018",
+    "reason": "download failed (URL dead or timeout)"
+  },
+  {
+    "parfumId": "frederic_malle_editions_de_parfums_carnal_flower_limited_edition_2018",
+    "brandName": "Frederic Malle Editions de Parfums",
+    "nom": "Carnal Flower Limited Edition 2018",
+    "reason": "download failed (URL dead or timeout)"
+  },
+  {
+    "parfumId": "frederic_malle_editions_de_parfums_iris_poudree_limited_edition_2018",
+    "brandName": "Frederic Malle Editions de Parfums",
+    "nom": "Iris Poudree Limited Edition 2018",
+    "reason": "download failed (URL dead or timeout)"
+  },
+  {
+    "parfumId": "frederic_malle_editions_de_parfums_musc_ravageur_20_ans",
+    "brandName": "Frederic Malle Editions de Parfums",
+    "nom": "Musc Ravageur 20 Ans",
+    "reason": "download failed (URL dead or timeout)"
+  },
+  {
+    "parfumId": "frederic_malle_editions_de_parfums_une_fleur_de_cassie",
+    "brandName": "Frederic Malle Editions de Parfums",
+    "nom": "Une Fleur de Cassie",
+    "reason": "upload: request to https://storage.googleapis.com/upload/storage/v1/b/parfumscan-60549.f"
+  },
+  {
+    "parfumId": "frederic_malle_editions_de_parfums_bigarade_concentree_limited_edition_2018",
+    "brandName": "Frederic Malle Editions de Parfums",
+    "nom": "Bigarade Concentree Limited Edition 2018",
+    "reason": "upload: request to https://storage.googleapis.com/upload/storage/v1/b/parfumscan-60549.f"
+  },
+  {
+    "parfumId": "frederic_malle_editions_de_parfums_iris_poudre_hair_mist",
+    "brandName": "Frederic Malle Editions de Parfums",
+    "nom": "Iris Poudre Hair Mist",
+    "reason": "upload: request to https://storage.googleapis.com/upload/storage/v1/b/parfumscan-60549.f"
+  },
+  {
+    "parfumId": "frederic_malle_editions_de_parfums_lipstick_rose_hair_mist",
+    "brandName": "Frederic Malle Editions de Parfums",
+    "nom": "Lipstick Rose Hair Mist",
+    "reason": "upload: request to https://storage.googleapis.com/upload/storage/v1/b/parfumscan-60549.f"
+  },
+  {
+    "parfumId": "frederic_malle_editions_de_parfums_bigarade_concentree_20_ans",
+    "brandName": "Frederic Malle Editions de Parfums",
+    "nom": "Bigarade Concentrée 20 Ans",
+    "reason": "upload: request to https://storage.googleapis.com/upload/storage/v1/b/parfumscan-60549.f"
+  },
+  {
+    "parfumId": "frederic_malle_editions_de_parfums_musc_ravageur_hair_mist",
+    "brandName": "Frederic Malle Editions de Parfums",
+    "nom": "Musc Ravageur Hair Mist",
+    "reason": "upload: request to https://storage.googleapis.com/upload/storage/v1/b/parfumscan-60549.f"
+  },
+  {
+    "parfumId": "frederic_malle_editions_de_parfums_noir_epices",
+    "brandName": "Frederic Malle Editions de Parfums",
+    "nom": "Noir Epices",
+    "reason": "upload: request to https://storage.googleapis.com/upload/storage/v1/b/parfumscan-60549.f"
+  },
+  {
+    "parfumId": "french_avenue_aether",
+    "brandName": "French Avenue",
+    "nom": "Aether",
+    "reason": "upload: request to https://storage.googleapis.com/upload/storage/v1/b/parfumscan-60549.f"
+  },
+  {
+    "parfumId": "french_avenue_obsidian",
+    "brandName": "French Avenue",
+    "nom": "Obsidian",
+    "reason": "upload: request to https://storage.googleapis.com/upload/storage/v1/b/parfumscan-60549.f"
+  },
+  {
+    "parfumId": "french_avenue_glorious_oud_royal_blanc",
+    "brandName": "French Avenue",
+    "nom": "Glorious Oud Royal Blanc",
+    "reason": "upload: request to https://storage.googleapis.com/upload/storage/v1/b/parfumscan-60549.f"
+  },
+  {
+    "parfumId": "french_avenue_eclair_affair",
+    "brandName": "French Avenue",
+    "nom": "Éclair Affair",
+    "reason": "upload: request to https://storage.googleapis.com/upload/storage/v1/b/parfumscan-60549.f"
+  },
+  {
+    "parfumId": "french_avenue_ravine_ginger",
+    "brandName": "French Avenue",
+    "nom": "Ravine Ginger",
+    "reason": "upload: request to https://storage.googleapis.com/upload/storage/v1/b/parfumscan-60549.f"
+  },
+  {
+    "parfumId": "french_avenue_zenith_vanilla",
+    "brandName": "French Avenue",
+    "nom": "Zenith Vanilla",
+    "reason": "upload: request to https://storage.googleapis.com/upload/storage/v1/b/parfumscan-60549.f"
+  },
+  {
+    "parfumId": "french_avenue_capricorn",
+    "brandName": "French Avenue",
+    "nom": "Capricorn",
+    "reason": "download failed (URL dead or timeout)"
+  },
+  {
+    "parfumId": "french_avenue_aries",
+    "brandName": "French Avenue",
+    "nom": "Aries",
+    "reason": "upload: request to https://storage.googleapis.com/upload/storage/v1/b/parfumscan-60549.f"
+  },
+  {
+    "parfumId": "french_avenue_el_dorado",
+    "brandName": "French Avenue",
+    "nom": "El Dorado",
+    "reason": "upload: request to https://storage.googleapis.com/upload/storage/v1/b/parfumscan-60549.f"
+  },
+  {
+    "parfumId": "french_avenue_taurus",
+    "brandName": "French Avenue",
+    "nom": "Taurus",
+    "reason": "upload: request to https://storage.googleapis.com/upload/storage/v1/b/parfumscan-60549.f"
+  },
+  {
+    "parfumId": "french_avenue_mythical_gryphon",
+    "brandName": "French Avenue",
+    "nom": "Mythical Gryphon",
+    "reason": "upload: request to https://storage.googleapis.com/upload/storage/v1/b/parfumscan-60549.f"
+  },
+  {
+    "parfumId": "fugazzi_borntostandout_by_fugazzi",
+    "brandName": "Fugazzi",
+    "nom": "BORNTOSTANDOUT® by FUGAZZI",
+    "reason": "download failed (URL dead or timeout)"
+  },
+  {
+    "parfumId": "fugazzi_sugardaddy",
+    "brandName": "Fugazzi",
+    "nom": "Sugardaddy",
+    "reason": "upload: request to https://storage.googleapis.com/upload/storage/v1/b/parfumscan-60549.f"
+  },
+  {
+    "parfumId": "fugazzi_parfum_5_thirsty",
+    "brandName": "Fugazzi",
+    "nom": "Parfum 5 Thirsty",
+    "reason": "upload: request to https://storage.googleapis.com/upload/storage/v1/b/parfumscan-60549.f"
+  },
+  {
+    "parfumId": "fugazzi_four_vibrant_velvet",
+    "brandName": "Fugazzi",
+    "nom": "FOUR Vibrant Velvet",
+    "reason": "download failed (URL dead or timeout)"
+  },
+  {
+    "parfumId": "giorgio_armani_si_eau_de_parfum_intense",
+    "brandName": "Giorgio Armani",
+    "nom": "Si Eau de Parfum Intense",
+    "reason": "upload: request to https://storage.googleapis.com/upload/storage/v1/b/parfumscan-60549.f"
+  },
+  {
+    "parfumId": "giorgio_armani_pivoine_suzhou",
+    "brandName": "Giorgio Armani",
+    "nom": "Pivoine Suzhou",
+    "reason": "upload: request to https://storage.googleapis.com/upload/storage/v1/b/parfumscan-60549.f"
+  },
+  {
+    "parfumId": "giorgio_armani_emporio_armani_she",
+    "brandName": "Giorgio Armani",
+    "nom": "Emporio Armani She",
+    "reason": "download failed (URL dead or timeout)"
+  },
+  {
+    "parfumId": "giorgio_armani_sky_di_gioia",
+    "brandName": "Giorgio Armani",
+    "nom": "Sky di Gioia",
+    "reason": "upload: request to https://storage.googleapis.com/upload/storage/v1/b/parfumscan-60549.f"
+  },
+  {
+    "parfumId": "giorgio_armani_armani_eau_de_nuit",
+    "brandName": "Giorgio Armani",
+    "nom": "Armani Eau de Nuit",
+    "reason": "upload: request to https://storage.googleapis.com/upload/storage/v1/b/parfumscan-60549.f"
+  },
+  {
+    "parfumId": "giorgio_armani_sun_di_gioia",
+    "brandName": "Giorgio Armani",
+    "nom": "Sun di Gioia",
+    "reason": "upload: request to https://storage.googleapis.com/upload/storage/v1/b/parfumscan-60549.f"
+  },
+  {
+    "parfumId": "giorgio_armani_cuir_noir",
+    "brandName": "Giorgio Armani",
+    "nom": "Cuir Noir",
+    "reason": "upload: request to https://storage.googleapis.com/upload/storage/v1/b/parfumscan-60549.f"
+  },
+  {
+    "parfumId": "giorgio_armani_musc_shamal",
+    "brandName": "Giorgio Armani",
+    "nom": "Musc Shamal",
+    "reason": "upload: request to https://storage.googleapis.com/upload/storage/v1/b/parfumscan-60549.f"
+  },
+  {
+    "parfumId": "giorgio_armani_rose_alexandrie",
+    "brandName": "Giorgio Armani",
+    "nom": "Rose Alexandrie",
+    "reason": "upload: request to https://storage.googleapis.com/upload/storage/v1/b/parfumscan-60549.f"
+  },
+  {
+    "parfumId": "giorgio_armani_armani_code_luna",
+    "brandName": "Giorgio Armani",
+    "nom": "Armani Code Luna",
+    "reason": "download failed (URL dead or timeout)"
+  },
+  {
+    "parfumId": "giorgio_armani_si_passione_laser_limited_edition",
+    "brandName": "Giorgio Armani",
+    "nom": "Sì Passione Laser Limited Edition",
+    "reason": "download failed (URL dead or timeout)"
+  },
+  {
+    "parfumId": "giorgio_armani_armani_code_special_blend",
+    "brandName": "Giorgio Armani",
+    "nom": "Armani Code Special Blend",
+    "reason": "download failed (URL dead or timeout)"
+  },
+  {
+    "parfumId": "giorgio_armani_emporio_armani_diamonds_club_for_him",
+    "brandName": "Giorgio Armani",
+    "nom": "Emporio Armani Diamonds Club for Him",
+    "reason": "download failed (URL dead or timeout)"
+  },
+  {
+    "parfumId": "giorgio_armani_si_night_light",
+    "brandName": "Giorgio Armani",
+    "nom": "Si Night Light",
+    "reason": "download failed (URL dead or timeout)"
+  },
+  {
+    "parfumId": "giorgio_armani_armani_prive_rose_d_arabie_limited_edition_swarovski",
+    "brandName": "Giorgio Armani",
+    "nom": "Armani Prive Rose d'Arabie Limited Edition Swarovski",
+    "reason": "download failed (URL dead or timeout)"
+  },
+  {
+    "parfumId": "giorgio_armani_sensi_jewel",
+    "brandName": "Giorgio Armani",
+    "nom": "Sensi Jewel",
+    "reason": "download failed (URL dead or timeout)"
+  },
+  {
+    "parfumId": "givenchy_givenchy_play_intense",
+    "brandName": "Givenchy",
+    "nom": "Givenchy Play Intense",
+    "reason": "download failed (URL dead or timeout)"
+  },
+  {
+    "parfumId": "givenchy_eaudemoiselle_de_givenchy_eau_florale",
+    "brandName": "Givenchy",
+    "nom": "Eaudemoiselle de Givenchy Eau Florale",
+    "reason": "download failed (URL dead or timeout)"
+  },
+  {
+    "parfumId": "givenchy_eaudemoiselle_de_givenchy_angelic",
+    "brandName": "Givenchy",
+    "nom": "Eaudemoiselle de Givenchy Angelic",
+    "reason": "download failed (URL dead or timeout)"
+  },
+  {
+    "parfumId": "givenchy_gentleman_eau_de_parfum_boisee",
+    "brandName": "Givenchy",
+    "nom": "Gentleman Eau de Parfum Boisée",
+    "reason": "upload: request to https://storage.googleapis.com/upload/storage/v1/b/parfumscan-60549.f"
+  },
+  {
+    "parfumId": "givenchy_l_interdit_eau_de_parfum_rouge_ultime",
+    "brandName": "Givenchy",
+    "nom": "L'Interdit Eau de Parfum Rouge Ultime",
+    "reason": "upload: request to https://storage.googleapis.com/upload/storage/v1/b/parfumscan-60549.f"
+  },
+  {
+    "parfumId": "givenchy_l_interdit_tubereuse_noire",
+    "brandName": "Givenchy",
+    "nom": "L'Interdit Tubéreuse Noire",
+    "reason": "download failed (URL dead or timeout)"
+  },
+  {
+    "parfumId": "givenchy_organza_indecence",
+    "brandName": "Givenchy",
+    "nom": "Organza Indécence",
+    "reason": "upload: request to https://storage.googleapis.com/upload/storage/v1/b/parfumscan-60549.f"
+  },
+  {
+    "parfumId": "givenchy_l_interdit_burning_neroli",
+    "brandName": "Givenchy",
+    "nom": "L'Interdit Burning Neroli",
+    "reason": "download failed (URL dead or timeout)"
+  },
+  {
+    "parfumId": "givenchy_ambre_tigre",
+    "brandName": "Givenchy",
+    "nom": "Ambre Tigré",
+    "reason": "download failed (URL dead or timeout)"
+  },
+  {
+    "parfumId": "givenchy_play_sport",
+    "brandName": "Givenchy",
+    "nom": "Play Sport",
+    "reason": "download failed (URL dead or timeout)"
+  },
+  {
+    "parfumId": "givenchy_dahlia_noir_eau_de_toilette",
+    "brandName": "Givenchy",
+    "nom": "Dahlia Noir Eau de Toilette",
+    "reason": "download failed (URL dead or timeout)"
+  },
+  {
+    "parfumId": "givenchy_l_ange_noir_eau_de_toilette",
+    "brandName": "Givenchy",
+    "nom": "L’Ange Noir Eau de Toilette",
+    "reason": "download failed (URL dead or timeout)"
+  },
+  {
+    "parfumId": "givenchy_amarige_d_amour",
+    "brandName": "Givenchy",
+    "nom": "Amarige D'Amour",
+    "reason": "download failed (URL dead or timeout)"
+  },
+  {
+    "parfumId": "givenchy_ylang_austral",
+    "brandName": "Givenchy",
+    "nom": "Ylang Austral",
+    "reason": "download failed (URL dead or timeout)"
+  },
+  {
+    "parfumId": "givenchy_les_parfums_mythiques",
+    "brandName": "Givenchy",
+    "nom": "Les Parfums Mythiques",
+    "reason": "download failed (URL dead or timeout)"
+  },
+  {
+    "parfumId": "givenchy_bloom",
+    "brandName": "Givenchy",
+    "nom": "Bloom",
+    "reason": "download failed (URL dead or timeout)"
+  },
+  {
+    "parfumId": "givenchy_eau_de_vetyver",
+    "brandName": "Givenchy",
+    "nom": "Eau de Vetyver",
+    "reason": "download failed (URL dead or timeout)"
+  },
+  {
+    "parfumId": "givenchy_play_for_her_eau_de_toilette",
+    "brandName": "Givenchy",
+    "nom": "Play For Her Eau de Toilette",
+    "reason": "download failed (URL dead or timeout)"
+  },
+  {
+    "parfumId": "givenchy_un_air_d_escapade_2014",
+    "brandName": "Givenchy",
+    "nom": "Un Air d'Escapade 2014",
+    "reason": "download failed (URL dead or timeout)"
+  },
+  {
+    "parfumId": "givenchy_very_irresistible_soleil_d_ete",
+    "brandName": "Givenchy",
+    "nom": "Very Irresistible Soleil d'Etè",
+    "reason": "download failed (URL dead or timeout)"
+  },
+  {
+    "parfumId": "givenchy_insense_ultramarine_beach_girl",
+    "brandName": "Givenchy",
+    "nom": "Insense Ultramarine Beach Girl",
+    "reason": "download failed (URL dead or timeout)"
+  },
+  {
+    "parfumId": "givenchy_jardin_d_interdit_dancing_with_butterflies",
+    "brandName": "Givenchy",
+    "nom": "Jardin d'Interdit Dancing with Butterflies",
+    "reason": "download failed (URL dead or timeout)"
+  },
+  {
+    "parfumId": "givenchy_very_irresistible_summer_sorbet",
+    "brandName": "Givenchy",
+    "nom": "Very Irresistible Summer Sorbet",
+    "reason": "download failed (URL dead or timeout)"
+  },
+  {
+    "parfumId": "givenchy_insence_ultramarine_hawaii",
+    "brandName": "Givenchy",
+    "nom": "Insence Ultramarine Hawaii",
+    "reason": "download failed (URL dead or timeout)"
+  },
+  {
+    "parfumId": "givenchy_dahlia_noir_le_bal_eau_de_toilette",
+    "brandName": "Givenchy",
+    "nom": "Dahlia Noir Le Bal Eau de Toilette",
+    "reason": "download failed (URL dead or timeout)"
+  },
+  {
+    "parfumId": "givenchy_dahlia_noir_le_bal_eau_de_parfum",
+    "brandName": "Givenchy",
+    "nom": "Dahlia Noir Le Bal Eau de Parfum",
+    "reason": "download failed (URL dead or timeout)"
+  },
+  {
+    "parfumId": "goldfield_banks_australia_purple_suede",
+    "brandName": "Goldfield & Banks Australia",
+    "nom": "Purple Suede",
+    "reason": "download failed (URL dead or timeout)"
+  },
+  {
+    "parfumId": "goldfield_banks_australia_desert_rosewood",
+    "brandName": "Goldfield & Banks Australia",
+    "nom": "Desert Rosewood",
+    "reason": "download failed (URL dead or timeout)"
+  },
+  {
+    "parfumId": "goldfield_banks_australia_wood_infusion",
+    "brandName": "Goldfield & Banks Australia",
+    "nom": "Wood Infusion",
+    "reason": "download failed (URL dead or timeout)"
+  },
+  {
+    "parfumId": "granado_carioca",
+    "brandName": "Granado",
+    "nom": "Carioca",
+    "reason": "download failed (URL dead or timeout)"
+  },
+  {
+    "parfumId": "granado_yes_nos_temos_banana",
+    "brandName": "Granado",
+    "nom": "Yes, Nós Temos Banana!",
+    "reason": "download failed (URL dead or timeout)"
+  },
+  {
+    "parfumId": "granado_limao_taiti_neroli",
+    "brandName": "Granado",
+    "nom": "Limão Taiti & Neroli",
+    "reason": "download failed (URL dead or timeout)"
+  },
+  {
+    "parfumId": "granado_figo_confit",
+    "brandName": "Granado",
+    "nom": "Figo Confit",
+    "reason": "download failed (URL dead or timeout)"
+  },
+  {
+    "parfumId": "granado_magnolia",
+    "brandName": "Granado",
+    "nom": "Magnólia",
+    "reason": "download failed (URL dead or timeout)"
+  },
+  {
+    "parfumId": "granado_verbena",
+    "brandName": "Granado",
+    "nom": "Verbena",
+    "reason": "download failed (URL dead or timeout)"
+  },
+  {
+    "parfumId": "granado_folha_de_laranjeira",
+    "brandName": "Granado",
+    "nom": "Folha de Laranjeira",
+    "reason": "download failed (URL dead or timeout)"
+  },
+  {
+    "parfumId": "granado_fresia",
+    "brandName": "Granado",
+    "nom": "Frésia",
+    "reason": "download failed (URL dead or timeout)"
+  },
+  {
+    "parfumId": "gucci_gucci_guilty_pour_homme_parfum",
+    "brandName": "Gucci",
+    "nom": "Gucci Guilty Pour Homme Parfum",
+    "reason": "download failed (URL dead or timeout)"
+  },
+  {
+    "parfumId": "gucci_gucci_rush",
+    "brandName": "Gucci",
+    "nom": "Gucci Rush",
+    "reason": "download failed (URL dead or timeout)"
+  },
+  {
+    "parfumId": "gucci_gucci_pour_homme_2003",
+    "brandName": "Gucci",
+    "nom": "Gucci pour Homme (2003)",
+    "reason": "upload: request to https://storage.googleapis.com/upload/storage/v1/b/parfumscan-60549.f"
+  },
+  {
+    "parfumId": "gucci_gucci_by_gucci_sport",
+    "brandName": "Gucci",
+    "nom": "Gucci by Gucci Sport",
+    "reason": "upload: request to https://storage.googleapis.com/upload/storage/v1/b/parfumscan-60549.f"
+  },
+  {
+    "parfumId": "gucci_gucci_guilty_cologne_pour_homme",
+    "brandName": "Gucci",
+    "nom": "Gucci Guilty Cologne Pour Homme",
+    "reason": "download failed (URL dead or timeout)"
+  },
+  {
+    "parfumId": "gucci_eau_de_gucci",
+    "brandName": "Gucci",
+    "nom": "Eau de Gucci",
+    "reason": "download failed (URL dead or timeout)"
+  },
+  {
+    "parfumId": "gucci_flora_by_gucci_eau_de_toilette",
+    "brandName": "Gucci",
+    "nom": "Flora by Gucci Eau de Toilette",
+    "reason": "download failed (URL dead or timeout)"
+  },
+  {
+    "parfumId": "gucci_gucci_guilty_platinum",
+    "brandName": "Gucci",
+    "nom": "Gucci Guilty Platinum",
+    "reason": "download failed (URL dead or timeout)"
+  },
+  {
+    "parfumId": "gucci_l_arte_di_gucci",
+    "brandName": "Gucci",
+    "nom": "L'Arte di Gucci",
+    "reason": "download failed (URL dead or timeout)"
+  },
+  {
+    "parfumId": "gucci_forever_now_gucci_museo",
+    "brandName": "Gucci",
+    "nom": "Forever Now (Gucci Museo)",
+    "reason": "download failed (URL dead or timeout)"
+  },
+  {
+    "parfumId": "gucci_flora_gorgeous_magnolia",
+    "brandName": "Gucci",
+    "nom": "Flora Gorgeous Magnolia",
+    "reason": "upload: request to https://storage.googleapis.com/upload/storage/v1/b/parfumscan-60549.f"
+  },
+  {
+    "parfumId": "gucci_the_heart_of_leo",
+    "brandName": "Gucci",
+    "nom": "The Heart of Leo",
+    "reason": "upload: request to https://storage.googleapis.com/upload/storage/v1/b/parfumscan-60549.f"
+  },
+  {
+    "parfumId": "gucci_muschio_di_luce",
+    "brandName": "Gucci",
+    "nom": "Muschio di Luce",
+    "reason": "download failed (URL dead or timeout)"
+  },
+  {
+    "parfumId": "guerlain_mon_guerlain_eau_de_toilette",
+    "brandName": "Guerlain",
+    "nom": "Mon Guerlain Eau de Toilette",
+    "reason": "upload: request to https://storage.googleapis.com/upload/storage/v1/b/parfumscan-60549.f"
+  },
+  {
+    "parfumId": "guerlain_mon_guerlain_eau_de_parfum_intense",
+    "brandName": "Guerlain",
+    "nom": "Mon Guerlain Eau de Parfum Intense",
+    "reason": "upload: request to https://storage.googleapis.com/upload/storage/v1/b/parfumscan-60549.f"
+  },
+  {
+    "parfumId": "guerlain_l_instant_de_guerlain_pour_homme_edp",
+    "brandName": "Guerlain",
+    "nom": "L'Instant de Guerlain pour Homme EDP",
+    "reason": "download failed (URL dead or timeout)"
+  },
+  {
+    "parfumId": "guerlain_l_instant_de_guerlain_pour_homme",
+    "brandName": "Guerlain",
+    "nom": "L'Instant de Guerlain pour Homme",
+    "reason": "download failed (URL dead or timeout)"
+  },
+  {
+    "parfumId": "guerlain_angelique_noire",
+    "brandName": "Guerlain",
+    "nom": "Angélique Noire",
+    "reason": "download failed (URL dead or timeout)"
+  },
+  {
+    "parfumId": "guerlain_l_instant_de_guerlain_extract",
+    "brandName": "Guerlain",
+    "nom": "L'Instant de Guerlain Extract",
+    "reason": "download failed (URL dead or timeout)"
+  },
+  {
+    "parfumId": "guerlain_terracotta_le_parfum",
+    "brandName": "Guerlain",
+    "nom": "Terracotta Le Parfum",
+    "reason": "upload: request to https://storage.googleapis.com/upload/storage/v1/b/parfumscan-60549.f"
+  },
+  {
+    "parfumId": "guerlain_cuir_intense",
+    "brandName": "Guerlain",
+    "nom": "Cuir Intense",
+    "reason": "download failed (URL dead or timeout)"
+  },
+  {
+    "parfumId": "guerlain_habit_rouge_rouge_prive",
+    "brandName": "Guerlain",
+    "nom": "Habit Rouge Rouge Privé",
+    "reason": "download failed (URL dead or timeout)"
+  },
+  {
+    "parfumId": "guerlain_idylle",
+    "brandName": "Guerlain",
+    "nom": "Idylle",
+    "reason": "upload: request to https://storage.googleapis.com/upload/storage/v1/b/parfumscan-60549.f"
+  },
+  {
+    "parfumId": "guerlain_vol_de_nuit_eau_de_toilette",
+    "brandName": "Guerlain",
+    "nom": "Vol De Nuit Eau De Toilette",
+    "reason": "upload: request to https://storage.googleapis.com/upload/storage/v1/b/parfumscan-60549.f"
+  },
+  {
+    "parfumId": "guerlain_les_absolus_d_orient_musc_noble",
+    "brandName": "Guerlain",
+    "nom": "Les Absolus d'Orient Musc Noble",
+    "reason": "upload: request to https://storage.googleapis.com/upload/storage/v1/b/parfumscan-60549.f"
+  },
+  {
+    "parfumId": "guerlain_nahema_eau_de_parfum",
+    "brandName": "Guerlain",
+    "nom": "Nahema Eau de Parfum",
+    "reason": "upload: request to https://storage.googleapis.com/upload/storage/v1/b/parfumscan-60549.f"
+  },
+  {
+    "parfumId": "guerlain_aqua_allegoria_passiflora",
+    "brandName": "Guerlain",
+    "nom": "Aqua Allegoria Passiflora",
+    "reason": "upload: request to https://storage.googleapis.com/upload/storage/v1/b/parfumscan-60549.f"
+  },
+  {
+    "parfumId": "guerlain_la_petite_robe_noire_eau_fraiche",
+    "brandName": "Guerlain",
+    "nom": "La Petite Robe Noire Eau Fraiche",
+    "reason": "upload: request to https://storage.googleapis.com/upload/storage/v1/b/parfumscan-60549.f"
+  },
+  {
+    "parfumId": "guerlain_cheval_blanc_st_tropez",
+    "brandName": "Guerlain",
+    "nom": "Cheval Blanc St.Tropez",
+    "reason": "upload: request to https://storage.googleapis.com/upload/storage/v1/b/parfumscan-60549.f"
+  },
+  {
+    "parfumId": "guerlain_mon_exclusif",
+    "brandName": "Guerlain",
+    "nom": "Mon Exclusif",
+    "reason": "download failed (URL dead or timeout)"
+  },
+  {
+    "parfumId": "guerlain_aqua_allegoria_ylang_vanille",
+    "brandName": "Guerlain",
+    "nom": "Aqua Allegoria Ylang & Vanille",
+    "reason": "download failed (URL dead or timeout)"
+  },
+  {
+    "parfumId": "guerlain_aqua_allegoria_lavande_velours",
+    "brandName": "Guerlain",
+    "nom": "Aqua Allegoria Lavande Velours",
+    "reason": "download failed (URL dead or timeout)"
+  },
+  {
+    "parfumId": "guerlain_le_bouquet_de_la_mariee",
+    "brandName": "Guerlain",
+    "nom": "Le Bouquet de la Mariee",
+    "reason": "download failed (URL dead or timeout)"
+  },
+  {
+    "parfumId": "guerlain_cuir_beluga_hair_mist",
+    "brandName": "Guerlain",
+    "nom": "Cuir Béluga Hair Mist",
+    "reason": "download failed (URL dead or timeout)"
+  },
+  {
+    "parfumId": "guerlain_jardins_de_bagatelle_eau_de_toilette",
+    "brandName": "Guerlain",
+    "nom": "Jardins de Bagatelle Eau de Toilette",
+    "reason": "download failed (URL dead or timeout)"
+  },
+  {
+    "parfumId": "guerlain_mitsouko_eau_de_cologne",
+    "brandName": "Guerlain",
+    "nom": "Mitsouko Eau de Cologne",
+    "reason": "download failed (URL dead or timeout)"
+  },
+  {
+    "parfumId": "guerlain_eau_de_bain",
+    "brandName": "Guerlain",
+    "nom": "Eau de Bain",
+    "reason": "download failed (URL dead or timeout)"
+  },
+  {
+    "parfumId": "guerlain_rose_nacree_du_desert",
+    "brandName": "Guerlain",
+    "nom": "Rose Nacree du Desert",
+    "reason": "download failed (URL dead or timeout)"
+  },
+  {
+    "parfumId": "guerlain_idylle_eau_sublime",
+    "brandName": "Guerlain",
+    "nom": "Idylle Eau Sublime",
+    "reason": "download failed (URL dead or timeout)"
+  },
+  {
+    "parfumId": "guerlain_metallica_metalys",
+    "brandName": "Guerlain",
+    "nom": "Metallica (Metalys)",
+    "reason": "download failed (URL dead or timeout)"
+  },
+  {
+    "parfumId": "guerlain_attrape_coeur",
+    "brandName": "Guerlain",
+    "nom": "Attrape Coeur",
+    "reason": "download failed (URL dead or timeout)"
+  },
+  {
+    "parfumId": "guerlain_cherry_blossom_2026_millesime_swarovski",
+    "brandName": "Guerlain",
+    "nom": "Cherry Blossom 2026 Millésime Swarovski",
+    "reason": "download failed (URL dead or timeout)"
+  },
+  {
+    "parfumId": "guerlain_un_dimanche_a_la_campagne",
+    "brandName": "Guerlain",
+    "nom": "Un Dimanche à La Campagne",
+    "reason": "download failed (URL dead or timeout)"
+  },
+  {
+    "parfumId": "guerlain_les_voyages_olfactifs_03_paris_tokyo",
+    "brandName": "Guerlain",
+    "nom": "Les Voyages Olfactifs 03 Paris-Tokyo",
+    "reason": "download failed (URL dead or timeout)"
+  },
+  {
+    "parfumId": "guerlain_l_instant_d_un_ete_pour_homme",
+    "brandName": "Guerlain",
+    "nom": "L'Instant d'un Ete pour Homme",
+    "reason": "download failed (URL dead or timeout)"
+  },
+  {
+    "parfumId": "guerlain_aqua_allegoria_rosa_fizz",
+    "brandName": "Guerlain",
+    "nom": "Aqua Allegoria Rosa Fizz",
+    "reason": "download failed (URL dead or timeout)"
+  },
+  {
+    "parfumId": "guerlain_elixir_charnel_le_boise_torride",
+    "brandName": "Guerlain",
+    "nom": "Elixir Charnel Le Boise Torride",
+    "reason": "download failed (URL dead or timeout)"
+  },
+  {
+    "parfumId": "guerlain_vetiver_sport",
+    "brandName": "Guerlain",
+    "nom": "Vetiver Sport",
+    "reason": "download failed (URL dead or timeout)"
+  },
+  {
+    "parfumId": "guerlain_colours_of_love",
+    "brandName": "Guerlain",
+    "nom": "Colours of Love",
+    "reason": "download failed (URL dead or timeout)"
+  },
+  {
+    "parfumId": "guerlain_la_petite_robe_noire_eau_de_toilette_my_cocktail_dress_2017",
+    "brandName": "Guerlain",
+    "nom": "La Petite Robe Noire Eau de Toilette My Cocktail Dress 2017",
+    "reason": "download failed (URL dead or timeout)"
+  },
+  {
+    "parfumId": "guerlain_chant_d_aromes_extrait_de_parfum",
+    "brandName": "Guerlain",
+    "nom": "Chant d'Aromes Extrait de Parfum",
+    "reason": "download failed (URL dead or timeout)"
+  },
+  {
+    "parfumId": "guerlain_shalimar_extrait",
+    "brandName": "Guerlain",
+    "nom": "Shalimar Extrait",
+    "reason": "download failed (URL dead or timeout)"
+  },
+  {
+    "parfumId": "guerlain_les_voyages_olfactifs_02_paris_new_york",
+    "brandName": "Guerlain",
+    "nom": "Les Voyages Olfactifs 02 Paris-New York",
+    "reason": "download failed (URL dead or timeout)"
+  },
+  {
+    "parfumId": "guerlain_la_petite_robe_noire_couture_limited_edition_2014",
+    "brandName": "Guerlain",
+    "nom": "La Petite Robe Noire Couture Limited Edition 2014",
+    "reason": "download failed (URL dead or timeout)"
+  },
+  {
+    "parfumId": "guerlain_cherry_blossom_glittering",
+    "brandName": "Guerlain",
+    "nom": "Cherry Blossom Glittering",
+    "reason": "download failed (URL dead or timeout)"
+  },
+  {
+    "parfumId": "guerlain_habit_rouge_dress_code_2018",
+    "brandName": "Guerlain",
+    "nom": "Habit Rouge Dress Code 2018",
+    "reason": "download failed (URL dead or timeout)"
+  },
+  {
+    "parfumId": "guerlain_habit_rouge_beau_cavalier",
+    "brandName": "Guerlain",
+    "nom": "Habit Rouge Beau Cavalier",
+    "reason": "download failed (URL dead or timeout)"
+  },
+  {
+    "parfumId": "guerlain_shiny_cherry_blossom",
+    "brandName": "Guerlain",
+    "nom": "Shiny Cherry Blossom",
+    "reason": "download failed (URL dead or timeout)"
+  },
+  {
+    "parfumId": "gulf_orchid_coco_blanco",
+    "brandName": "Gulf Orchid",
+    "nom": "Coco Blanco",
+    "reason": "download failed (URL dead or timeout)"
+  },
+  {
+    "parfumId": "gulf_orchid_creme_caramel",
+    "brandName": "Gulf Orchid",
+    "nom": "Crème Caramel",
+    "reason": "download failed (URL dead or timeout)"
+  },
+  {
+    "parfumId": "gulf_orchid_mangotini",
+    "brandName": "Gulf Orchid",
+    "nom": "MANGOTINI",
+    "reason": "download failed (URL dead or timeout)"
+  },
+  {
+    "parfumId": "gulf_orchid_pomegranate",
+    "brandName": "Gulf Orchid",
+    "nom": "Pomegranate",
+    "reason": "download failed (URL dead or timeout)"
+  },
+  {
+    "parfumId": "gulf_orchid_naseem",
+    "brandName": "Gulf Orchid",
+    "nom": "Naseem",
+    "reason": "download failed (URL dead or timeout)"
+  },
+  {
+    "parfumId": "gulf_orchid_angham",
+    "brandName": "Gulf Orchid",
+    "nom": "Angham",
+    "reason": "download failed (URL dead or timeout)"
+  },
+  {
+    "parfumId": "gulf_orchid_al_fares",
+    "brandName": "Gulf Orchid",
+    "nom": "Al Fares",
+    "reason": "download failed (URL dead or timeout)"
+  },
+  {
+    "parfumId": "gulf_orchid_nobility",
+    "brandName": "Gulf Orchid",
+    "nom": "Nobility",
+    "reason": "download failed (URL dead or timeout)"
+  },
+  {
+    "parfumId": "gulf_orchid_pacific",
+    "brandName": "Gulf Orchid",
+    "nom": "Pacific",
+    "reason": "download failed (URL dead or timeout)"
+  },
+  {
+    "parfumId": "gulf_orchid_sheikh_al_oud_white",
+    "brandName": "Gulf Orchid",
+    "nom": "Sheikh Al Oud White",
+    "reason": "download failed (URL dead or timeout)"
+  },
+  {
+    "parfumId": "gulf_orchid_mayfair",
+    "brandName": "Gulf Orchid",
+    "nom": "Mayfair",
+    "reason": "download failed (URL dead or timeout)"
+  },
+  {
+    "parfumId": "gulf_orchid_rahaf",
+    "brandName": "Gulf Orchid",
+    "nom": "Rahaf",
+    "reason": "download failed (URL dead or timeout)"
+  },
+  {
+    "parfumId": "gulf_orchid_fresh_oud",
+    "brandName": "Gulf Orchid",
+    "nom": "Fresh Oud",
+    "reason": "download failed (URL dead or timeout)"
+  },
+  {
+    "parfumId": "gulf_orchid_golden_sand",
+    "brandName": "Gulf Orchid",
+    "nom": "Golden Sand",
+    "reason": "download failed (URL dead or timeout)"
+  },
+  {
+    "parfumId": "gulf_orchid_taraf",
+    "brandName": "Gulf Orchid",
+    "nom": "Taraf",
+    "reason": "download failed (URL dead or timeout)"
+  },
+  {
+    "parfumId": "gulf_orchid_shadow",
+    "brandName": "Gulf Orchid",
+    "nom": "Shadow",
+    "reason": "download failed (URL dead or timeout)"
+  },
+  {
+    "parfumId": "guy_laroche_j_ai_ose",
+    "brandName": "Guy Laroche",
+    "nom": "J'ai Osé",
+    "reason": "download failed (URL dead or timeout)"
+  },
+  {
+    "parfumId": "guy_laroche_drakkar_intense",
+    "brandName": "Guy Laroche",
+    "nom": "Drakkar Intense",
+    "reason": "download failed (URL dead or timeout)"
+  },
+  {
+    "parfumId": "james_heeley_sel_marin",
+    "brandName": "James Heeley",
+    "nom": "Sel Marin",
+    "reason": "download failed (URL dead or timeout)"
+  },
+  {
+    "parfumId": "james_heeley_verveine_d_eugene",
+    "brandName": "James Heeley",
+    "nom": "Verveine D'Eugène",
+    "reason": "download failed (URL dead or timeout)"
+  },
+  {
+    "parfumId": "james_heeley_agarwoud",
+    "brandName": "James Heeley",
+    "nom": "Agarwoud",
+    "reason": "download failed (URL dead or timeout)"
+  },
+  {
+    "parfumId": "james_heeley_hippie_rose",
+    "brandName": "James Heeley",
+    "nom": "Hippie Rose",
+    "reason": "download failed (URL dead or timeout)"
+  },
+  {
+    "parfumId": "henry_jacques_the_penthouse",
+    "brandName": "Henry Jacques",
+    "nom": "The Penthouse",
+    "reason": "download failed (URL dead or timeout)"
+  },
+  {
+    "parfumId": "henry_jacques_et_pourtant",
+    "brandName": "Henry Jacques",
+    "nom": "Et Pourtant",
+    "reason": "download failed (URL dead or timeout)"
+  },
+  {
+    "parfumId": "henry_jacques_mashmoom",
+    "brandName": "Henry Jacques",
+    "nom": "Mashmoom",
+    "reason": "download failed (URL dead or timeout)"
+  },
+  {
+    "parfumId": "henry_jacques_stephane_rolland",
+    "brandName": "Henry Jacques",
+    "nom": "Stéphane Rolland",
+    "reason": "download failed (URL dead or timeout)"
+  },
+  {
+    "parfumId": "henry_jacques_berceau_de_ma_joie",
+    "brandName": "Henry Jacques",
+    "nom": "Berceau de Ma Joie",
+    "reason": "download failed (URL dead or timeout)"
+  },
+  {
+    "parfumId": "henry_jacques_ambre_men",
+    "brandName": "Henry Jacques",
+    "nom": "Ambre Men",
+    "reason": "download failed (URL dead or timeout)"
+  },
+  {
+    "parfumId": "henry_jacques_kavianca",
+    "brandName": "Henry Jacques",
+    "nom": "Kavianca",
+    "reason": "download failed (URL dead or timeout)"
+  },
+  {
+    "parfumId": "henry_jacques_down_to_heart",
+    "brandName": "Henry Jacques",
+    "nom": "Down To Heart",
+    "reason": "download failed (URL dead or timeout)"
+  },
+  {
+    "parfumId": "henry_jacques_rose_sahara",
+    "brandName": "Henry Jacques",
+    "nom": "Rose Sahara",
+    "reason": "download failed (URL dead or timeout)"
+  },
+  {
+    "parfumId": "henry_jacques_fantasmes",
+    "brandName": "Henry Jacques",
+    "nom": "Fantasmes",
+    "reason": "download failed (URL dead or timeout)"
+  },
+  {
+    "parfumId": "henry_jacques_rain_lady",
+    "brandName": "Henry Jacques",
+    "nom": "Rain Lady",
+    "reason": "download failed (URL dead or timeout)"
+  },
+  {
+    "parfumId": "henry_jacques_oudh_deep_spray",
+    "brandName": "Henry Jacques",
+    "nom": "Oudh Deep Spray",
+    "reason": "download failed (URL dead or timeout)"
+  },
+  {
+    "parfumId": "hermes_hermessence_myrrhe_eglantine",
+    "brandName": "Hermès",
+    "nom": "Hermessence Myrrhe Eglantine",
+    "reason": "download failed (URL dead or timeout)"
+  },
+  {
+    "parfumId": "hermes_hermessence_paprika_brasil",
+    "brandName": "Hermès",
+    "nom": "Hermessence Paprika Brasil",
+    "reason": "download failed (URL dead or timeout)"
+  },
+  {
+    "parfumId": "hermes_rouge_hermes_eau_delicate",
+    "brandName": "Hermès",
+    "nom": "Rouge Hermes Eau Delicate",
+    "reason": "download failed (URL dead or timeout)"
+  },
+  {
+    "parfumId": "hermes_un_jardin_sur_la_lagune",
+    "brandName": "Hermès",
+    "nom": "Un Jardin Sur La Lagune",
+    "reason": "upload: request to https://storage.googleapis.com/upload/storage/v1/b/parfumscan-60549.f"
+  },
+  {
+    "parfumId": "hermes_eau_d_orange_verte",
+    "brandName": "Hermès",
+    "nom": "Eau d'Orange Verte",
+    "reason": "upload: request to https://storage.googleapis.com/upload/storage/v1/b/parfumscan-60549.f"
+  },
+  {
+    "parfumId": "hermes_eau_de_gentiane_blanche",
+    "brandName": "Hermès",
+    "nom": "Eau de Gentiane Blanche",
+    "reason": "download failed (URL dead or timeout)"
+  },
+  {
+    "parfumId": "hermes_cabriole",
+    "brandName": "Hermès",
+    "nom": "Cabriole",
+    "reason": "download failed (URL dead or timeout)"
+  },
+  {
+    "parfumId": "hermes_oud_esma",
+    "brandName": "Hermès",
+    "nom": "Oud Esma",
+    "reason": "download failed (URL dead or timeout)"
+  },
+  {
+    "parfumId": "hermes_eau_des_merveilles_constellation",
+    "brandName": "Hermès",
+    "nom": "Eau des Merveilles Constellation",
+    "reason": "download failed (URL dead or timeout)"
+  },
+  {
+    "parfumId": "hermes_kelly_caleche_extrait",
+    "brandName": "Hermès",
+    "nom": "Kelly Caleche Extrait",
+    "reason": "download failed (URL dead or timeout)"
+  },
+  {
+    "parfumId": "hermes_amazone_eau_de_fraicheur",
+    "brandName": "Hermès",
+    "nom": "Amazone Eau de Fraicheur",
+    "reason": "download failed (URL dead or timeout)"
+  },
+  {
+    "parfumId": "histoires_de_parfums_1899_hemingway",
+    "brandName": "Histoires de Parfums",
+    "nom": "1899 Hemingway",
+    "reason": "download failed (URL dead or timeout)"
+  },
+  {
+    "parfumId": "histoires_de_parfums_1740_marquis_de_sade",
+    "brandName": "Histoires de Parfums",
+    "nom": "1740 Marquis de Sade",
+    "reason": "download failed (URL dead or timeout)"
+  },
+  {
+    "parfumId": "histoires_de_parfums_this_is_not_a_blue_bottle_1_6",
+    "brandName": "Histoires de Parfums",
+    "nom": "This is not a Blue Bottle 1.6",
+    "reason": "download failed (URL dead or timeout)"
+  },
+  {
+    "parfumId": "histoires_de_parfums_1904_madame_butterfly_puccini_absolu_edp",
+    "brandName": "Histoires de Parfums",
+    "nom": "1904 Madame Butterfly Puccini Absolu EdP",
+    "reason": "download failed (URL dead or timeout)"
+  },
+  {
+    "parfumId": "histoires_de_parfums_l_olympia_music_hall",
+    "brandName": "Histoires de Parfums",
+    "nom": "L'Olympia Music Hall",
+    "reason": "download failed (URL dead or timeout)"
+  },
+  {
+    "parfumId": "histoires_de_parfums_1875_carmen_bizet_absolu_edp",
+    "brandName": "Histoires de Parfums",
+    "nom": "1875 Carmen Bizet Absolu EdP",
+    "reason": "download failed (URL dead or timeout)"
+  },
+  {
+    "parfumId": "houbigant_royal_houbigant",
+    "brandName": "Houbigant",
+    "nom": "Royal Houbigant",
+    "reason": "download failed (URL dead or timeout)"
+  },
+  {
+    "parfumId": "houbigant_figuier_noir",
+    "brandName": "Houbigant",
+    "nom": "Figuier Noir",
+    "reason": "download failed (URL dead or timeout)"
+  },
+  {
+    "parfumId": "houbigant_orangers_en_fleurs",
+    "brandName": "Houbigant",
+    "nom": "Orangers en Fleurs",
+    "reason": "download failed (URL dead or timeout)"
+  },
+  {
+    "parfumId": "houbigant_indian_summer",
+    "brandName": "Houbigant",
+    "nom": "Indian Summer",
+    "reason": "download failed (URL dead or timeout)"
+  },
+  {
+    "parfumId": "houbigant_presence",
+    "brandName": "Houbigant",
+    "nom": "Presence",
+    "reason": "download failed (URL dead or timeout)"
+  },
+  {
+    "parfumId": "hugo_boss_boss_bottled",
+    "brandName": "Hugo Boss",
+    "nom": "Boss Bottled",
+    "reason": "download failed (URL dead or timeout)"
+  },
+  {
+    "parfumId": "hugo_boss_boss_bottled_pacific",
+    "brandName": "Hugo Boss",
+    "nom": "Boss Bottled Pacific",
+    "reason": "download failed (URL dead or timeout)"
+  },
+  {
+    "parfumId": "guerlain_le_bouquet_de_la_mariee",
+    "brandName": "Guerlain",
+    "nom": "Le Bouquet de la Mariee",
+    "reason": "upload: request to https://storage.googleapis.com/upload/storage/v1/b/parfumscan-60549.f"
+  },
+  {
+    "parfumId": "guerlain_cuir_beluga_hair_mist",
+    "brandName": "Guerlain",
+    "nom": "Cuir Béluga Hair Mist",
+    "reason": "upload: request to https://storage.googleapis.com/upload/storage/v1/b/parfumscan-60549.f"
+  },
+  {
+    "parfumId": "hugo_boss_boss_jour_pour_femme_runway_edition",
+    "brandName": "Hugo Boss",
+    "nom": "Boss Jour Pour Femme Runway Edition",
+    "reason": "background removal failed"
+  },
+  {
+    "parfumId": "natura_humor_a_vista",
+    "brandName": "Natura",
+    "nom": "Humor à Vista",
+    "reason": "background removal failed"
+  },
+  {
+    "parfumId": "nishane_oudous_lux_solis",
+    "brandName": "Nishane",
+    "nom": "Oudous Lux Solis",
+    "reason": "background removal failed"
+  },
+  {
+    "parfumId": "paris_corner_ophidian_mango_bliss",
+    "brandName": "PARIS CORNER",
+    "nom": "Ophidian Mango Bliss",
+    "reason": "upload: request to https://storage.googleapis.com/upload/storage/v1/b/parfumscan-60549.f"
+  },
+  {
+    "parfumId": "paris_corner_cherry_cola",
+    "brandName": "PARIS CORNER",
+    "nom": "Cherry Cola",
+    "reason": "upload: request to https://storage.googleapis.com/upload/storage/v1/b/parfumscan-60549.f"
+  },
+  {
+    "parfumId": "paris_corner_voux_blue_oud",
+    "brandName": "PARIS CORNER",
+    "nom": "Voux Blue Oud",
+    "reason": "upload: request to https://storage.googleapis.com/upload/storage/v1/b/parfumscan-60549.f"
+  },
+  {
+    "parfumId": "paris_corner_emir_frenetic_homme_intense",
+    "brandName": "PARIS CORNER",
+    "nom": "Emir Frenetic Homme Intense",
+    "reason": "upload: request to https://storage.googleapis.com/upload/storage/v1/b/parfumscan-60549.f"
+  },
+  {
+    "parfumId": "paris_corner_maestro_s_symphony",
+    "brandName": "PARIS CORNER",
+    "nom": "Maestro’s Symphony",
+    "reason": "upload: request to https://storage.googleapis.com/upload/storage/v1/b/parfumscan-60549.f"
+  },
+  {
+    "parfumId": "rayhaan_nocturno",
+    "brandName": "Rayhaan",
+    "nom": "Nocturno",
+    "reason": "download failed (URL dead or timeout)"
+  },
+  {
+    "parfumId": "paris_corner_emir_frenetic_homme_intense",
+    "brandName": "PARIS CORNER",
+    "nom": "Emir Frenetic Homme Intense",
+    "reason": "download failed (URL dead or timeout)"
+  },
+  {
+    "parfumId": "roja_dove_danger",
+    "brandName": "Roja Dove",
+    "nom": "Danger",
+    "reason": "download failed (URL dead or timeout)"
+  },
+  {
+    "parfumId": "roja_dove_britannia",
+    "brandName": "Roja Dove",
+    "nom": "Britannia",
+    "reason": "download failed (URL dead or timeout)"
+  },
+  {
+    "parfumId": "roja_dove_rdp21_limited_edition",
+    "brandName": "Roja Dove",
+    "nom": "RDP21 Limited Edition",
+    "reason": "download failed (URL dead or timeout)"
+  },
+  {
+    "parfumId": "roja_dove_turandot",
+    "brandName": "Roja Dove",
+    "nom": "Turandot",
+    "reason": "download failed (URL dead or timeout)"
+  },
+  {
+    "parfumId": "roja_dove_innuendo",
+    "brandName": "Roja Dove",
+    "nom": "Innuendo",
+    "reason": "download failed (URL dead or timeout)"
+  },
+  {
+    "parfumId": "roja_dove_aoud_absolue_precieux",
+    "brandName": "Roja Dove",
+    "nom": "Aoud Absolue Precieux",
+    "reason": "download failed (URL dead or timeout)"
+  },
+  {
+    "parfumId": "roja_dove_pierre_de_velay_no_47",
+    "brandName": "Roja Dove",
+    "nom": "Pierre de Velay No. 47",
+    "reason": "download failed (URL dead or timeout)"
+  },
+  {
+    "parfumId": "roja_dove_madison_pour_homme",
+    "brandName": "Roja Dove",
+    "nom": "Madison Pour Homme",
+    "reason": "download failed (URL dead or timeout)"
+  },
+  {
+    "parfumId": "roja_dove_l_oscar_pour_homme",
+    "brandName": "Roja Dove",
+    "nom": "L'Oscar Pour Homme",
+    "reason": "download failed (URL dead or timeout)"
+  },
+  {
+    "parfumId": "roja_dove_ravenclaw",
+    "brandName": "Roja Dove",
+    "nom": "Ravenclaw",
+    "reason": "download failed (URL dead or timeout)"
+  },
+  {
+    "parfumId": "roja_dove_51_pour_homme",
+    "brandName": "Roja Dove",
+    "nom": "51 Pour Homme",
+    "reason": "download failed (URL dead or timeout)"
+  },
+  {
+    "parfumId": "roja_dove_bergamot",
+    "brandName": "Roja Dove",
+    "nom": "Bergamot",
+    "reason": "download failed (URL dead or timeout)"
+  },
+  {
+    "parfumId": "roja_dove_h_the_exclusive_parfum_pour_homme",
+    "brandName": "Roja Dove",
+    "nom": "H The Exclusive Parfum Pour Homme",
+    "reason": "download failed (URL dead or timeout)"
+  },
+  {
+    "parfumId": "roja_dove_semi_bespoke_no_17",
+    "brandName": "Roja Dove",
+    "nom": "Semi-Bespoke No. 17",
+    "reason": "download failed (URL dead or timeout)"
+  },
+  {
+    "parfumId": "roja_dove_semi_bespoke_no_16",
+    "brandName": "Roja Dove",
+    "nom": "Semi-Bespoke No. 16",
+    "reason": "download failed (URL dead or timeout)"
+  },
+  {
+    "parfumId": "room_1015_sonic_flower",
+    "brandName": "Room 1015",
+    "nom": "Sonic Flower",
+    "reason": "download failed (URL dead or timeout)"
+  },
+  {
+    "parfumId": "room_1015_power_ballad",
+    "brandName": "Room 1015",
+    "nom": "Power Ballad",
+    "reason": "download failed (URL dead or timeout)"
+  },
+  {
+    "parfumId": "room_1015_blomma_cult",
+    "brandName": "Room 1015",
+    "nom": "Blomma Cult",
+    "reason": "download failed (URL dead or timeout)"
+  },
+  {
+    "parfumId": "salvatore_ferragamo_salvatore_ferragamo_subtil_pour_homme_fresh",
+    "brandName": "Salvatore Ferragamo",
+    "nom": "Salvatore Ferragamo Subtil Pour Homme Fresh",
+    "reason": "download failed (URL dead or timeout)"
+  },
+  {
+    "parfumId": "salvatore_ferragamo_amo_ferragamo",
+    "brandName": "Salvatore Ferragamo",
+    "nom": "Amo Ferragamo",
+    "reason": "download failed (URL dead or timeout)"
+  },
+  {
+    "parfumId": "salvatore_ferragamo_acqua_essenziale",
+    "brandName": "Salvatore Ferragamo",
+    "nom": "Acqua Essenziale",
+    "reason": "download failed (URL dead or timeout)"
+  },
+  {
+    "parfumId": "salvatore_ferragamo_giardini_di_seta",
+    "brandName": "Salvatore Ferragamo",
+    "nom": "Giardini di Seta",
+    "reason": "download failed (URL dead or timeout)"
+  },
+  {
+    "parfumId": "salvatore_ferragamo_sublime_leather",
+    "brandName": "Salvatore Ferragamo",
+    "nom": "Sublime Leather",
+    "reason": "download failed (URL dead or timeout)"
+  },
+  {
+    "parfumId": "salvatore_ferragamo_bianco_di_carrara",
+    "brandName": "Salvatore Ferragamo",
+    "nom": "Bianco di Carrara",
+    "reason": "download failed (URL dead or timeout)"
+  },
+  {
+    "parfumId": "salvatore_ferragamo_incanto_heaven",
+    "brandName": "Salvatore Ferragamo",
+    "nom": "Incanto Heaven",
+    "reason": "download failed (URL dead or timeout)"
+  },
+  {
+    "parfumId": "santa_eulalia_crocus_limited_edition",
+    "brandName": "Santa Eulalia",
+    "nom": "Crocus Limited Edition",
+    "reason": "upload: request to https://storage.googleapis.com/upload/storage/v1/b/parfumscan-60549.f"
+  },
+  {
+    "parfumId": "scentologia_obsidian",
+    "brandName": "Scentologia",
+    "nom": "Obsidian",
+    "reason": "upload: request to https://storage.googleapis.com/upload/storage/v1/b/parfumscan-60549.f"
+  },
+  {
+    "parfumId": "scentologia_forest_blends",
+    "brandName": "Scentologia",
+    "nom": "Forest.Blends.",
+    "reason": "upload: request to https://storage.googleapis.com/upload/storage/v1/b/parfumscan-60549.f"
+  },
+  {
+    "parfumId": "scents_of_wood_calm_in_cedar",
+    "brandName": "Scents of Wood",
+    "nom": "Calm in Cedar",
+    "reason": "download failed (URL dead or timeout)"
+  },
+  {
+    "parfumId": "scents_of_wood_pine_in_the_sun",
+    "brandName": "Scents of Wood",
+    "nom": "Pine in the Sun",
+    "reason": "download failed (URL dead or timeout)"
+  },
+  {
+    "parfumId": "scents_of_wood_strength_in_santal",
+    "brandName": "Scents of Wood",
+    "nom": "Strength in Santal",
+    "reason": "download failed (URL dead or timeout)"
+  },
+  {
+    "parfumId": "scents_of_wood_cashmeran_in_cognac",
+    "brandName": "Scents of Wood",
+    "nom": "Cashmeran in Cognac",
+    "reason": "download failed (URL dead or timeout)"
+  },
+  {
+    "parfumId": "serge_lutens_nuit_de_cellophane",
+    "brandName": "Serge Lutens",
+    "nom": "Nuit de Cellophane",
+    "reason": "download failed (URL dead or timeout)"
+  },
+  {
+    "parfumId": "serge_lutens_la_fille_tour_de_fer",
+    "brandName": "Serge Lutens",
+    "nom": "La Fille Tour De Fer",
+    "reason": "download failed (URL dead or timeout)"
+  },
+  {
+    "parfumId": "serge_lutens_fille_en_aiguilles",
+    "brandName": "Serge Lutens",
+    "nom": "Fille en Aiguilles",
+    "reason": "download failed (URL dead or timeout)"
+  },
+  {
+    "parfumId": "serge_lutens_louve",
+    "brandName": "Serge Lutens",
+    "nom": "Louve",
+    "reason": "download failed (URL dead or timeout)"
+  },
+  {
+    "parfumId": "serge_lutens_bas_de_soie",
+    "brandName": "Serge Lutens",
+    "nom": "Bas de Soie",
+    "reason": "download failed (URL dead or timeout)"
+  },
+  {
+    "parfumId": "serge_lutens_rahat_loukoum",
+    "brandName": "Serge Lutens",
+    "nom": "Rahat Loukoum",
+    "reason": "download failed (URL dead or timeout)"
+  },
+  {
+    "parfumId": "serge_lutens_l_eau_froide",
+    "brandName": "Serge Lutens",
+    "nom": "L'Eau Froide",
+    "reason": "download failed (URL dead or timeout)"
+  },
+  {
+    "parfumId": "serge_lutens_cuir_mauresque",
+    "brandName": "Serge Lutens",
+    "nom": "Cuir Mauresque",
+    "reason": "download failed (URL dead or timeout)"
+  },
+  {
+    "parfumId": "serge_lutens_encens_et_lavande",
+    "brandName": "Serge Lutens",
+    "nom": "Encens et Lavande",
+    "reason": "download failed (URL dead or timeout)"
+  },
+  {
+    "parfumId": "serge_lutens_une_voix_noire",
+    "brandName": "Serge Lutens",
+    "nom": "Une Voix Noire",
+    "reason": "upload: request to https://storage.googleapis.com/upload/storage/v1/b/parfumscan-60549.f"
+  },
+  {
+    "parfumId": "serge_lutens_cedre",
+    "brandName": "Serge Lutens",
+    "nom": "Cedre",
+    "reason": "upload: request to https://storage.googleapis.com/upload/storage/v1/b/parfumscan-60549.f"
+  },
+  {
+    "parfumId": "serge_lutens_l_innommable",
+    "brandName": "Serge Lutens",
+    "nom": "L'innommable",
+    "reason": "upload: request to https://storage.googleapis.com/upload/storage/v1/b/parfumscan-60549.f"
+  },
+  {
+    "parfumId": "serge_lutens_la_fille_de_berlin_edition_limitee",
+    "brandName": "Serge Lutens",
+    "nom": "La Fille de Berlin Edition Limitée",
+    "reason": "upload: request to https://storage.googleapis.com/upload/storage/v1/b/parfumscan-60549.f"
+  },
+  {
+    "parfumId": "serge_lutens_cracheuse_de_flammes",
+    "brandName": "Serge Lutens",
+    "nom": "Cracheuse de flammes",
+    "reason": "upload: request to https://storage.googleapis.com/upload/storage/v1/b/parfumscan-60549.f"
+  },
+  {
+    "parfumId": "serge_lutens_un_lys",
+    "brandName": "Serge Lutens",
+    "nom": "Un Lys",
+    "reason": "upload: request to https://storage.googleapis.com/upload/storage/v1/b/parfumscan-60549.f"
+  },
+  {
+    "parfumId": "serge_lutens_douce_amere",
+    "brandName": "Serge Lutens",
+    "nom": "Douce Amere",
+    "reason": "upload: request to https://storage.googleapis.com/upload/storage/v1/b/parfumscan-60549.f"
+  },
+  {
+    "parfumId": "serge_lutens_borneo_1834",
+    "brandName": "Serge Lutens",
+    "nom": "Borneo 1834",
+    "reason": "upload: request to https://storage.googleapis.com/upload/storage/v1/b/parfumscan-60549.f"
+  },
+  {
+    "parfumId": "serge_lutens_l_incendiaire",
+    "brandName": "Serge Lutens",
+    "nom": "L'incendiaire",
+    "reason": "upload: request to https://storage.googleapis.com/upload/storage/v1/b/parfumscan-60549.f"
+  },
+  {
+    "parfumId": "serge_lutens_l_eau_froide",
+    "brandName": "Serge Lutens",
+    "nom": "L'Eau Froide",
+    "reason": "upload: request to https://storage.googleapis.com/upload/storage/v1/b/parfumscan-60549.f"
+  },
+  {
+    "parfumId": "serge_lutens_jeaux_de_peau_edition_gravee_couronne_d_epines",
+    "brandName": "Serge Lutens",
+    "nom": "Jeaux de Peau Édition Gravée Couronne d’épines",
+    "reason": "upload: request to https://storage.googleapis.com/upload/storage/v1/b/parfumscan-60549.f"
+  },
+  {
+    "parfumId": "sol_de_janeiro_cheirosa_68",
+    "brandName": "Sol de Janeiro",
+    "nom": "Cheirosa '68",
+    "reason": "download failed (URL dead or timeout)"
+  },
+  {
+    "parfumId": "sol_de_janeiro_cheirosa_87",
+    "brandName": "Sol de Janeiro",
+    "nom": "Cheirosa '87",
+    "reason": "download failed (URL dead or timeout)"
+  },
+  {
+    "parfumId": "sol_de_janeiro_cheirosa_67",
+    "brandName": "Sol de Janeiro",
+    "nom": "Cheirosa 67",
+    "reason": "download failed (URL dead or timeout)"
+  },
+  {
+    "parfumId": "sol_de_janeiro_after_hours",
+    "brandName": "Sol de Janeiro",
+    "nom": "After Hours",
+    "reason": "download failed (URL dead or timeout)"
+  },
+  {
+    "parfumId": "sol_de_janeiro_when_in_rio",
+    "brandName": "Sol de Janeiro",
+    "nom": "When in Rio",
+    "reason": "download failed (URL dead or timeout)"
+  },
+  {
+    "parfumId": "sol_de_janeiro_cheirosa_tropical_nights",
+    "brandName": "Sol de Janeiro",
+    "nom": "Cheirosa Tropical Nights",
+    "reason": "download failed (URL dead or timeout)"
+  },
+  {
+    "parfumId": "sol_de_janeiro_danca_mistica",
+    "brandName": "Sol de Janeiro",
+    "nom": "Dança Mística",
+    "reason": "download failed (URL dead or timeout)"
+  },
+  {
+    "parfumId": "sorce_in_dreams_and_fairy_tales_vanilla",
+    "brandName": "Sorce",
+    "nom": "In Dreams and Fairy Tales Vanilla",
+    "reason": "download failed (URL dead or timeout)"
+  },
+  {
+    "parfumId": "sorce_the_ghost_wants_birthday_cake",
+    "brandName": "Sorce",
+    "nom": "The Ghost Wants Birthday Cake",
+    "reason": "download failed (URL dead or timeout)"
+  },
+  {
+    "parfumId": "sorce_sit_for_a_spell",
+    "brandName": "Sorce",
+    "nom": "Sit for a Spell",
+    "reason": "download failed (URL dead or timeout)"
+  },
+  {
+    "parfumId": "sorce_in_dreams_and_fairy_tales_pistachio",
+    "brandName": "Sorce",
+    "nom": "In Dreams and Fairy Tales Pistachio",
+    "reason": "download failed (URL dead or timeout)"
+  },
+  {
+    "parfumId": "sorce_dragonfly_wings",
+    "brandName": "Sorce",
+    "nom": "Dragonfly Wings",
+    "reason": "download failed (URL dead or timeout)"
+  },
+  {
+    "parfumId": "sorce_love_and_the_sea",
+    "brandName": "Sorce",
+    "nom": "Love and the Sea",
+    "reason": "download failed (URL dead or timeout)"
+  },
+  {
+    "parfumId": "sorce_follow_me_into_the_deep",
+    "brandName": "Sorce",
+    "nom": "Follow Me Into The Deep",
+    "reason": "download failed (URL dead or timeout)"
+  },
+  {
+    "parfumId": "sospiro_perfumes_erba_pura_magica",
+    "brandName": "Sospiro Perfumes",
+    "nom": "Erba Pura Magica",
+    "reason": "download failed (URL dead or timeout)"
+  },
+  {
+    "parfumId": "sospiro_perfumes_pasticcio",
+    "brandName": "Sospiro Perfumes",
+    "nom": "Pasticcio",
+    "reason": "download failed (URL dead or timeout)"
+  },
+  {
+    "parfumId": "sospiro_perfumes_accento_viola",
+    "brandName": "Sospiro Perfumes",
+    "nom": "Accento Viola",
+    "reason": "download failed (URL dead or timeout)"
+  },
+  {
+    "parfumId": "stella_mccartney_stella_rose_absolute",
+    "brandName": "Stella McCartney",
+    "nom": "Stella Rose Absolute",
+    "reason": "download failed (URL dead or timeout)"
+  },
+  {
+    "parfumId": "stella_mccartney_sheer_stella_2008",
+    "brandName": "Stella McCartney",
+    "nom": "Sheer Stella 2008",
+    "reason": "download failed (URL dead or timeout)"
+  },
+  {
+    "parfumId": "stella_mccartney_l_i_l_y",
+    "brandName": "Stella McCartney",
+    "nom": "L.I.L.Y",
+    "reason": "download failed (URL dead or timeout)"
+  },
+  {
+    "parfumId": "stellar_scents_east",
+    "brandName": "Stellar Scents",
+    "nom": "East",
+    "reason": "download failed (URL dead or timeout)"
+  },
+  {
+    "parfumId": "stellar_scents_west",
+    "brandName": "Stellar Scents",
+    "nom": "West",
+    "reason": "download failed (URL dead or timeout)"
+  },
+  {
+    "parfumId": "stephane_humbert_lucas_777_panthea",
+    "brandName": "Stéphane Humbert Lucas 777",
+    "nom": "Panthea",
+    "reason": "download failed (URL dead or timeout)"
+  },
+  {
+    "parfumId": "stephane_humbert_lucas_777_harrods_ruby_naga",
+    "brandName": "Stéphane Humbert Lucas 777",
+    "nom": "Harrods Ruby Naga",
+    "reason": "upload: request to https://storage.googleapis.com/upload/storage/v1/b/parfumscan-60549.f"
+  },
+  {
+    "parfumId": "stephane_humbert_lucas_777_lufu",
+    "brandName": "Stéphane Humbert Lucas 777",
+    "nom": "Lufu",
+    "reason": "download failed (URL dead or timeout)"
+  },
+  {
+    "parfumId": "stephanie_de_bruijn_parfum_sur_mesure_paris_bombay_stephanie_de_bruijn",
+    "brandName": "Stéphanie de Bruijn - Parfum sur Mesure",
+    "nom": "Paris – Bombay Stéphanie de Bruijn",
+    "reason": "download failed (URL dead or timeout)"
+  },
+  {
+    "parfumId": "stephanie_de_bruijn_parfum_sur_mesure_le_sully_stephanie_de_bruijn",
+    "brandName": "Stéphanie de Bruijn - Parfum sur Mesure",
+    "nom": "Le Sully Stéphanie de Bruijn",
+    "reason": "download failed (URL dead or timeout)"
+  },
+  {
+    "parfumId": "stephanie_de_bruijn_parfum_sur_mesure_dominique_albertelli_pour_homme_stephanie_de_bruijn",
+    "brandName": "Stéphanie de Bruijn - Parfum sur Mesure",
+    "nom": "Dominique Albertelli Pour Homme Stéphanie de Bruijn",
+    "reason": "download failed (URL dead or timeout)"
+  },
+  {
+    "parfumId": "strangelove_nyc_melt_my_heart_oil",
+    "brandName": "Strangelove NYC",
+    "nom": "Melt My Heart Oil",
+    "reason": "download failed (URL dead or timeout)"
+  },
+  {
+    "parfumId": "swiss_arabian_shaghaf_oud",
+    "brandName": "Swiss Arabian",
+    "nom": "Shaghaf Oud",
+    "reason": "download failed (URL dead or timeout)"
+  },
+  {
+    "parfumId": "swiss_arabian_patchouli_01",
+    "brandName": "Swiss Arabian",
+    "nom": "Patchouli 01",
+    "reason": "upload: request to https://storage.googleapis.com/upload/storage/v1/b/parfumscan-60549.f"
+  },
+  {
+    "parfumId": "swiss_arabian_shaghaf_oud_abyad",
+    "brandName": "Swiss Arabian",
+    "nom": "Shaghaf Oud Abyad",
+    "reason": "download failed (URL dead or timeout)"
+  },
+  {
+    "parfumId": "swiss_arabian_spirit_of_valencia",
+    "brandName": "Swiss Arabian",
+    "nom": "SPIRIT OF VALENCIA",
+    "reason": "download failed (URL dead or timeout)"
+  },
+  {
+    "parfumId": "swiss_arabian_shaghaf_oud_royale",
+    "brandName": "Swiss Arabian",
+    "nom": "Shaghaf Oud Royale",
+    "reason": "download failed (URL dead or timeout)"
+  },
+  {
+    "parfumId": "swiss_arabian_rose_malaki",
+    "brandName": "Swiss Arabian",
+    "nom": "Rose Malaki",
+    "reason": "download failed (URL dead or timeout)"
+  },
+  {
+    "parfumId": "swiss_arabian_bakhoor_al_arais",
+    "brandName": "Swiss Arabian",
+    "nom": "Bakhoor Al Arais",
+    "reason": "upload: request to https://storage.googleapis.com/upload/storage/v1/b/parfumscan-60549.f"
+  },
+  {
+    "parfumId": "swiss_arabian_hayaa",
+    "brandName": "Swiss Arabian",
+    "nom": "Hayaa",
+    "reason": "download failed (URL dead or timeout)"
+  },
+  {
+    "parfumId": "swiss_arabian_attar_al_sheila",
+    "brandName": "Swiss Arabian",
+    "nom": "Attar Al Sheila",
+    "reason": "download failed (URL dead or timeout)"
+  },
+  {
+    "parfumId": "swiss_arabian_al_waseem",
+    "brandName": "Swiss Arabian",
+    "nom": "Al Waseem",
+    "reason": "download failed (URL dead or timeout)"
+  },
+  {
+    "parfumId": "swiss_arabian_jannet_el_naeem",
+    "brandName": "Swiss Arabian",
+    "nom": "Jannet El Naeem",
+    "reason": "download failed (URL dead or timeout)"
+  },
+  {
+    "parfumId": "swiss_arabian_maysoon",
+    "brandName": "Swiss Arabian",
+    "nom": "Maysoon",
+    "reason": "download failed (URL dead or timeout)"
+  },
+  {
+    "parfumId": "swiss_arabian_essence_de_la_vie",
+    "brandName": "Swiss Arabian",
+    "nom": "Essence de la Vie",
+    "reason": "download failed (URL dead or timeout)"
+  },
+  {
+    "parfumId": "swiss_arabian_the_bosphorus",
+    "brandName": "Swiss Arabian",
+    "nom": "The Bosphorus",
+    "reason": "download failed (URL dead or timeout)"
+  },
+  {
+    "parfumId": "swiss_arabian_kalimat",
+    "brandName": "Swiss Arabian",
+    "nom": "Kalimat",
+    "reason": "download failed (URL dead or timeout)"
+  },
+  {
+    "parfumId": "swiss_arabian_kawthar",
+    "brandName": "Swiss Arabian",
+    "nom": "Kawthar",
+    "reason": "download failed (URL dead or timeout)"
+  },
+  {
+    "parfumId": "swiss_arabian_awtad",
+    "brandName": "Swiss Arabian",
+    "nom": "Awtad",
+    "reason": "download failed (URL dead or timeout)"
+  },
+  {
+    "parfumId": "swiss_arabian_pure_moments",
+    "brandName": "Swiss Arabian",
+    "nom": "Pure Moments",
+    "reason": "download failed (URL dead or timeout)"
+  },
+  {
+    "parfumId": "swiss_arabian_dharwah",
+    "brandName": "Swiss Arabian",
+    "nom": "Dharwah",
+    "reason": "download failed (URL dead or timeout)"
+  },
+  {
+    "parfumId": "swiss_arabian_rawnaq",
+    "brandName": "Swiss Arabian",
+    "nom": "Rawnaq",
+    "reason": "download failed (URL dead or timeout)"
+  },
+  {
+    "parfumId": "swiss_arabian_fawaz",
+    "brandName": "Swiss Arabian",
+    "nom": "Fawaz",
+    "reason": "download failed (URL dead or timeout)"
+  },
+  {
+    "parfumId": "tauer_perfumes_02_l_air_du_desert_marocain",
+    "brandName": "Tauer Perfumes",
+    "nom": "02 L'Air du Desert Marocain",
+    "reason": "download failed (URL dead or timeout)"
+  },
+  {
+    "parfumId": "tauer_perfumes_phi_une_rose_de_kandahar",
+    "brandName": "Tauer Perfumes",
+    "nom": "PHI Une Rose de Kandahar",
+    "reason": "download failed (URL dead or timeout)"
+  },
+  {
+    "parfumId": "tauer_perfumes_rose_absolue",
+    "brandName": "Tauer Perfumes",
+    "nom": "Rose Absolue",
+    "reason": "download failed (URL dead or timeout)"
+  },
+  {
+    "parfumId": "tauer_perfumes_l_eau",
+    "brandName": "Tauer Perfumes",
+    "nom": "L'Eau",
+    "reason": "download failed (URL dead or timeout)"
+  },
+  {
+    "parfumId": "tayshaba_flambois",
+    "brandName": "Tayshaba",
+    "nom": "Flambois",
+    "reason": "download failed (URL dead or timeout)"
+  },
+  {
+    "parfumId": "ted_lapidus_creation",
+    "brandName": "Ted Lapidus",
+    "nom": "Creation",
+    "reason": "download failed (URL dead or timeout)"
+  },
+  {
+    "parfumId": "ted_lapidus_lapidus_pour_homme",
+    "brandName": "Ted Lapidus",
+    "nom": "Lapidus Pour Homme",
+    "reason": "download failed (URL dead or timeout)"
+  },
+  {
+    "parfumId": "ted_lapidus_envol",
+    "brandName": "Ted Lapidus",
+    "nom": "Envol",
+    "reason": "download failed (URL dead or timeout)"
+  },
+  {
+    "parfumId": "ted_lapidus_lapidus_woman",
+    "brandName": "Ted Lapidus",
+    "nom": "Lapidus Woman",
+    "reason": "download failed (URL dead or timeout)"
+  },
+  {
+    "parfumId": "ted_lapidus_l_homme",
+    "brandName": "Ted Lapidus",
+    "nom": "L’Homme",
+    "reason": "download failed (URL dead or timeout)"
+  },
+  {
+    "parfumId": "thameen_regent_leather",
+    "brandName": "Thameen",
+    "nom": "Regent Leather",
+    "reason": "download failed (URL dead or timeout)"
+  },
+  {
+    "parfumId": "thameen_amber_room",
+    "brandName": "Thameen",
+    "nom": "Amber Room",
+    "reason": "download failed (URL dead or timeout)"
+  },
+  {
+    "parfumId": "thameen_the_cora",
+    "brandName": "Thameen",
+    "nom": "The Cora",
+    "reason": "download failed (URL dead or timeout)"
+  },
+  {
+    "parfumId": "thameen_carved_oud",
+    "brandName": "Thameen",
+    "nom": "Carved Oud",
+    "reason": "download failed (URL dead or timeout)"
+  },
+  {
+    "parfumId": "thameen_sparkling_opal",
+    "brandName": "Thameen",
+    "nom": "Sparkling Opal",
+    "reason": "download failed (URL dead or timeout)"
+  },
+  {
+    "parfumId": "thameen_cullinan_diamond",
+    "brandName": "Thameen",
+    "nom": "Cullinan Diamond",
+    "reason": "download failed (URL dead or timeout)"
+  },
+  {
+    "parfumId": "the_different_company_majaina_sin",
+    "brandName": "The Different Company",
+    "nom": "Majaïna Sin",
+    "reason": "download failed (URL dead or timeout)"
+  },
+  {
+    "parfumId": "the_different_company_sel_de_vetiver",
+    "brandName": "The Different Company",
+    "nom": "Sel de Vetiver",
+    "reason": "download failed (URL dead or timeout)"
+  },
+  {
+    "parfumId": "the_different_company_aurore_nomade",
+    "brandName": "The Different Company",
+    "nom": "Aurore Nomade",
+    "reason": "download failed (URL dead or timeout)"
+  },
+  {
+    "parfumId": "the_different_company_un_parfum_d_ailleurs_et_fleurs",
+    "brandName": "The Different Company",
+    "nom": "Un Parfum d'Ailleurs et Fleurs",
+    "reason": "download failed (URL dead or timeout)"
+  },
+  {
+    "parfumId": "the_different_company_limon_de_cordoza",
+    "brandName": "The Different Company",
+    "nom": "Limon de Cordoza",
+    "reason": "download failed (URL dead or timeout)"
+  },
+  {
+    "parfumId": "thomas_de_monaco_sol_salgado_extrait_de_parfum",
+    "brandName": "Thomas de Monaco",
+    "nom": "Sol Salgado Extrait de Parfum",
+    "reason": "download failed (URL dead or timeout)"
+  },
+  {
+    "parfumId": "the_house_of_oud_ruby_red",
+    "brandName": "The House of Oud",
+    "nom": "Ruby Red",
+    "reason": "download failed (URL dead or timeout)"
+  },
+  {
+    "parfumId": "the_house_of_oud_white_pearl",
+    "brandName": "The House of Oud",
+    "nom": "White Pearl",
+    "reason": "download failed (URL dead or timeout)"
+  },
+  {
+    "parfumId": "the_house_of_oud_emerald_green",
+    "brandName": "The House of Oud",
+    "nom": "Emerald Green",
+    "reason": "download failed (URL dead or timeout)"
+  },
+  {
+    "parfumId": "the_house_of_oud_up_to_the_moon",
+    "brandName": "The House of Oud",
+    "nom": "Up To The Moon",
+    "reason": "download failed (URL dead or timeout)"
+  },
+  {
+    "parfumId": "the_house_of_oud_crop_2017",
+    "brandName": "The House of Oud",
+    "nom": "Crop 2017",
+    "reason": "download failed (URL dead or timeout)"
+  },
+  {
+    "parfumId": "tiffany_tiffany_co_rose_gold_intense",
+    "brandName": "Tiffany",
+    "nom": "Tiffany & Co Rose Gold Intense",
+    "reason": "download failed (URL dead or timeout)"
+  },
+  {
+    "parfumId": "tiffany_tiffany_co_sheer",
+    "brandName": "Tiffany",
+    "nom": "Tiffany & Co Sheer",
+    "reason": "download failed (URL dead or timeout)"
+  },
+  {
+    "parfumId": "tiffany_pure_tiffany",
+    "brandName": "Tiffany",
+    "nom": "Pure Tiffany",
+    "reason": "download failed (URL dead or timeout)"
+  },
+  {
+    "parfumId": "tiziana_terenzi_orza",
+    "brandName": "Tiziana Terenzi",
+    "nom": "Orza",
+    "reason": "download failed (URL dead or timeout)"
+  },
+  {
+    "parfumId": "tiziana_terenzi_ecstasy",
+    "brandName": "Tiziana Terenzi",
+    "nom": "Ecstasy",
+    "reason": "download failed (URL dead or timeout)"
+  },
+  {
+    "parfumId": "tiziana_terenzi_osola",
+    "brandName": "Tiziana Terenzi",
+    "nom": "Osola",
+    "reason": "download failed (URL dead or timeout)"
+  },
+  {
+    "parfumId": "tiziana_terenzi_maremma",
+    "brandName": "Tiziana Terenzi",
+    "nom": "Maremma",
+    "reason": "download failed (URL dead or timeout)"
+  },
+  {
+    "parfumId": "tiziana_terenzi_lince",
+    "brandName": "Tiziana Terenzi",
+    "nom": "Lince",
+    "reason": "download failed (URL dead or timeout)"
+  },
+  {
+    "parfumId": "tiziana_terenzi_nero_oudh",
+    "brandName": "Tiziana Terenzi",
+    "nom": "Nero Oudh",
+    "reason": "download failed (URL dead or timeout)"
+  },
+  {
+    "parfumId": "tiziana_terenzi_kaff",
+    "brandName": "Tiziana Terenzi",
+    "nom": "Kaff",
+    "reason": "download failed (URL dead or timeout)"
+  },
+  {
+    "parfumId": "tiziana_terenzi_vele",
+    "brandName": "Tiziana Terenzi",
+    "nom": "Vele",
+    "reason": "download failed (URL dead or timeout)"
+  },
+  {
+    "parfumId": "tiziana_terenzi_omicron",
+    "brandName": "Tiziana Terenzi",
+    "nom": "Omicron",
+    "reason": "upload: request to https://storage.googleapis.com/upload/storage/v1/b/parfumscan-60549.f"
+  },
+  {
+    "parfumId": "tiziana_terenzi_cielo_blu",
+    "brandName": "Tiziana Terenzi",
+    "nom": "Cielo Blu",
+    "reason": "download failed (URL dead or timeout)"
+  },
+  {
+    "parfumId": "tom_ford_ombre_leather_2018",
+    "brandName": "Tom Ford",
+    "nom": "Ombré Leather (2018)",
+    "reason": "upload: request to https://storage.googleapis.com/upload/storage/v1/b/parfumscan-60549.f"
+  },
+  {
+    "parfumId": "tom_ford_oud_wood",
+    "brandName": "Tom Ford",
+    "nom": "Oud Wood",
+    "reason": "upload: request to https://storage.googleapis.com/upload/storage/v1/b/parfumscan-60549.f"
+  },
+  {
+    "parfumId": "tom_ford_figue_erotique",
+    "brandName": "Tom Ford",
+    "nom": "Figue Érotique",
+    "reason": "upload: request to https://storage.googleapis.com/upload/storage/v1/b/parfumscan-60549.f"
+  },
+  {
+    "parfumId": "tom_ford_noir_de_noir",
+    "brandName": "Tom Ford",
+    "nom": "Noir de Noir",
+    "reason": "upload: request to https://storage.googleapis.com/upload/storage/v1/b/parfumscan-60549.f"
+  },
+  {
+    "parfumId": "tom_ford_oud_minerale_2023",
+    "brandName": "Tom Ford",
+    "nom": "Oud Minérale (2023)",
+    "reason": "upload: request to https://storage.googleapis.com/upload/storage/v1/b/parfumscan-60549.f"
+  },
+  {
+    "parfumId": "tom_ford_electric_cherry",
+    "brandName": "Tom Ford",
+    "nom": "Electric Cherry",
+    "reason": "upload: request to https://storage.googleapis.com/upload/storage/v1/b/parfumscan-60549.f"
+  },
+  {
+    "parfumId": "tom_ford_vanille_fatale",
+    "brandName": "Tom Ford",
+    "nom": "Vanille Fatale",
+    "reason": "upload: request to https://storage.googleapis.com/upload/storage/v1/b/parfumscan-60549.f"
+  },
+  {
+    "parfumId": "tom_ford_oud_voyager",
+    "brandName": "Tom Ford",
+    "nom": "Oud Voyager",
+    "reason": "upload: request to https://storage.googleapis.com/upload/storage/v1/b/parfumscan-60549.f"
+  },
+  {
+    "parfumId": "tom_ford_myrrhe_mystere",
+    "brandName": "Tom Ford",
+    "nom": "Myrrhe Mystère",
+    "reason": "upload: request to https://storage.googleapis.com/upload/storage/v1/b/parfumscan-60549.f"
+  },
+  {
+    "parfumId": "tom_ford_taormina_orange",
+    "brandName": "Tom Ford",
+    "nom": "Taormina Orange",
+    "reason": "upload: request to https://storage.googleapis.com/upload/storage/v1/b/parfumscan-60549.f"
+  },
+  {
+    "parfumId": "tom_ford_bois_marocain_2022",
+    "brandName": "Tom Ford",
+    "nom": "Bois Marocain (2022)",
+    "reason": "upload: request to https://storage.googleapis.com/upload/storage/v1/b/parfumscan-60549.f"
+  },
+  {
+    "parfumId": "tom_ford_cafe_rose",
+    "brandName": "Tom Ford",
+    "nom": "Café Rose",
+    "reason": "upload: request to https://storage.googleapis.com/upload/storage/v1/b/parfumscan-60549.f"
+  },
+  {
+    "parfumId": "tom_ford_champaca_absolute",
+    "brandName": "Tom Ford",
+    "nom": "Champaca Absolute",
+    "reason": "download failed (URL dead or timeout)"
+  },
+  {
+    "parfumId": "tom_ford_shanghai_lily",
+    "brandName": "Tom Ford",
+    "nom": "Shanghai Lily",
+    "reason": "download failed (URL dead or timeout)"
+  },
+  {
+    "parfumId": "tom_ford_eau_de_jasmin_rouge",
+    "brandName": "Tom Ford",
+    "nom": "Eau de Jasmin Rouge",
+    "reason": "download failed (URL dead or timeout)"
+  },
+  {
+    "parfumId": "tom_ford_urban_musk",
+    "brandName": "Tom Ford",
+    "nom": "Urban Musk",
+    "reason": "download failed (URL dead or timeout)"
+  },
+  {
+    "parfumId": "tom_ford_black_orchid_voile_de_fleur",
+    "brandName": "Tom Ford",
+    "nom": "Black Orchid Voile de Fleur",
+    "reason": "download failed (URL dead or timeout)"
+  },
+  {
+    "parfumId": "tom_ford_reserve_collection_bois_marocain",
+    "brandName": "Tom Ford",
+    "nom": "Reserve Collection: Bois Marocain",
+    "reason": "download failed (URL dead or timeout)"
+  },
+  {
+    "parfumId": "tommy_hilfiger_tommy_girl_forever",
+    "brandName": "Tommy Hilfiger",
+    "nom": "Tommy Girl Forever",
+    "reason": "download failed (URL dead or timeout)"
+  },
+  {
+    "parfumId": "tommy_hilfiger_impact_spark",
+    "brandName": "Tommy Hilfiger",
+    "nom": "Impact Spark",
+    "reason": "download failed (URL dead or timeout)"
+  },
+  {
+    "parfumId": "tommy_hilfiger_tommy_girl_new_york",
+    "brandName": "Tommy Hilfiger",
+    "nom": "Tommy Girl New York",
+    "reason": "download failed (URL dead or timeout)"
+  },
+  {
+    "parfumId": "tommy_hilfiger_tommy_girl_neon_brights",
+    "brandName": "Tommy Hilfiger",
+    "nom": "Tommy Girl Neon Brights",
+    "reason": "download failed (URL dead or timeout)"
+  },
+  {
+    "parfumId": "tommy_hilfiger_tommy_girl_summer_cologne_2005",
+    "brandName": "Tommy Hilfiger",
+    "nom": "Tommy Girl Summer Cologne 2005",
+    "reason": "download failed (URL dead or timeout)"
+  },
+  {
+    "parfumId": "tommy_hilfiger_tommy_girl_summer_fragrance_2008",
+    "brandName": "Tommy Hilfiger",
+    "nom": "Tommy Girl Summer Fragrance 2008",
+    "reason": "download failed (URL dead or timeout)"
+  },
+  {
+    "parfumId": "tommy_hilfiger_tommy_girl_tropics",
+    "brandName": "Tommy Hilfiger",
+    "nom": "Tommy Girl Tropics",
+    "reason": "download failed (URL dead or timeout)"
+  },
+  {
+    "parfumId": "toskovat_ichigo_ichie",
+    "brandName": "Toskovat'",
+    "nom": "Ichigo Ichie",
+    "reason": "download failed (URL dead or timeout)"
+  },
+  {
+    "parfumId": "toskovat_amaretto_in_the_melting_room",
+    "brandName": "Toskovat'",
+    "nom": "Amaretto In The Melting Room",
+    "reason": "download failed (URL dead or timeout)"
+  },
+  {
+    "parfumId": "toskovat_f2",
+    "brandName": "Toskovat'",
+    "nom": "F2",
+    "reason": "download failed (URL dead or timeout)"
+  },
+  {
+    "parfumId": "trudon_medie",
+    "brandName": "Trudon",
+    "nom": "Médie",
+    "reason": "download failed (URL dead or timeout)"
+  },
+  {
+    "parfumId": "trudon_olim",
+    "brandName": "Trudon",
+    "nom": "Olim",
+    "reason": "download failed (URL dead or timeout)"
+  },
+  {
+    "parfumId": "trussardi_trussardi_eau_de_parfum",
+    "brandName": "Trussardi",
+    "nom": "Trussardi Eau de Parfum",
+    "reason": "download failed (URL dead or timeout)"
+  },
+  {
+    "parfumId": "trussardi_trussardi_jeans",
+    "brandName": "Trussardi",
+    "nom": "Trussardi Jeans",
+    "reason": "download failed (URL dead or timeout)"
+  },
+  {
+    "parfumId": "trussardi_uomo_trussardi_2011",
+    "brandName": "Trussardi",
+    "nom": "Uomo Trussardi 2011",
+    "reason": "download failed (URL dead or timeout)"
+  },
+  {
+    "parfumId": "trussardi_musc_noir_perfume_enhancer",
+    "brandName": "Trussardi",
+    "nom": "Musc Noir Perfume Enhancer",
+    "reason": "download failed (URL dead or timeout)"
+  },
+  {
+    "parfumId": "trussardi_riflesso",
+    "brandName": "Trussardi",
+    "nom": "Riflesso",
+    "reason": "download failed (URL dead or timeout)"
+  },
+  {
+    "parfumId": "une_nuit_nomade_silver_saffron",
+    "brandName": "Une Nuit Nomade",
+    "nom": "Silver Saffron",
+    "reason": "download failed (URL dead or timeout)"
+  },
+  {
+    "parfumId": "une_nuit_nomade_une_nuit_a_bali",
+    "brandName": "Une Nuit Nomade",
+    "nom": "Une Nuit à Bali",
+    "reason": "download failed (URL dead or timeout)"
+  },
+  {
+    "parfumId": "une_nuit_nomade_mr_vetiver",
+    "brandName": "Une Nuit Nomade",
+    "nom": "Mr. Vetiver",
+    "reason": "download failed (URL dead or timeout)"
+  },
+  {
+    "parfumId": "valentino_valentino_donna_born_in_roma_yellow_dream",
+    "brandName": "Valentino",
+    "nom": "Valentino Donna Born In Roma Yellow Dream",
+    "reason": "download failed (URL dead or timeout)"
+  },
+  {
+    "parfumId": "valentino_valentino_donna_born_in_roma_coral_fantasy",
+    "brandName": "Valentino",
+    "nom": "Valentino Donna Born In Roma Coral Fantasy",
+    "reason": "download failed (URL dead or timeout)"
+  },
+  {
+    "parfumId": "van_cleef_arpels_santal_blanc",
+    "brandName": "Van Cleef & Arpels",
+    "nom": "Santal Blanc",
+    "reason": "download failed (URL dead or timeout)"
+  },
+  {
+    "parfumId": "van_cleef_arpels_california_reverie",
+    "brandName": "Van Cleef & Arpels",
+    "nom": "California Réverie",
+    "reason": "download failed (URL dead or timeout)"
+  },
+  {
+    "parfumId": "van_cleef_arpels_neroli_amara_le_parfum",
+    "brandName": "Van Cleef & Arpels",
+    "nom": "Néroli Amara Le Parfum",
+    "reason": "download failed (URL dead or timeout)"
+  },
+  {
+    "parfumId": "van_cleef_arpels_tsar",
+    "brandName": "Van Cleef & Arpels",
+    "nom": "Tsar",
+    "reason": "download failed (URL dead or timeout)"
+  },
+  {
+    "parfumId": "van_cleef_arpels_midnight_in_paris_eau_de_parfum",
+    "brandName": "Van Cleef & Arpels",
+    "nom": "Midnight in Paris Eau de Parfum",
+    "reason": "download failed (URL dead or timeout)"
+  },
+  {
+    "parfumId": "van_cleef_arpels_lys_carmin",
+    "brandName": "Van Cleef & Arpels",
+    "nom": "Lys Carmin",
+    "reason": "download failed (URL dead or timeout)"
+  },
+  {
+    "parfumId": "van_cleef_arpels_murmure",
+    "brandName": "Van Cleef & Arpels",
+    "nom": "Murmure",
+    "reason": "download failed (URL dead or timeout)"
+  },
+  {
+    "parfumId": "van_cleef_arpels_aqua_oriens",
+    "brandName": "Van Cleef & Arpels",
+    "nom": "Aqua Oriens",
+    "reason": "download failed (URL dead or timeout)"
+  },
+  {
+    "parfumId": "van_cleef_arpels_feerie_rose_des_neiges",
+    "brandName": "Van Cleef & Arpels",
+    "nom": "Feerie Rose des Neiges",
+    "reason": "download failed (URL dead or timeout)"
+  },
+  {
+    "parfumId": "van_cleef_arpels_first_edition_blanche",
+    "brandName": "Van Cleef & Arpels",
+    "nom": "First Edition Blanche",
+    "reason": "download failed (URL dead or timeout)"
+  },
+  {
+    "parfumId": "van_cleef_arpels_first_eau_de_toilette_pour_l_ete_summer",
+    "brandName": "Van Cleef & Arpels",
+    "nom": "First Eau de Toilette pour l'Été Summer",
+    "reason": "download failed (URL dead or timeout)"
+  },
+  {
+    "parfumId": "v_canto_mirabile",
+    "brandName": "V Canto",
+    "nom": "Mirabile",
+    "reason": "download failed (URL dead or timeout)"
+  },
+  {
+    "parfumId": "v_canto_mandragola",
+    "brandName": "V Canto",
+    "nom": "Mandragola",
+    "reason": "download failed (URL dead or timeout)"
+  },
+  {
+    "parfumId": "v_canto_fili",
+    "brandName": "V Canto",
+    "nom": "Fili",
+    "reason": "download failed (URL dead or timeout)"
+  },
+  {
+    "parfumId": "vera_wang_embrace_green_tea_pear_blossom",
+    "brandName": "Vera Wang",
+    "nom": "Embrace Green Tea & Pear Blossom",
+    "reason": "download failed (URL dead or timeout)"
+  },
+  {
+    "parfumId": "vera_wang_flower_princess",
+    "brandName": "Vera Wang",
+    "nom": "Flower Princess",
+    "reason": "download failed (URL dead or timeout)"
+  },
+  {
+    "parfumId": "vera_wang_glam_princess",
+    "brandName": "Vera Wang",
+    "nom": "Glam Princess",
+    "reason": "download failed (URL dead or timeout)"
+  },
+  {
+    "parfumId": "vera_wang_hippie_princess",
+    "brandName": "Vera Wang",
+    "nom": "Hippie Princess",
+    "reason": "download failed (URL dead or timeout)"
+  },
+  {
+    "parfumId": "versace_versace_pour_femme_dylan_purple",
+    "brandName": "Versace",
+    "nom": "Versace Pour Femme Dylan Purple",
+    "reason": "download failed (URL dead or timeout)"
+  },
+  {
+    "parfumId": "versace_versace_pour_homme_dylan_blue",
+    "brandName": "Versace",
+    "nom": "Versace Pour Homme Dylan Blue",
+    "reason": "download failed (URL dead or timeout)"
+  },
+  {
+    "parfumId": "versace_versace_l_homme",
+    "brandName": "Versace",
+    "nom": "Versace L'Homme",
+    "reason": "download failed (URL dead or timeout)"
+  },
+  {
+    "parfumId": "versace_eros_najim",
+    "brandName": "Versace",
+    "nom": "Eros Najim",
+    "reason": "download failed (URL dead or timeout)"
+  },
+  {
+    "parfumId": "versace_versace_pour_femme_dylan_turquoise",
+    "brandName": "Versace",
+    "nom": "Versace Pour Femme Dylan Turquoise",
+    "reason": "download failed (URL dead or timeout)"
+  },
+  {
+    "parfumId": "versace_bright_crystal_absolu",
+    "brandName": "Versace",
+    "nom": "Bright Crystal Absolu",
+    "reason": "download failed (URL dead or timeout)"
+  },
+  {
+    "parfumId": "versace_versus",
+    "brandName": "Versace",
+    "nom": "Versus",
+    "reason": "download failed (URL dead or timeout)"
+  },
+  {
+    "parfumId": "victoria_s_secret_tease_creme_cloud",
+    "brandName": "Victoria's Secret",
+    "nom": "Tease Crème Cloud",
+    "reason": "download failed (URL dead or timeout)"
+  },
+  {
+    "parfumId": "victoria_s_secret_bombshell_santorini",
+    "brandName": "Victoria's Secret",
+    "nom": "Bombshell Santorini",
+    "reason": "upload: request to https://storage.googleapis.com/upload/storage/v1/b/parfumscan-60549.f"
+  },
+  {
+    "parfumId": "victoria_s_secret_rush",
+    "brandName": "Victoria's Secret",
+    "nom": "Rush",
+    "reason": "upload: request to https://storage.googleapis.com/upload/storage/v1/b/parfumscan-60549.f"
+  },
+  {
+    "parfumId": "victoria_s_secret_velvet_petals_shimmer",
+    "brandName": "Victoria's Secret",
+    "nom": "Velvet Petals Shimmer",
+    "reason": "download failed (URL dead or timeout)"
+  },
+  {
+    "parfumId": "victoria_s_secret_forbidden_cherry",
+    "brandName": "Victoria's Secret",
+    "nom": "Forbidden Cherry",
+    "reason": "download failed (URL dead or timeout)"
+  },
+  {
+    "parfumId": "victoria_s_secret_warm_cozy",
+    "brandName": "Victoria's Secret",
+    "nom": "Warm & Cozy",
+    "reason": "download failed (URL dead or timeout)"
+  },
+  {
+    "parfumId": "victoria_s_secret_bombshell_oud",
+    "brandName": "Victoria's Secret",
+    "nom": "Bombshell Oud",
+    "reason": "upload: request to https://storage.googleapis.com/upload/storage/v1/b/parfumscan-60549.f"
+  },
+  {
+    "parfumId": "victoria_s_secret_first_love",
+    "brandName": "Victoria's Secret",
+    "nom": "First Love",
+    "reason": "upload: request to https://storage.googleapis.com/upload/storage/v1/b/parfumscan-60549.f"
+  },
+  {
+    "parfumId": "victoria_s_secret_naughty_spice",
+    "brandName": "Victoria's Secret",
+    "nom": "Naughty Spice",
+    "reason": "download failed (URL dead or timeout)"
+  },
+  {
+    "parfumId": "victoria_s_secret_victoria",
+    "brandName": "Victoria's Secret",
+    "nom": "Victoria",
+    "reason": "upload: request to https://storage.googleapis.com/upload/storage/v1/b/parfumscan-60549.f"
   }
 ]

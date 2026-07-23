@@ -114,7 +114,7 @@ function getStyles(t: Theme) {
     brand: {
       fontSize: 11,
       textTransform: 'uppercase' as const,
-      letterSpacing: 2,
+      letterSpacing: 1.5,
       color: t.colors.textMuted,
       fontFamily: 'Inter_600SemiBold',
       marginBottom: 2,

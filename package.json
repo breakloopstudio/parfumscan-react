@@ -3,6 +3,8 @@
   "version": "1.0.0",
   "main": "index.ts",
   "dependencies": {
+    "@expo-google-fonts/inter": "^0.4.2",
+    "@expo-google-fonts/playfair-display": "^0.4.2",
     "@react-native-async-storage/async-storage": "^3.1.1",
     "@react-native-community/netinfo": "12.0.1",
     "@react-native-firebase/app": "^25.1.0",
@@ -76,6 +78,7 @@
     "clean-fragella": "tsx scripts/clean-fragella.ts",
     "migrate-webp": "tsx scripts/migrate-to-webp.ts",
     "migrate-bg": "tsx scripts/migrate-bgremoval.ts",
+    "audit-search": "tsx scripts/audit-search-fields.ts",
     "emulators": "firebase emulators:start",
     "test": "jest --watchAll",
     "test:ci": "jest --ci --coverage"

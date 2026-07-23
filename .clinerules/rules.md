@@ -23,7 +23,7 @@ app/
 ├── auth/
 │   ├── login.tsx             # Connexion email + Google
 │   └── register.tsx          # Inscription
-├── catalog/[id].tsx          # Fiche détail enrichie (HeroPriceOverlay, CollapsingHeader, StickyBottomBar, pyramide v5, NoteDetailPopup)
+├── catalog/[id].tsx          # Fiche détail v7 (DetailHero, CollapsingHeader, StickyBottomBar, pyramide v5, prix unique, « Quand le porter », « Dans le même esprit »)
 ├── wardrobe/[parfumId].tsx    # Fiche personnelle (notes, notes, SOTD, étagères)
 ├── settings.tsx              # Paramètres (notifications, devise, apparence, soutien, légal, compte)
 ├── legal.tsx                 # Mentions légales
@@ -38,7 +38,7 @@ src/
 ├── components/   (13)        # ParfumCard, Button, PriceDisplay, SectionHeader, EmptyState, OfflineBanner, AppLoader, ErrorBoundary, AlertPriceToggle, ProfileAvatar, NoteDetailPopup, ActionSheet, ImageViewerPopup
 ├── features/
 │   ├── scan/     (8)         # ScanScreen + 7 sous-états
-│   ├── catalog/  (9)         # CatalogPage, OlfactoryPyramid v5, HeroPriceOverlay, CollapsingHeader, StickyBottomBar, BrandCapsules, BrandSheet, CatalogRow, FamilyAmbianceCards
+│   ├── catalog/  (9)         # CatalogPage, OlfactoryPyramid v5, DetailHero, CollapsingHeader, StickyBottomBar, BrandCapsules, BrandSheet, CatalogRow, FamilyAmbianceCards
 │   ├── wardrobe/ (9)         # WardrobeAddSheet, WardrobeCard, WardrobeGrid, WardrobeQuickSheet, SOTDCard, SOTDPicker, FilterBar, StarRating, ShelfManager
 │   └── navigation/ (1)      # DockBar (barre flottante 5 positions + FAB, verre depoli via expo-blur, pulse ring, show/hide au scroll)
 ├── theme/        (2)         # theme.ts (Theme interface + light/dark), ThemeContext.tsx (useTheme + SystemUI/NavigationBar theming)

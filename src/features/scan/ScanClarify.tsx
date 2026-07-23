@@ -4,6 +4,7 @@ import { useState, useMemo } from 'react';
 import { View, Text, TextInput, Pressable, ScrollView, KeyboardAvoidingView, Platform } from 'react-native';
 import Ionicons from "@react-native-vector-icons/ionicons/static";
 import { useTheme, type Theme } from '../../theme/ThemeContext';
+import { textOn } from '../../utils/contrast';
 import type { ScanResult } from '../../models';
 
 const POPULAR_BRANDS = ['Dior', 'Chanel', 'Guerlain', 'Yves Saint Laurent', 'Lancôme', 'Paco Rabanne', 'Jean Paul Gaultier', 'Givenchy', 'Armani', 'Tom Ford', 'Creed', 'Xerjoff'];
@@ -72,7 +73,7 @@ export function ScanClarify({ scanResult, reason, onSearch, onReset }: Props) {
       </View>
 
       <Pressable style={[s.cta, !isValid && s.ctaDisabled]} onPress={() => onSearch(marque.trim(), nom.trim(), typeParfum || null, volumeMl ? Number(volumeMl) : null)} disabled={!isValid}>
-        <Ionicons name="search-outline" size={20} color="#FFF" style={{ marginRight: 8 }} />
+        <Ionicons name="search-outline" size={20} color={textOn(theme.colors.primary)} style={{ marginRight: 8 }} />
         <Text style={s.ctaText}>Trouver ce parfum</Text>
       </Pressable>
 
@@ -105,7 +106,7 @@ function getStyles(t: Theme) {
     chipText: { fontSize: 12, fontFamily: 'Inter_500Medium', color: t.colors.violetInk },
     cta: { flexDirection: 'row', width: '100%', maxWidth: 360, backgroundColor: t.colors.primary, borderRadius: t.radius.base, height: 48, justifyContent: 'center', alignItems: 'center', ...t.shadow.button },
     ctaDisabled: { opacity: 0.5 },
-    ctaText: { color: '#FFF', fontFamily: 'Inter_600SemiBold', fontSize: 16 },
+    ctaText: { color: textOn(t.colors.primary), fontFamily: 'Inter_600SemiBold', fontSize: 16 },
     resetBtn: { flexDirection: 'row', marginTop: 16, alignItems: 'center' },
     resetText: { fontSize: 14, color: t.colors.textMuted },
   } as const;

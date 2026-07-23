@@ -1,7 +1,7 @@
-// src/features/catalog/StickyBottomBar.tsx — Barre sticky bas (v3 prix-first)
+// src/features/catalog/StickyBottomBar.tsx — Barre d'action flottante (prix + actions, slide-in après la section prix)
 
 import { useMemo } from 'react';
-import { View, Text, Pressable, StyleSheet } from 'react-native';
+import { View, Text, Pressable } from 'react-native';
 import Animated, {
   useAnimatedStyle,
   interpolate,
@@ -11,6 +11,7 @@ import Animated, {
 import Ionicons from '@react-native-vector-icons/ionicons/static';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useTheme, type Theme } from '../../theme/ThemeContext';
+import { textOn } from '../../utils/contrast';
 import { ownershipLabel } from '../../utils/ownership';
 import type { WardrobeItem } from '../../models/wardrobe.interface';
 
@@ -54,7 +55,7 @@ export default function StickyBottomBar({
   });
 
   return (
-    <Animated.View style={[s.root, { paddingBottom: insets.bottom + 6 }, barStyle]}>
+    <Animated.View style={[s.root, { paddingBottom: insets.bottom + 12 }, barStyle]}>
       <View style={s.inner}>
         {/* Prix + réduction */}
         <View style={s.priceCol}>
@@ -86,7 +87,7 @@ export default function StickyBottomBar({
 
           <Pressable onPress={onWardrobePress} style={s.actionBtn} hitSlop={8}>
             <Ionicons
-              name={wardrobeItem ? 'shirt' : 'shirt-outline'}
+              name={wardrobeItem ? 'flask' : 'flask-outline'}
               size={22}
               color={wardrobeItem ? theme.colors.primary : theme.colors.textMuted}
             />
@@ -111,20 +112,20 @@ function getStyles(t: Theme) {
     root: {
       position: 'absolute' as const,
       bottom: 0,
-      left: 0,
-      right: 0,
+      left: 12,
+      right: 12,
       zIndex: 20,
-      paddingHorizontal: 12,
       paddingTop: 6,
-      backgroundColor: t.colors.surface,
-      borderTopWidth: StyleSheet.hairlineWidth,
-      borderTopColor: t.colors.border,
-      ...t.shadow.elevated,
     },
     inner: {
       flexDirection: 'row' as const,
       alignItems: 'center' as const,
       gap: 8,
+      backgroundColor: t.colors.surface,
+      borderRadius: t.radius.card,
+      paddingHorizontal: 12,
+      paddingVertical: 8,
+      ...t.shadow.elevated,
     },
     priceCol: {
       minWidth: 90,
@@ -148,7 +149,7 @@ function getStyles(t: Theme) {
     discountText: {
       fontSize: 11,
       fontFamily: 'Inter_700Bold',
-      color: '#FFFFFF',
+      color: textOn(t.colors.deal),
     },
     noPrice: {
       fontFamily: 'Inter_600SemiBold',
@@ -179,7 +180,7 @@ function getStyles(t: Theme) {
     ctaText: {
       fontFamily: 'Inter_600SemiBold',
       fontSize: 14,
-      color: '#FFFFFF',
+      color: textOn(t.colors.primary),
     },
     ctaPlaceholder: {
       marginLeft: 'auto' as const,

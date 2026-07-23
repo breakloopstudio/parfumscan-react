@@ -8,7 +8,7 @@
 [![React Native 0.86](https://img.shields.io/badge/React%20Native-0.86-61DAFB?logo=react)](https://reactnative.dev)
 [![TypeScript](https://img.shields.io/badge/TypeScript-6.0-3178C6?logo=typescript)](https://www.typescriptlang.org)
 [![Firebase](https://img.shields.io/badge/Firebase-BaaS-FFCA28?logo=firebase)](https://firebase.google.com)
-[![Tests 166](https://img.shields.io/badge/Tests-166%20passed-brightgreen)](https://github.com/breakloopstudio/parfumscan-react)
+[![Tests 194](https://img.shields.io/badge/Tests-194%20passed-brightgreen)](https://github.com/breakloopstudio/parfumscan-react)
 [![License MIT](https://img.shields.io/badge/License-MIT-green)](./LICENSE)
 
 </div>
@@ -28,10 +28,10 @@
 | ⭐ **Wishlist** | Parfums à acheter, alertes prix |
 | ❤️ **Favoris** | Coups de cœur, sans obligation d'achat |
 | ⚙️ **Paramètres** | Alertes prix, devise EUR, notifs push, mentions légales |
-| 🧠 **Fiche détail** | Hub d'actions (3 boutons), HeroPriceOverlay, CollapsingHeader, StickyBottomBar, pyramide olfactive v5 interactive, note detail popup, image viewer popup |
+| 🧠 **Fiche détail v7** | DetailHero (prix retiré de l'image), CollapsingHeader, barre d'action flottante (DockBar), pyramide olfactive v5 interactive, « Quand le porter » (colonnes saisons + chips occasions), note detail popup, image viewer popup |
 | 🚀 **Onboarding** | 3 slides au premier lancement, swipe navigation, sans auth (⏸️ désactivé temporairement) |
 | 🔐 **Auth optionnelle** | App utilisable sans compte, login demandé uniquement quand nécessaire |
-| 📴 **Mode hors-ligne** | Bannière réseau, contenu dégradé via cache Firestore local |
+| 📴 **Mode hors-ligne** | Bannière réseau globale (OfflineBanner dans `_layout.tsx`), état `reconnected` 2.5s, contenu dégradé via cache Firestore local |
 | 🌓 **Dark Mode** | 3 modes (système/clair/sombre), persistance AsyncStorage, SystemUI + NavigationBar theming, keyboardAppearance adaptatif |
 | 🎙️ **Recherche vocale** | Dictée vocale (expo-speech-recognition, on-device) + fallback OpenAI Whisper (Cloud Function), VoiceOverlay 5 phases avec transcript live et top résultats |
 | 🌤️ **Météo & suggestions** | Widget météo (Open-Meteo, gratuit), scoring des parfums adaptés à la météo dans la parfumerie, tri "Météo", SOTDPicker pré-trié, badge de compatibilité, notification push quotidienne à 7h via Cloud Function |
@@ -50,7 +50,7 @@
 | **Backend** | Firebase Auth, Firestore, Storage, Cloud Functions (europe-west1) |
 | **IA** | GPT-4o Vision (analyse photo), OpenAI Whisper-1 (transcription vocale), Firestore (catalogue 25K parfums) |
 | **Formulaires** | React Hook Form 7 + Zod 4 |
-| **Tests** | Jest 29 + jest-expo + Testing Library — 185 tests, 14 suites |
+| **Tests** | Jest 29 + jest-expo + Testing Library — 194 tests, 15 suites |
 
 ---
 
@@ -141,7 +141,7 @@ app/
 ├── auth/
 │   ├── login.tsx             # Connexion email + Google
 │   └── register.tsx          # Inscription
-├── catalog/[id].tsx          # Détail enrichi : HeroPriceOverlay, CollapsingHeader, StickyBottomBar, pyramide v5, accords, saisons, ImageViewerPopup
+├── catalog/[id].tsx          # Détail enrichi : DetailHero, CollapsingHeader, StickyBottomBar, pyramide v5, accords, saisons, ImageViewerPopup
 ├── wardrobe/[parfumId].tsx    # Fiche personnelle (notes, notes, SOTD, étagères, signature)
 ├── settings.tsx              # Paramètres : alertes prix, apparence, soutien, mentions légales, confidentialité
 ├── legal.tsx                 # Mentions légales
@@ -157,7 +157,7 @@ src/
 ├── theme/        (2)         # theme.ts (double palette light/dark), ThemeContext.tsx (SystemUI + NavigationBar theming)
 ├── features/
 │   ├── scan/     (8)         # ScanScreen + 7 sous-états
-│   ├── catalog/  (9)         # CatalogPage, BrandCapsules, BrandSheet, CatalogRow, FamilyAmbianceCards, OlfactoryPyramid v5, HeroPriceOverlay, CollapsingHeader, StickyBottomBar
+│   ├── catalog/  (9)         # CatalogPage, BrandCapsules, BrandSheet, CatalogRow, FamilyAmbianceCards, OlfactoryPyramid v5, DetailHero, CollapsingHeader, StickyBottomBar
 │   ├── wardrobe/ (10)        # WardrobeAddSheet, WardrobeCard, WardrobeGrid, WardrobeQuickSheet, SOTDCard, SOTDPicker, FilterBar, StarRating, ShelfManager, WeatherWidget
 │   ├── search/   (1)         # VoiceOverlay (panneau overlay 5 phases)
 │   ├── runner/   (11)        # Flacon Runner (easter egg endless runner — game loop, sprites, sons, persistance)
@@ -393,14 +393,14 @@ dénormalisés → affichage direct sans appel API Firestore supplémentaire.
 
 ## v6.4 — Refonte fiche détail prix-first (17/07/2026)
 
-- **Prix en overlay** : `HeroPriceOverlay` — badge flottant en bas à gauche de l'image hero (prix, réduction, prix ref barré, CTA)
+- **Prix en overlay** : `DetailHero` — badge flottant en bas à gauche de l'image hero (prix, réduction, prix ref barré, CTA)
 - **Header collapsé** : `CollapsingHeader` — marque fade-out + nom shrink au scroll via `useAnimatedReaction` + `LayoutAnimation`
 - **Barre sticky bas** : `StickyBottomBar` — slide-in prix + favori + garde-robe + CTA dès que la section prix est hors écran
 - **Ordre prix-first** : prix → pyramide → accords → stats (longévité/sillage/popularité) → saisons → occasions → similaires
 - **Doublon fav supprimé** : le cœur disparaît du header et de l'actionRow, uniquement dans la sticky bar
 - **Badges 2 lignes** : identification (type, famille, année) + contexte (saisons top 2, occasions top 2, note) avec icônes Ionicons
 - **Suppression comparateur prix magasin** et état `storePrice`/`showStoreInput`
-- **3 nouveaux composants** extraits : `HeroPriceOverlay` (156 lignes), `CollapsingHeader` (140 lignes), `StickyBottomBar` (189 lignes)
+- **3 nouveaux composants** extraits : `DetailHero` (156 lignes), `CollapsingHeader` (140 lignes), `StickyBottomBar` (189 lignes)
 
 ## v5.7 — Burst + Galerie + Personnalisation (16/07/2026)
 

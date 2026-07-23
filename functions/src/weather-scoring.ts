@@ -42,6 +42,8 @@ function getWmoMeta(code: number): WmoMeta {
   return WMO_META[code] ?? WMO_META[1];
 }
 
+export { getWmoMeta, WMO_META };
+
 function mapTempToSeason(temp: number): 'spring' | 'summer' | 'fall' | 'winter' {
   if (temp > 28) return 'summer';
   if (temp >= 20) return 'spring';
@@ -94,6 +96,7 @@ interface WeatherData {
   temperature: number;
   weatherCode: number;
   isDay: boolean;
+  dailyMax: number;
 }
 
 export interface WardrobeEntry {
@@ -112,6 +115,9 @@ interface OpenMeteoResponse {
     weather_code: number;
     is_day: number;
   };
+  daily: {
+    temperature_2m_max: number[];
+  };
 }
 
 export async function fetchWeatherForServer(lat: number, lon: number): Promise<WeatherData | null> {
@@ -120,10 +126,14 @@ export async function fetchWeatherForServer(lat: number, lon: number): Promise<W
     url.searchParams.set('latitude', String(lat));
     url.searchParams.set('longitude', String(lon));
     url.searchParams.set('current', 'temperature_2m,weather_code,is_day');
+    url.searchParams.set('daily', 'temperature_2m_max');
     url.searchParams.set('timezone', 'auto');
     url.searchParams.set('forecast_days', '1');
 
-    const res = await fetch(url.toString());
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 10_000);
+    const res = await fetch(url.toString(), { signal: controller.signal });
+    clearTimeout(timeoutId);
     if (!res.ok) return null;
 
     const data: OpenMeteoResponse = await res.json();
@@ -131,8 +141,10 @@ export async function fetchWeatherForServer(lat: number, lon: number): Promise<W
       temperature: data.current.temperature_2m,
       weatherCode: data.current.weather_code,
       isDay: data.current.is_day === 1,
+      dailyMax: data.daily.temperature_2m_max[0] ?? data.current.temperature_2m,
     };
   } catch (err: unknown) {
+    if ((err as Error)?.name === 'AbortError') return null;
     console.warn('[weather-scoring] fetch failed:', (err as Error)?.message ?? String(err));
     return null;
   }
@@ -140,7 +152,7 @@ export async function fetchWeatherForServer(lat: number, lon: number): Promise<W
 
 export function scoreItemForWeather(item: WardrobeEntry, weather: WeatherData): number {
   const famille = normalizeFamille(item.familleOlactive);
-  const season = mapTempToSeason(weather.temperature);
+  const season = mapTempToSeason(weather.dailyMax ?? weather.temperature);
   const wmo = getWmoMeta(weather.weatherCode);
 
   let score = 0;
@@ -159,7 +171,7 @@ export function scoreItemForWeather(item: WardrobeEntry, weather: WeatherData): 
   if (item.isSignature) score += 0.1;
   if (item.sotdCount && item.sotdCount > 0) score += Math.min(item.sotdCount * 0.02, 0.15);
 
-  return Math.round(score * 100);
+  return Math.min(Math.round(score * 100), 100);
 }
 
 export function weatherEmoji(icon: string): string {

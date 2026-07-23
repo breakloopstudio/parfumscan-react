@@ -6,6 +6,7 @@ import Svg, { Polygon, G } from 'react-native-svg';
 import Animated, { useSharedValue, useAnimatedStyle, withTiming } from 'react-native-reanimated';
 import { useTheme, type Theme } from '../../theme/ThemeContext';
 import { translateNote } from '../../utils/translate-note';
+import { textOn } from '../../utils/contrast';
 import { hapticsLight } from '../../services/haptics';
 
 interface Props {
@@ -105,7 +106,7 @@ export default function OlfactoryPyramid({ topNotes, heartNotes, baseNotes, onNo
                   onNotePress?.(note);
                 }}
               >
-                <Text style={s.chipText}>{translateNote(note)}</Text>
+                <Text style={[s.chipText, { color: textOn(activeLayer.color) }]}>{translateNote(note)}</Text>
               </Pressable>
             ))}
           </View>
@@ -116,8 +117,10 @@ export default function OlfactoryPyramid({ topNotes, heartNotes, baseNotes, onNo
 
   return (
     <Animated.View style={[s.root, fadeIn]}>
-      <Text style={s.title}>Pyramide olfactive</Text>
-      <Text style={s.subtitle}>Touchez une section pour explorer les notes</Text>
+      <View style={s.header}>
+        <Text style={s.title}>Pyramide olfactive</Text>
+        <Text style={s.subtitle}>Touchez une section pour explorer les notes</Text>
+      </View>
 
       <Pressable
         onPress={(e) => {
@@ -192,7 +195,7 @@ export default function OlfactoryPyramid({ topNotes, heartNotes, baseNotes, onNo
                 <Text
                   style={[
                     s.legendCountText,
-                    { color: isActive ? '#FFFFFF' : layer.ink },
+                    { color: isActive ? textOn(layer.color) : layer.ink },
                   ]}
                 >
                   {layer.notes.length}
@@ -213,8 +216,9 @@ function getStyles(t: Theme) {
   const c = t.colors;
   return {
     root: { marginTop: 24, marginBottom: 4, alignItems: 'center' as const },
-    title: { fontFamily: 'PlayfairDisplay_600SemiBold', fontSize: 15, color: c.text, marginBottom: 2 },
-    subtitle: { fontFamily: 'Inter_400Regular', fontSize: 12, color: c.textMuted, marginBottom: 22 },
+    header: { width: '100%' as const, marginBottom: 22 },
+    title: { fontFamily: 'PlayfairDisplay_600SemiBold', fontSize: 18, color: c.text, marginBottom: 2 },
+    subtitle: { fontFamily: 'Inter_400Regular', fontSize: 12, color: c.textMuted },
     triangleStage: { alignItems: 'center' as const, marginBottom: 18 },
     legend: { flexDirection: 'row' as const, gap: 8, marginBottom: 14, width: '100%' as const },
     legendItem: {
@@ -245,6 +249,6 @@ function getStyles(t: Theme) {
     chipRow: { flexDirection: 'row' as const, flexWrap: 'wrap' as const, gap: 6, justifyContent: 'center' as const },
     emptyText: { fontFamily: 'Inter_400Regular', fontSize: 13, fontStyle: 'italic' as const },
     chip: { paddingHorizontal: 12, paddingVertical: 6, borderRadius: 14 },
-    chipText: { fontSize: 12, fontFamily: 'Inter_500Medium', color: '#FFFFFF' },
+    chipText: { fontSize: 12, fontFamily: 'Inter_500Medium' },
   } as const;
 }

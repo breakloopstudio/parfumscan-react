@@ -4,10 +4,12 @@ import { useState, useMemo, useCallback } from 'react';
 import { View, Text, Pressable, TextInput, Alert } from 'react-native';
 import Ionicons from '@react-native-vector-icons/ionicons/static';
 import { useTheme, type Theme } from '../../theme/ThemeContext';
+import { textOn } from '../../utils/contrast';
 import { hapticsLight } from '../../services/haptics';
 import type { Shelf } from '../../models/wardrobe.interface';
 
-const SHELF_COLORS = ['#6C3ED9', '#C8945A', '#0D9488', '#D97706', '#E04444', '#2563EB', '#059669', '#7C3AED'];
+const SHELF_COLORS_LIGHT = ['#6C3ED9', '#C8945A', '#0D9488', '#D97706', '#E04444', '#2563EB', '#059669', '#7C3AED'];
+const SHELF_COLORS_DARK  = ['#8B6CF6', '#D4A960', '#2DD4BF', '#F59E0B', '#EF4444', '#60A5FA', '#34D399', '#A78BFA'];
 const SHELF_ICONS = ['sunny-outline', 'moon-outline', 'briefcase-outline', 'rose-outline', 'gift-outline', 'star-outline', 'leaf-outline', 'sparkles-outline', 'water-outline', 'flame-outline', 'snow-outline', 'musical-notes-outline'] as const;
 
 interface Props {
@@ -29,6 +31,8 @@ export default function ShelfManager({ visible, shelves, orphanCount, onClose, o
   const [selectedColor, setSelectedColor] = useState<string | null>(null);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editName, setEditName] = useState('');
+
+  const shelfColors = resolvedMode === 'dark' ? SHELF_COLORS_DARK : SHELF_COLORS_LIGHT;
 
   if (!visible) return null;
 
@@ -131,7 +135,7 @@ export default function ShelfManager({ visible, shelves, orphanCount, onClose, o
 
           <Text style={s.miniLabel}>Couleur (optionnelle)</Text>
           <View style={s.colorRow}>
-            {SHELF_COLORS.map(color => (
+            {shelfColors.map(color => (
               <Pressable
                 key={color}
                 style={[s.colorBtn, { backgroundColor: color }, selectedColor === color && s.colorBtnActive]}
@@ -302,7 +306,7 @@ function getStyles(t: Theme) {
     createBtnText: {
       fontFamily: 'Inter_600SemiBold',
       fontSize: 14,
-      color: '#FFFFFF',
+      color: textOn(t.colors.primary),
     },
     createBtnTextDisabled: {
       color: t.colors.textMuted,

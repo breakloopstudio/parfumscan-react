@@ -7,6 +7,7 @@ import ParfumCard from '../../components/ParfumCard';
 import StarRating from './StarRating';
 import { wardrobeToCardItem, ownershipLabel } from '../../utils/ownership';
 import { useTheme, type Theme } from '../../theme/ThemeContext';
+import { textOn } from '../../utils/contrast';
 import type { WardrobeItem } from '../../models/wardrobe.interface';
 
 interface Props {
@@ -21,10 +22,10 @@ export default function WardrobeCard({ item, onPress }: Props) {
 
   const badgeStyle = useMemo(() => {
     const base: Record<string, { bg: string; color: string }> = {
-      have: { bg: theme.colors.primary, color: '#FFFFFF' },
-      want: { bg: theme.colors.secondary, color: '#1F1A2E' },
-      had: { bg: theme.colors.textMuted + 'B3', color: '#FFFFFF' },
-      sample: { bg: theme.colors.deal, color: '#FFFFFF' },
+      have: { bg: theme.colors.primary, color: textOn(theme.colors.primary) },
+      want: { bg: theme.colors.secondary, color: textOn(theme.colors.secondary) },
+      had: { bg: 'rgba(0,0,0,0.55)', color: '#FFFFFF' },
+      sample: { bg: theme.colors.deal, color: textOn(theme.colors.deal) },
       decant: { bg: theme.colors.dealSoft, color: theme.colors.deal },
     };
     return base[item.ownership] ?? base.have;

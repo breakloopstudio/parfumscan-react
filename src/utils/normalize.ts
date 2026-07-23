@@ -30,7 +30,7 @@ export function buildSearchKeywords(marque: string, nom: string, familleOlactive
   const tokens = new Set<string>();
 
   const addWordAndPrefixes = (word: string) => {
-    if (STOP_WORDS.has(word)) return;
+    if (word.length < 2 || STOP_WORDS.has(word)) return;
     tokens.add(word);
     for (let i = 3; i < word.length; i++) {
       tokens.add(word.slice(0, i));
@@ -44,7 +44,6 @@ export function buildSearchKeywords(marque: string, nom: string, familleOlactive
   n.split('_').filter(Boolean).forEach(addWordAndPrefixes);
 
   tokens.add(`${m}_${n}`);
-  tokens.add(`${m} ${n}`.trim());
   tokens.add(m);
   tokens.add(n);
 

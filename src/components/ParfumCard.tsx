@@ -10,6 +10,7 @@ import { useTheme, type Theme } from '../theme/ThemeContext';
 import type { Parfum } from '../models';
 import { setPendingParfum } from '../services/catalog-bridge';
 import { translateNote } from '../utils/translate-note';
+import { textOn } from '../utils/contrast';
 
 export type CardMode = 'compact' | 'comfortable' | 'compactPlus' | 'list';
 
@@ -278,7 +279,7 @@ function getStyles(t: Theme) {
     tagFamily: { backgroundColor: t.colors.violetSoft, paddingHorizontal: 8, paddingVertical: 3, borderRadius: 20 },
     tagFamilyText: { fontSize: 10, fontFamily: 'Inter_500Medium', color: t.colors.violetInk },
     tagYear: { backgroundColor: t.colors.rewardSoft, paddingHorizontal: 8, paddingVertical: 3, borderRadius: 20 },
-    tagYearText: { fontSize: 10, fontFamily: 'Inter_500Medium', color: t.colors.reward },
+    tagYearText: { fontSize: 10, fontFamily: 'Inter_500Medium', color: t.colors.rewardInk },
     priceDot: { width: 8, height: 8, borderRadius: 4, marginRight: 4 },
     priceDotSmall: { width: 7, height: 7, borderRadius: 3.5, marginRight: 4 },
 
@@ -292,7 +293,7 @@ function getStyles(t: Theme) {
     imgPlaceholderCompact: { width: '100%', height: 186, justifyContent: 'center', alignItems: 'center' },
     placeholderInitCompact: { fontSize: 48, fontFamily: 'Inter_700Bold', color: '#FFFFFF', opacity: 0.5 },
     dealBadgeCompact: { position: 'absolute', top: 8, left: 8, backgroundColor: t.colors.deal, paddingHorizontal: 6, paddingVertical: 3, borderRadius: 6 },
-    dealBadgeTextCompact: { color: '#FFFFFF', fontFamily: 'Inter_600SemiBold', fontSize: 10 },
+    dealBadgeTextCompact: { color: textOn(t.colors.deal), fontFamily: 'Inter_600SemiBold', fontSize: 10 },
     headerCompact: { padding: 10, paddingBottom: 2 },
     brandCompact: { fontSize: 10, textTransform: 'uppercase', letterSpacing: 1, color: t.colors.textMuted, fontFamily: 'Inter_400Regular' },
     titleCompact: { fontFamily: 'PlayfairDisplay_600SemiBold', fontSize: 14, color: t.colors.text, lineHeight: 18 },
@@ -311,7 +312,7 @@ function getStyles(t: Theme) {
     imgPlaceholderComfortable: { aspectRatio: 3/4, justifyContent: 'center', alignItems: 'center' },
     placeholderInitComfortable: { fontSize: 56, fontFamily: 'Inter_700Bold', color: '#FFFFFF', opacity: 0.5 },
     dealBadge: { position: 'absolute', top: 8, left: 8, backgroundColor: t.colors.deal, paddingHorizontal: 8, paddingVertical: 4, borderRadius: 6 },
-    dealBadgeText: { color: '#FFFFFF', fontFamily: 'Inter_600SemiBold', fontSize: 11 },
+    dealBadgeText: { color: textOn(t.colors.deal), fontFamily: 'Inter_600SemiBold', fontSize: 11 },
     bodyComfortable: { padding: 10 },
     brandComfortable: { fontSize: 11, textTransform: 'uppercase', letterSpacing: 1.5, color: t.colors.textMuted, fontFamily: 'Inter_400Regular', marginBottom: 2 },
     titleComfortable: { fontFamily: 'PlayfairDisplay_600SemiBold', fontSize: 16, color: t.colors.text, lineHeight: 19, marginBottom: 6 },
@@ -332,7 +333,7 @@ function getStyles(t: Theme) {
     imgPlaceholderCompactPlus: { width: '100%', height: 90, justifyContent: 'center', alignItems: 'center' },
     placeholderInitCompactPlus: { fontSize: 32, fontFamily: 'Inter_700Bold', color: '#FFFFFF', opacity: 0.5 },
     dealBadgeCompactPlus: { position: 'absolute', top: 4, left: 4, backgroundColor: t.colors.deal, paddingHorizontal: 5, paddingVertical: 2, borderRadius: 4 },
-    dealBadgeTextCompactPlus: { color: '#FFFFFF', fontFamily: 'Inter_600SemiBold', fontSize: 9 },
+    dealBadgeTextCompactPlus: { color: textOn(t.colors.deal), fontFamily: 'Inter_600SemiBold', fontSize: 9 },
     bodyCompactPlus: { padding: 8 },
     tagsCompact: { flexDirection: 'row', gap: 4, marginBottom: 5, minHeight: 18 },
     brandCompactPlus: { fontSize: 10, textTransform: 'uppercase', letterSpacing: 0.8, color: t.colors.textMuted, fontFamily: 'Inter_400Regular' },

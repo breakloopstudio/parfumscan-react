@@ -107,7 +107,7 @@ describe('moveFavori', () => {
 describe('getUserSettings', () => {
   it('returns defaults when no settings exist', async () => {
     const settings = await getUserSettings('uid1');
-    expect(settings).toEqual({ priceAlerts: false, pushNotifs: true });
+    expect(settings).toEqual({ priceAlerts: false, pushNotifs: true, weatherNotifs: false, weatherLat: null, weatherLon: null });
   });
 
   it('reads stored preferences', async () => {
@@ -116,7 +116,7 @@ describe('getUserSettings', () => {
       { priceAlerts: true, pushNotifs: false }
     );
     const settings = await getUserSettings('uid1');
-    expect(settings).toEqual({ priceAlerts: true, pushNotifs: false });
+    expect(settings).toEqual({ priceAlerts: true, pushNotifs: false, weatherNotifs: false, weatherLat: null, weatherLon: null });
   });
 });
 

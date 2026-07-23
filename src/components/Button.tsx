@@ -4,6 +4,7 @@ import { useMemo } from 'react';
 import { Pressable, Text, ActivityIndicator, type ViewStyle } from 'react-native';
 import Ionicons from '@react-native-vector-icons/ionicons/static';
 import { useTheme, type Theme } from '../theme/ThemeContext';
+import { textOn } from '../utils/contrast';
 
 type Variant = 'primary' | 'secondary' | 'outline' | 'ghost';
 
@@ -26,7 +27,7 @@ export default function Button({
   children,
   style,
 }: Props) {
-  const { theme } = useTheme();
+  const { theme, resolvedMode } = useTheme();
   const s = useMemo(() => getStyles(theme), [theme]);
   const isDisabled = disabled || loading;
 
@@ -34,7 +35,8 @@ export default function Button({
     : variant === 'secondary' ? theme.colors.secondary
     : 'transparent';
 
-  const fg = variant === 'primary' || variant === 'secondary' ? '#FFFFFF'
+  const fg = variant === 'primary' ? textOn(theme.colors.primary)
+    : variant === 'secondary' ? textOn(theme.colors.secondary)
     : variant === 'outline' ? theme.colors.primary
     : theme.colors.primary;
 
@@ -45,7 +47,9 @@ export default function Button({
   const shadow = variant === 'primary'
     ? theme.shadow.button
     : variant === 'secondary'
-    ? { shadowColor: theme.colors.secondary, shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.25, shadowRadius: 10, elevation: 4 }
+    ? (resolvedMode === 'dark'
+        ? theme.shadow.button
+        : { shadowColor: theme.colors.secondary, shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.25, shadowRadius: 10, elevation: 4 })
     : {};
 
   return (

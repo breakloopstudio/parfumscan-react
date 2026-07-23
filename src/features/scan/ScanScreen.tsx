@@ -8,6 +8,7 @@ import { useCameraPermissions } from 'expo-camera';
 import * as ImagePicker from 'expo-image-picker';
 import { manipulateAsync, SaveFormat } from 'expo-image-manipulator';
 import { useAuthContext } from '../../contexts/AuthContext';
+import { useNetwork } from '../../hooks/useNetwork';
 import { useScanReducer } from '../../hooks/useScanReducer';
 import { useScanPipeline } from '../../hooks/useScanPipeline';
 import { setPendingCatalogQuery } from '../../services/catalog-bridge';
@@ -34,6 +35,7 @@ async function resizeToBase64(uri: string): Promise<string | null> {
 
 export function ScanScreen() {
   const { user } = useAuthContext();
+  const { isOnline } = useNetwork();
   const router = useRouter();
   const [permission, requestPermission] = useCameraPermissions();
   const { state, dispatch } = useScanReducer();
@@ -49,6 +51,12 @@ export function ScanScreen() {
   // Pipeline métier : GPT-4o → recherche → résultats → historique
   const { startAnalysis } = useScanPipeline(dispatch, user?.uid ?? null, mountedRef);
 
+  const guardOnline = useCallback((): boolean => {
+    if (isOnline) return true;
+    Alert.alert('Hors-ligne', 'Le scan nécessite une connexion internet. Réessaie quand tu es connecté.');
+    return false;
+  }, [isOnline]);
+
   // ─── Handlers UI ──────────────────────────────────────
 
   const reset = useCallback(() => {
@@ -61,6 +69,7 @@ export function ScanScreen() {
   }, [dispatch]);
 
   const handleOpenCamera = useCallback(async () => {
+    if (!guardOnline()) return;
     if (!permission?.granted) {
       const r = await requestPermission();
       if (!r.granted) {
@@ -79,6 +88,7 @@ export function ScanScreen() {
   }, [permission, requestPermission, dispatch]);
 
   const handleGalleryImport = useCallback(async () => {
+    if (!guardOnline()) return;
     try {
       const result = await ImagePicker.launchImageLibraryAsync({
         mediaTypes: ['images'],
@@ -104,12 +114,14 @@ export function ScanScreen() {
   }, [startAnalysis]);
 
   const handleClarify = useCallback(async (marque: string, nom: string, typeParfum: string | null, volumeMl: number | null) => {
+    if (!guardOnline()) return;
     startAnalysis({
       scanResult: { marque: marque || null, nom: nom || null, typeParfum: typeParfum || null, volumeMl },
     });
   }, [startAnalysis]);
 
   const handleRetryAnalysis = useCallback(() => {
+    if (!guardOnline()) return;
     const burst = lastBurstRef.current;
     if (burst && burst.length > 0) {
       startAnalysis({ images: burst });
@@ -133,7 +145,7 @@ export function ScanScreen() {
 
   switch (state.kind) {
     case 'idle':
-      return <ScanIdle onStartScan={handleOpenCamera} onImportGallery={handleGalleryImport} onOpenManual={() => dispatch({ type: 'OPEN_MANUAL' })} />;
+      return <ScanIdle isOnline={isOnline} onStartScan={handleOpenCamera} onImportGallery={handleGalleryImport} onOpenManual={() => dispatch({ type: 'OPEN_MANUAL' })} />;
     case 'camera':
       return <ScanCamera onCapture={handleCapture} onCancel={() => dispatch({ type: 'CANCEL_CAMERA' })} />;
     case 'scanning':

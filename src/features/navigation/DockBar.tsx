@@ -19,6 +19,7 @@ import Animated, {
 import Ionicons from '@react-native-vector-icons/ionicons/static';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useTheme, type Theme } from '../../theme/ThemeContext';
+import { textOn } from '../../utils/contrast';
 import { hapticsLight } from '../../services/haptics';
 
 const FAB_SPACE = 64;
@@ -130,7 +131,7 @@ export default function DockBar({ activeIndex, pageWidth, dockTranslateY, onTabP
                     style={[s.fab, m.fab, m.fabShadow]}
                     onPress={() => handlePress(tab.index)}
                   >
-                    <Ionicons name="camera" size={24} color="#FFF" />
+                    <Ionicons name="camera" size={24} color={textOn(theme.colors.primary)} />
                   </Pressable>
                 </View>
               </View>

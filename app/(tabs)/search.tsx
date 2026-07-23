@@ -15,6 +15,7 @@ import ParfumCard from '../../src/components/ParfumCard';
 import { useTheme, type Theme } from '../../src/theme/ThemeContext';
 import { consumePendingCatalogQuery } from '../../src/services/catalog-bridge';
 import { useDensityPreference, GRID_MODES } from '../../src/hooks/useDensityPreference';
+import { useNetwork } from '../../src/hooks/useNetwork';
 
 const RECENT_KEY = '@parfumscan/recent-searches';
 
@@ -49,8 +50,9 @@ export default function SearchScreen() {
   const inputRef = useRef<TextInput>(null);
   const [searchText, setSearchText] = useState(initialQuery ?? '');
   const recentLoadedRef = useRef(false);
-  const { parfums, searching, search, clear } = useCatalog();
+  const { parfums, searching, error, rateLimited, search, clear } = useCatalog();
   const { density: searchDensity, setDensity: setSearchDensity } = useDensityPreference();
+  const { isOnline } = useNetwork();
   const [recentSearches, setRecentSearches] = useState<string[]>(recentStore.items);
 
   const handleVoiceResult = useCallback(async (result: VoiceResult) => {
@@ -112,13 +114,17 @@ export default function SearchScreen() {
   }, [search, clear, voiceState, voiceSearch]);
 
   const handleVoiceToggle = useCallback(() => {
+    if (!isOnline) {
+      handleVoiceError('Recherche vocale indisponible hors-ligne.');
+      return;
+    }
     if (voiceState === 'listening' || voiceState === 'processing') {
       voiceSearch.stop();
     } else {
       clear();
       voiceSearch.start();
     }
-  }, [voiceState, voiceSearch, clear]);
+  }, [isOnline, voiceState, voiceSearch, clear, handleVoiceError]);
 
   const handleResultPress = useCallback((id: string) => {
     const text = searchText.trim();
@@ -201,6 +207,13 @@ export default function SearchScreen() {
 
       {searching && <ActivityIndicator style={{ marginTop: 24 }} color={theme.colors.primary} />}
 
+      {rateLimited && (
+        <View style={s.rateBanner}>
+          <Ionicons name="timer-outline" size={14} color={theme.colors.fairInk} />
+          <Text style={s.rateBannerText}>Trop de recherches. Réessaie dans quelques secondes.</Text>
+        </View>
+      )}
+
       {hasResults ? (
         <>
           <View style={s.densityRow}>
@@ -234,6 +247,12 @@ export default function SearchScreen() {
             keyboardShouldPersistTaps="handled"
           />
         </>
+      ) : error ? (
+        <View style={s.errorContainer}>
+          <Ionicons name="cloud-offline-outline" size={48} color={theme.colors.primary} style={{ marginBottom: 12 }} />
+          <Text style={s.errorTitle}>Impossible de rechercher</Text>
+          <Text style={s.errorDesc}>{error}</Text>
+        </View>
       ) : searchText.length >= 3 && !searching ? (
         <View style={s.empty}>
           <Ionicons name="search-outline" size={48} color={theme.colors.textMuted} style={{ opacity: 0.4 }} />
@@ -365,6 +384,26 @@ function getStyles(t: Theme) {
       alignItems: 'center',
       paddingTop: 48,
     },
+    errorContainer: {
+      alignItems: 'center',
+      paddingTop: 48,
+      paddingHorizontal: 32,
+    },
+    errorTitle: {
+      fontFamily: 'PlayfairDisplay_600SemiBold',
+      fontSize: 18,
+      color: t.colors.text,
+      marginTop: 12,
+      textAlign: 'center',
+    },
+    errorDesc: {
+      fontFamily: 'Inter_400Regular',
+      fontSize: 13,
+      color: t.colors.textMuted,
+      textAlign: 'center',
+      lineHeight: 20,
+      marginTop: 8,
+    },
     emptyTitle: {
       fontFamily: 'PlayfairDisplay_600SemiBold',
       fontSize: 18,
@@ -379,6 +418,23 @@ function getStyles(t: Theme) {
       lineHeight: 20,
       marginTop: 8,
       paddingHorizontal: 32,
+    },
+    rateBanner: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'center',
+      gap: 6,
+      paddingVertical: 8,
+      paddingHorizontal: 16,
+      backgroundColor: t.colors.fairSoft,
+      marginHorizontal: 16,
+      marginTop: 8,
+      borderRadius: t.radius.sm,
+    },
+    rateBannerText: {
+      fontFamily: 'Inter_500Medium',
+      fontSize: 12,
+      color: t.colors.fairInk,
     },
   } as const;
 }
